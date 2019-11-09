@@ -10,53 +10,41 @@ import numpy as np
 from scipy import interpolate
 from scipy import signal
 import time
-import to_raster
-import ogr, os, osr
+# import to_raster
+# import ogr, os, osr
 from tqdm import tqdm
 import log_process
 import multiprocessing
 import datetime
-import lon_lat_to_address
+# import lon_lat_to_address
 from scipy import stats, linalg
 import pandas as pd
 import seaborn as sns
 from matplotlib.font_manager import FontProperties
-import imageio
+# import imageio
 from scipy.stats import gaussian_kde as kde
 import matplotlib as mpl
-import analysis
+# import analysis
+# import copy_reg
+import types
+
 this_root = r'd:\\project05\\'
 
 
+def foo_():
+    time.sleep(0.3)
 
 def func():
-    fdir = r'D:\project05\NDVI\per_pix_anomaly\\'
-    spei_dir = r'D:\project05\SPEI\per_pix\\'
-    for f in os.listdir(fdir):
-
-        if not '015' in f:
-            continue
-        print(f)
-        dic = dict(np.load(fdir+f).item())
-        spei_dic = dict(np.load(spei_dir+f).item())
-        for key in dic:
-
-            vals = dic[key]
-            spei = spei_dic[key]
-            if vals[0] == -999999 or spei[0] == -999999:
-                continue
-            print(key)
-            plt.plot(vals)
-            plt.plot(spei)
-            # plt.ylim(-4,4)
-            plt.show()
-
-        print('*******')
-    pass
+    from tqdm import trange
+    for i in tqdm(range(4), desc='1st loop'):
+        for j in tqdm(range(5), desc='2nd loop'):
+            for k in tqdm(range(50), desc='3nd loop', leave=False):
+                time.sleep(0.01)
 
 
 def main():
     func()
-
+    # MULTIPROCESS().func()
+    # MyTask().run()
 if __name__ == '__main__':
     main()

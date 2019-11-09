@@ -25,7 +25,9 @@ from matplotlib.font_manager import FontProperties
 import imageio
 from scipy.stats import gaussian_kde as kde
 import matplotlib as mpl
-
+from multiprocessing.pool import ThreadPool as TPool
+import copy_reg
+import types
 this_root = 'D:\\project05\\'
 # 显示中文
 plt.rcParams['font.sans-serif'] = ['SimHei']
@@ -51,12 +53,15 @@ class Tools:
         # 1、插缺失值
         x = []
         val_new = []
+        flag = 0
         for i in range(len(val)):
-            if val[i] >= -90:
+            if val[i] >= -10:
+                flag+=1.
                 index = i
                 x = np.append(x, index)
                 val_new = np.append(val_new, val[i])
-
+        if flag/len(val) < 0.9:
+            return [None]
         interp = interpolate.interp1d(x, val_new, kind='nearest', fill_value="extrapolate")
 
         xi = range(len(val))
@@ -297,7 +302,7 @@ class Tools:
         pass
 
     def spatial_tif_to_lon_lat_dic(self):
-        tif_template = this_root + 'conf\\tif_template.tif'
+        tif_template = this_root + 'conf\\SPEI.tif'
         arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
         # print(originX, originY, pixelWidth, pixelHeight)
         # exit()
@@ -464,26 +469,25 @@ class Tools:
         # 只适用于单个像素查看，不可大量for循环pix，存在磁盘重复读写现象
         if not os.path.isfile(this_root + 'arr\\pix_to_address_history.npy'):
             np.save(this_root + 'arr\\pix_to_address_history.npy',{0:0})
-        else:
-            history_dic = dict(np.load(this_root + 'arr\\pix_to_address_history.npy').item())
 
-            if pix in history_dic:
-                print(history_dic[pix])
-                print('address from search history')
-                return history_dic[pix]
-            else:
-                lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
-                print(pix)
-                print('address from baidu API')
-                lon, lat = lon_lat_dic[pix]
-                # address = lon_lat_to_address.lonlat_to_address(lon, lat)
-                address = lon_lat_to_address.lonlat_to_address(lon, lat).decode('utf-8')
-                key = pix
-                val = address
-                # address_history = {}
-                history_dic[key] = val
-                np.save(this_root + 'arr\\pix_to_address_history.npy',history_dic)
-                return address
+        lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+        # print(pix)
+        lon, lat = lon_lat_dic[pix]
+        print(lon, lat)
+
+        history_dic = dict(np.load(this_root + 'arr\\pix_to_address_history.npy').item())
+
+        if pix in history_dic:
+            # print(history_dic[pix])
+            return lon,lat,history_dic[pix]
+        else:
+
+            address = lon_lat_to_address.lonlat_to_address(lon, lat).decode('utf-8')
+            key = pix
+            val = address
+            history_dic[key] = val
+            np.save(this_root + 'arr\\pix_to_address_history.npy',history_dic)
+            return lon,lat,address
 
     def arr_to_tif_GDT_Byte(self,array,newRasterfn):
         # template
@@ -640,21 +644,62 @@ class Tools:
 
 
     def gen_lon_lat_address_dic(self):
-        sta_pos_dic = np.load(this_root + 'conf\\sta_pos_dic.npz')
+        sta_pos_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
 
-        sta_add_dic = {}
-        for sta in tqdm(sta_pos_dic):
-            lat,lon = sta_pos_dic[sta]
-            # print(lat,lon)
-            add = lon_lat_to_address.lonlat_to_address(lon, lat).decode('utf-8')
-            # print(add)
-            sta_add_dic[sta] = add
+        # sequential
+        # sta_add_dic = {}
+        # for pix in tqdm(sta_pos_dic):
+        # # for pix in sta_pos_dic:
+        #     lon,lat = sta_pos_dic[pix]
+        #     # print(lat,lon)
+        #     add = lon_lat_to_address.lonlat_to_address(lon, lat).decode('utf-8')
+        #     # print(pix,lon,lat)
+        #     # print(add)
+        #     sta_add_dic[pix] = add
+        # np.save(this_root+'conf\\sta_add_dic',sta_add_dic)
 
-        np.save(this_root+'conf\\sta_add_dic',sta_add_dic)
+        # parallel
+        params = []
+        for pix in sta_pos_dic:
+            params.append([sta_pos_dic,pix])
+        result = MUTIPROCESS(self.kernel_gen_lon_lat_address_dic,params).run(process=50,process_or_thread='t',text='downloading')
+        np.save(this_root + 'conf\\sta_add_dic', result)
 
-    def do_multiprocess(self,func,params,process=6):
-        pool = multiprocessing.Pool(process)
-        results = list(tqdm(pool.imap(func, params), total=len(params), ncols=50))
+
+    def kernel_gen_lon_lat_address_dic(self,params):
+        sta_pos_dic,pix = params
+        lon, lat = sta_pos_dic[pix]
+        # print(lat,lon)
+        add = lon_lat_to_address.lonlat_to_address(lon, lat).decode('utf-8')
+        return add
+        # print(pix,lon,lat)
+        # print(add)
+
+
+
+
+    def do_multiprocess(self,func,params,process=6,process_or_thread='p',**kwargs):
+        '''
+        # 并行计算加进度条
+        :param func: input a kenel_function
+        :param params: para1,para2,para3... = params
+        :param process: number of cpu
+        :param thread_or_process: multi-thread or multi-process,'p' or 't'
+        :param kwargs: tqdm kwargs
+        :return:
+        '''
+        if 'text' in kwargs:
+            kwargs['desc'] = kwargs['text']
+            del kwargs['text']
+
+        if process_or_thread == 'p':
+            pool = multiprocessing.Pool(process)
+        elif process_or_thread == 't':
+            pool = TPool()
+        else:
+            raise IOError('process_or_thread key error, input keyword such as "p" or "t"')
+
+        results = list(tqdm(pool.imap(func, params), total=len(params),**kwargs))
         pool.close()
         pool.join()
         return results
@@ -713,78 +758,451 @@ class Tools:
         np.save(outdir + 'per_pix_dic_%03d' % 0, temp_dic)
 
 
+class MUTIPROCESS:
+    '''
+    可对类内的函数进行多进程并行
+    由于GIL，多线程无法跑满CPU，对于不占用CPU的计算函数可用多线程
+    并行计算加入进度条
+    '''
+    def __init__(self,func,params):
+        self.func = func
+        self.params = params
+        copy_reg.pickle(types.MethodType, self._pickle_method)
+        pass
 
-def kernel_cal_anomaly(params):
-    fdir,f ,save_dir= params
-    pix_dic = dict(np.load(fdir + f).item())
-    anomaly_pix_dic = {}
-    for pix in pix_dic:
-        ####### one pix #######
-        climatology_means = []
-        climatology_std = []
-        for m in range(1, 13):
-            one_mon = []
-            for i in range(len(pix_dic[pix])):
-                mon = i % 12 + 1
-                if mon == m:
-                    one_mon.append(pix_dic[pix][i])
-            mean = np.mean(one_mon)
-            std = np.std(one_mon)
-            climatology_means.append(mean)
-            climatology_std.append(std)
-
-        # 算法1
-        # pix_anomaly = {}
-        # for m in range(1, 13):
-        #     for i in range(len(pix_dic[pix])):
-        #         mon = i % 12 + 1
-        #         if mon == m:
-        #             this_mon_mean_val = climatology_means[mon - 1]
-        #             this_mon_std_val = climatology_std[mon - 1]
-        #             if this_mon_std_val == 0:
-        #                 anomaly = -999999
-        #             else:
-        #                 anomaly = (pix_dic[pix][i] - this_mon_mean_val) / float(this_mon_std_val)
-        #             key_anomaly = i
-        #             pix_anomaly[key_anomaly] = anomaly
-        # arr = pandas.Series(pix_anomaly)
-        # anomaly_list = arr.to_list()
-        # anomaly_pix_dic[pix] = anomaly_list
-
-        # 算法2
-        pix_anomaly = []
-        # for i in range(len(pix_dic[pix])):
+    def _pickle_method(self,m):
+        if m.im_self is None:
+            return getattr, (m.im_class, m.im_func.func_name)
+        else:
+            return getattr, (m.im_self, m.im_func.func_name)
 
 
+    def run(self,process=6,process_or_thread='p',**kwargs):
+        '''
+        # 并行计算加进度条
+        :param func: input a kenel_function
+        :param params: para1,para2,para3... = params
+        :param process: number of cpu
+        :param thread_or_process: multi-thread or multi-process,'p' or 't'
+        :param kwargs: tqdm kwargs
+        :return:
+        '''
+        if 'text' in kwargs:
+            kwargs['desc'] = kwargs['text']
+            del kwargs['text']
+
+        if process_or_thread == 'p':
+            pool = multiprocessing.Pool(process)
+        elif process_or_thread == 't':
+            pool = TPool()
+        else:
+            raise IOError('process_or_thread key error, input keyword such as "p" or "t"')
+
+        results = list(tqdm(pool.imap(self.func, self.params), total=len(self.params),**kwargs))
+        pool.close()
+        pool.join()
+        return results
 
 
 
-    np.save(save_dir + f, anomaly_pix_dic)
+class KDE_plot:
+
+    def __init__(self):
+
+        pass
+
+    def reverse_colourmap(self,cmap, name='my_cmap_r'):
+        """
+        In:
+        cmap, name
+        Out:
+        my_cmap_r
+        Explanation:
+        t[0] goes from 0 to 1
+        row i:   x  y0  y1 -> t[0] t[1] t[2]
+                       /
+                      /
+        row i+1: x  y0  y1 -> t[n] t[1] t[2]
+        so the inverse should do the same:
+        row i+1: x  y1  y0 -> 1-t[0] t[2] t[1]
+                       /
+                      /
+        row i:   x  y1  y0 -> 1-t[n] t[2] t[1]
+        """
+        reverse = []
+        k = []
+
+        for key in cmap._segmentdata:
+            k.append(key)
+            channel = cmap._segmentdata[key]
+            data = []
+
+            for t in channel:
+                data.append((1 - t[0], t[2], t[1]))
+            reverse.append(sorted(data))
+
+        LinearL = dict(zip(k, reverse))
+        my_cmap_r = mpl.colors.LinearSegmentedColormap(name, LinearL)
+        return my_cmap_r
+
+    def makeColours(self, vals, cmap, reverse=0):
+        norm = []
+        for i in vals:
+            norm.append((i - np.min(vals)) / (np.max(vals) - np.min(vals)))
+        colors = []
+        cmap = plt.get_cmap(cmap)
+        if reverse:
+            cmap = self.reverse_colourmap(cmap)
+        else:
+            cmap = cmap
+
+        for i in norm:
+            colors.append(cmap(i))
+        return colors
+
+    def plot_scatter(self,val1, val2, cmap='magma', reverse=0, s=0.3,title=''):
+
+        kde_val = np.array([val1, val2])
+        print('doing kernel density estimation... ')
+        densObj = kde(kde_val)
+        dens_vals = densObj.evaluate(kde_val)
+        colors = self.makeColours(dens_vals, cmap, reverse=reverse)
+        plt.figure()
+        plt.title(title)
+        plt.scatter(val1, val2, c=colors, s=s)
 
 
-def cal_anomaly():
-    fdir = this_root + 'NDVI\\per_pix\\'
-    save_dir = this_root + 'NDVI\\per_pix_anomaly1\\'
-    Tools().mk_dir(save_dir)
-    flist = os.listdir(fdir)
-    time_init = time.time()
-    # flag = 0
-    params = []
-    for f in flist:
-        params.append([fdir,f,save_dir])
 
-    # for p in params:
-    #     kernel_cal_anomaly(p)
-    Tools().do_multiprocess(kernel_cal_anomaly,params)
+class Cal_anomaly:
+    def __init__(self):
+        pass
 
+    def kernel_cal_anomaly(self,params):
+        fdir,f ,save_dir= params
+        pix_dic = dict(np.load(fdir + f).item())
+        anomaly_pix_dic = {}
+        for pix in pix_dic:
+            ####### one pix #######
+            vals = pix_dic[pix]
+            climatology_means = []
+            climatology_std = []
+            for m in range(1, 13):
+                one_mon = []
+                for i in range(len(pix_dic[pix])):
+                    mon = i % 12 + 1
+                    if mon == m:
+                        one_mon.append(pix_dic[pix][i])
+                mean = np.mean(one_mon)
+                std = np.std(one_mon)
+                climatology_means.append(mean)
+                climatology_std.append(std)
+
+            # 算法1
+            # pix_anomaly = {}
+            # for m in range(1, 13):
+            #     for i in range(len(pix_dic[pix])):
+            #         mon = i % 12 + 1
+            #         if mon == m:
+            #             this_mon_mean_val = climatology_means[mon - 1]
+            #             this_mon_std_val = climatology_std[mon - 1]
+            #             if this_mon_std_val == 0:
+            #                 anomaly = -999999
+            #             else:
+            #                 anomaly = (pix_dic[pix][i] - this_mon_mean_val) / float(this_mon_std_val)
+            #             key_anomaly = i
+            #             pix_anomaly[key_anomaly] = anomaly
+            # arr = pandas.Series(pix_anomaly)
+            # anomaly_list = arr.to_list()
+            # anomaly_pix_dic[pix] = anomaly_list
+
+            # 算法2
+            pix_anomaly = []
+            for i in range(len(vals)):
+                mon = i % 12
+                std_ = climatology_std[mon]
+                mean_ = climatology_means[mon]
+                if std_ == 0:
+                    anomaly = -999999
+                else:
+                    anomaly = (vals[i] - mean_)/std_
+
+                pix_anomaly.append(anomaly)
+            anomaly_pix_dic[pix] = pix_anomaly
+
+        np.save(save_dir + f, anomaly_pix_dic)
+
+
+    def cal_anomaly(self,):
+        fdir = this_root + 'NDVI\\per_pix\\'
+        save_dir = this_root + 'NDVI\\per_pix_anomaly2\\'
+        Tools().mk_dir(save_dir)
+        flist = os.listdir(fdir)
+        time_init = time.time()
+        # flag = 0
+        params = []
+        for f in flist:
+            # print(f)
+            params.append([fdir,f,save_dir])
+
+        # for p in params:
+        #     print(p[1])
+        #     kernel_cal_anomaly(p)
+        # Tools().do_multiprocess(self.kernel_cal_anomaly,params,process=2,process_or_thread='t',text='calculating anomaly...')
+        MUTIPROCESS(self.kernel_cal_anomaly,params).run(process=6,process_or_thread='p',text='calculating anomaly...')
+
+
+class Pick_Single_events():
+    def __init__(self):
+
+        pass
+
+    def pick_plot(self):
+        # 作为pick展示
+        # 前36个月和后36个月无极端干旱事件
+        n = 36
+        spei_dir = this_root+'SPEI\\per_pix\\'
+        for f in os.listdir(spei_dir):
+            if '015' not in f:
+                continue
+            print(f)
+            spei_dic = dict(np.load(spei_dir+f).item())
+            for pix in spei_dic:
+
+                spei = spei_dic[pix]
+                spei = Tools().interp_1d(spei)
+                if len(spei) == 1 or spei[0] == -999999:
+                    continue
+                spei = Tools().forward_window_smooth(spei, 3)
+                params = [spei,pix,n]
+                events_dic, key = self.kernel_find_drought_period(params)
+
+                events_4 = [] # 严重干旱事件
+                for i in events_dic:
+                    level, date_range = events_dic[i]
+                    # print(level,date_range)
+                    if level == 4:
+                        events_4.append(date_range)
+
+                for i in range(len(events_4)):
+                    spei_v = self.get_spei_vals(spei, events_4[i])
+                    plt.plot(events_4[i], spei_v, c='black',zorder=99)
+
+                    if i - 1 < 0:# 首次事件
+                        if events_4[i][0] - n < 0 or events_4[i][-1] + n >= len(spei):# 触及两边则忽略
+                            continue
+                        if len(events_4) == 1:
+                            spei_v = self.get_spei_vals(spei, events_4[i])
+                            plt.plot(events_4[i], spei_v, linewidth=6, c='g')
+                        elif events_4[i][-1] + n <= events_4[i+1][0]:
+                            spei_v = self.get_spei_vals(spei, events_4[i])
+                            plt.plot(events_4[i], spei_v, linewidth=6, c='g')
+                        continue
+
+                    # 最后一次事件
+                    if i + 1 >= len(events_4):
+                        if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= len(spei):
+                            spei_v = self.get_spei_vals(spei, events_4[i])
+                            plt.plot(events_4[i], spei_v, linewidth=6, c='g')
+
+                        break
+
+                    # 中间事件
+                    if events_4[i][0] - events_4[i-1][-1] >= n and events_4[i][-1] + n <= events_4[i+1][0]:
+                        spei_v = self.get_spei_vals(spei, events_4[i])
+                        plt.plot(events_4[i], spei_v, linewidth=6, c='g')
+
+                #################### PLOT ##################
+                print(pix)
+                lon, lat, add = Tools().pix_to_address(pix)
+                print(add)
+                plt.plot(spei,'r')
+                plt.title(add+'_{}.{}'.format(lon,lat))
+                plt.plot(range(len(spei)),[-2]*len(spei),'--',c='black')
+                plt.plot(range(len(spei)),[-0.5]*len(spei),'--',c='black')
+                plt.grid()
+                plt.show()
+                print('******')
+                #################### PLOT ##################
+        pass
+
+
+    def get_spei_vals(self,spei,indxs):
+        picked_vals = []
+        for i in indxs:
+            picked_vals.append(spei[i])
+        return picked_vals
+
+
+    def pick(self):
+        # 前36个月和后36个月无极端干旱事件
+        n = 24
+        spei_dir = this_root+'SPEI\\per_pix\\'
+        out_dir = this_root+'SPEI\\single_events_{}\\'.format(n)
+        Tools().mk_dir(out_dir)
+        for f in tqdm(os.listdir(spei_dir)):
+            spei_dic = dict(np.load(spei_dir+f).item())
+            single_event_dic = {}
+            for pix in spei_dic:
+                spei = spei_dic[pix]
+                spei = Tools().interp_1d(spei)
+                if len(spei) == 1 or spei[0] == -999999:
+                    single_event_dic[pix] = []
+                    continue
+                spei = Tools().forward_window_smooth(spei, 3)
+                params = [spei,pix,n]
+                events_dic, key = self.kernel_find_drought_period(params)
+
+                events_4 = [] # 严重干旱事件
+                for i in events_dic:
+                    level, date_range = events_dic[i]
+                    if level == 4:
+                        events_4.append(date_range)
+                single_event = []
+                for i in range(len(events_4)):
+                    if i - 1 < 0:# 首次事件
+                        if events_4[i][0] - n < 0 or events_4[i][-1] + n >= len(spei):# 触及两边则忽略
+                            continue
+                        if len(events_4) == 1:
+                            single_event.append(events_4[i])
+                        elif events_4[i][-1] + n <= events_4[i+1][0]:
+                            single_event.append(events_4[i])
+                        continue
+
+                    # 最后一次事件
+                    if i + 1 >= len(events_4):
+                        if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= len(spei):
+                            single_event.append(events_4[i])
+                        break
+
+                    # 中间事件
+                    if events_4[i][0] - events_4[i-1][-1] >= n and events_4[i][-1] + n <= events_4[i+1][0]:
+                        single_event.append(events_4[i])
+                single_event_dic[pix] = single_event
+            np.save(out_dir+f,single_event_dic)
+
+
+    def kernel_find_drought_period(self,params):
+        # 根据不同干旱程度查找干旱时期
+        pdsi = params[0]
+        key = params[1]
+        n = params[2]
+        drought_month = []
+        for i, val in enumerate(pdsi):
+            if val < -0.5:
+                drought_month.append(i)
+            else:
+                drought_month.append(-99)
+        # plt.plot(drought_month)
+        # plt.show()
+        events = []
+        event_i = []
+        for ii in drought_month:
+            if ii > -99:
+                event_i.append(ii)
+            else:
+                if len(event_i) > 3:
+                    events.append(event_i)
+                    event_i = []
+                else:
+                    event_i = []
+        # print(len(pdsi))
+        # print(event_i)
+        if len(event_i) > 3:
+            events.append(event_i)
+
+        # print(events)
+
+        # 去除两头小于0的index
+        # events_new = []
+        # for event in events:
+        #     print(event)
+        # exit()
+
+        flag = 0
+        events_dic = {}
+
+        # 取两个端点
+        for i in events:
+            # print(i)
+            # 去除两端pdsi值小于-0.5
+            if 0 in i or len(pdsi) - 1 in i:
+                continue
+            new_i = []
+            for jj in i:
+                # print(jj)
+                if jj - 1 >= 0:
+                    new_i.append(jj - 1)
+                else:
+                    pass
+            new_i.append(i[-1])
+            if i[-1] + 1 < len(pdsi):
+                new_i.append(i[-1] + 1)
+            # print(new_i)
+            # exit()
+            flag += 1
+            vals = []
+            for j in new_i:
+                try:
+                    vals.append(pdsi[j])
+                except:
+                    print(j)
+                    print('error')
+                    print(new_i)
+                    exit()
+            # print(vals)
+
+            # if 0 in new_i:
+
+            min_val = min(vals)
+            if -1 <= min_val < -.5:
+                level = 1
+            elif -1.5 <= min_val < -1.:
+                level = 2
+            elif -2 <= min_val < -1.5:
+                level = 3
+            elif min_val <= -2.:
+                level = 4
+            else:
+                print('error')
+                print(vals)
+                print(min_val)
+                time.sleep(1)
+                continue
+            events_dic[flag] = [level, new_i]
+            # print(min_val)
+            # plt.plot(vals)
+            # plt.show()
+        # for key in events_dic:
+        #     # print key,events_dic[key]
+        #     if 0 in events_dic[key][1]:
+        #         print(events_dic[key])
+        # exit()
+        return events_dic, key
+
+    def pick_extreme_events(self):
+
+
+        pass
 
 def main():
 
-    fdir = this_root+'SPEI\\tif\\'
-    outdir = this_root+'SPEI\\per_pix\\'
-    Tools().mk_dir(outdir)
+    # fdir = this_root+'SPEI\\tif\\'
+    # outdir = this_root+'SPEI\\per_pix\\'
+    # Tools().mk_dir(outdir)
     # Tools().data_transform(fdir,outdir)
-    cal_anomaly()
+    # Cal_anomaly().cal_anomaly()
+
+    Pick_Single_events().pick()
+    # Tools().pix()
+    # Tools().pix()
+    # Tools().gen_lon_lat_address_dic()
+
+
+
+
+
+    pass
+
 
 
 if __name__ == '__main__':
