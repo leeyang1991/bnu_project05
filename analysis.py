@@ -1223,13 +1223,16 @@ class Pick_Single_events():
 class Recovery_time:
 
     def __init__(self):
-        # interval = 6
-        self.plot_recovery_time()
+        interval = 'PDSI'
+        # self.plot_recovery_time()
+        # 1 生成per_pix恢复期
         # self.gen_recovery_time(interval)
         # self.plot_recovery_period_per_pix()
         # self.per_pix_dic_to_spatial_tif(interval)
+        # 2 合成SPEI 3 6 9 12 和 PDSI恢复期
         # self.composite_recovery_time()
-        # self.plot_composite_recovery_time()
+        # 3 绘制composite图
+        self.plot_composite_recovery_time()
 
         pass
 
@@ -1385,10 +1388,17 @@ class Recovery_time:
         ndv = -999999
         # 生成逐个像元恢复期
         n = 24 # 选取干旱事件前n个月的NDVI平均值，
-        spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{:0>2d}\\'.format(interval)
+        if interval == 'PDSI':
+            spei_dir = this_root + 'PDSI\\per_pix\\'
+            single_dir = this_root + 'PDSI\\single_events\\'
+            out_dir = this_root + 'PDSI\\recovery_time_per_pix\\'
+
+        else:
+            spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{:0>2d}\\'.format(interval)
+            single_dir = this_root+'SPEI\\single_events_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
+            out_dir = this_root + 'SPEI\\recovery_time_per_pix_{}\\'.format(n) + 'SPEI_{:0>2d}\\'.format(interval)
+
         ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
-        single_dir = this_root+'SPEI\\single_events_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
-        out_dir = this_root+'SPEI\\recovery_time_per_pix_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
         Tools().mk_dir(out_dir)
         for f in tqdm(os.listdir(spei_dir)):
             spei_dic = dict(np.load(spei_dir + f).item())
@@ -1570,8 +1580,9 @@ class Recovery_time:
     def composite_recovery_time(self):
         # for interval in [3,6,9,12]:
         fdir = this_root+'SPEI\\recovery_time_per_pix_24\\SPEI_03\\'
-        outdir = this_root+'SPEI\\recovery_time_per_pix_24\\composite\\'
-        Tools().mk_dir(outdir)
+        # outdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI_PDSI\\'
+        outdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI\\'
+        Tools().mk_dir(outdir,force=1)
         flist = os.listdir(fdir)
         for f in tqdm(flist):
             void_dic = {}
@@ -1588,13 +1599,23 @@ class Recovery_time:
                 for pix in dic:
                     vals = dic[pix]
                     void_dic[pix].append(vals)
+            # 加PDSI
+            # pdsi_fdir_ = this_root+'PDSI\\recovery_time_per_pix\\'
+            # dic = dict(np.load(pdsi_fdir_ + f).item())
+            # for pix in dic:
+            #     vals = dic[pix]
+            #     void_dic[pix].append(vals)
+
             np.save(outdir+f,void_dic)
 
         pass
 
     def plot_composite_recovery_time(self):
-        fdir = this_root+'SPEI\\recovery_time_per_pix_24\\composite\\'
+        # fdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI\\'
+        fdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI_PDSI\\'
         outfolder = this_root+'SPEI\\recovery_tif\\'
+        outf = outfolder+'recovery_PDSI_SPEI.tif'
+        # outf = outfolder+'recovery_SPEI.tif'
         tif_template = this_root + 'conf\\SPEI.tif'
         _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
 
@@ -1640,7 +1661,7 @@ class Recovery_time:
         grid = np.isnan(spatial)
         grid = np.logical_not(grid)
         spatial[np.logical_not(grid)] = -999999
-        to_raster.array2raster(outfolder + 'recovery_time_composite.tif', originX, originY, pixelWidth, pixelHeight, spatial)
+        to_raster.array2raster(outf, originX, originY, pixelWidth, pixelHeight, spatial)
 
 
 def main():
@@ -1648,11 +1669,11 @@ def main():
     # fdir = this_root+'PDSI\\tif_resample_0.5\\'
     # outdir = this_root+'PDSI\\per_pix\\'
     # Tools().data_transform(fdir,outdir)
-    Pick_Single_events(1)
+    # Pick_Single_events(1)
     # Cal_anomaly()
     # interval = 12
     # Pick_Single_events(interval)
-    # Recovery_time()
+    Recovery_time()
 
 
     pass
