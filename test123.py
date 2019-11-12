@@ -27,6 +27,7 @@ import matplotlib as mpl
 # import analysis
 # import copy_reg
 import types
+import sys
 
 this_root = r'd:\\project05\\'
 
@@ -35,16 +36,13 @@ def foo_():
     time.sleep(0.3)
 
 def func():
-    from tqdm import trange
-    for i in tqdm(range(4), desc='1st loop'):
-        for j in tqdm(range(5), desc='2nd loop'):
-            for k in tqdm(range(50), desc='3nd loop', leave=False):
-                time.sleep(0.01)
+    interval = 50
+    a = 'SPEI\\per_pix\\SPEI_{:1>3d}\\'.format(interval)
+    print(a)
 
+    pass
 
 def main():
     func()
-    # MULTIPROCESS().func()
-    # MyTask().run()
 if __name__ == '__main__':
     main()

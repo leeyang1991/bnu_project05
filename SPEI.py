@@ -1,5 +1,4 @@
 # coding=gbk
-# coding=utf-8
 '''
 author: LiYang
 Date: 20191108
@@ -93,8 +92,10 @@ def nc_to_npz(nc,npz_out):
     np.savez(npz_out,**nc_dic)
 
 
-def nc_to_tif(nc):
-    outdir = this_root+'SPEI\\tif\\'
+def nc_to_tif(nc,outdir):
+    # outdir = this_root+'SPEI\\tif\\'
+    import analysis
+    analysis.Tools().mk_dir(outdir)
     ncin = Dataset(nc, 'r')
 
     lat = ncin['lat'][::-1]
@@ -151,10 +152,13 @@ def nc_to_tif(nc):
         # exit()
 
 def main():
-    nc = this_root+'SPEI\\download_from_web\\spei03.nc'
+    n=12
+    n='%02d'%n
+    nc = this_root+'SPEI\\download_from_web\\spei{}.nc'.format(n)
+    out_dir = this_root+'SPEI\\tif\\SPEI_{}\\'.format(n)
     # npz = this_root+'SPEI\\npz\\spei_3'
     # nc_to_npz(nc,npz)
-    nc_to_tif(nc)
+    nc_to_tif(nc,out_dir)
 
 if __name__ == '__main__':
     main()
