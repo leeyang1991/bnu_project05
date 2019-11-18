@@ -33,7 +33,11 @@ this_root = r'd:\\project05\\'
 
 
 def foo_():
-    time.sleep(0.3)
+    for i in tqdm(range(1000)):
+        for j in tqdm(range(100),desc=str(i),ncols=70):
+            time.sleep(0.01)
+        sys.stdout('clear')
+
 
 def func():
     interval = 50
@@ -42,7 +46,8 @@ def func():
 
     pass
 
+
 def main():
-    func()
+    foo_()
 if __name__ == '__main__':
     main()

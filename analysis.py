@@ -239,88 +239,8 @@ class Tools:
 
 
 
-    def per_pix_dic_to_spatial_tif(self,mode,folder):
-
-        outfolder = this_root+mode+'\\'+folder+'_tif\\'
-        self.mk_dir(outfolder)
-        tif_template = this_root+'conf\\tif_template.tif'
-        _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
-        fdir = this_root+mode+'\\'+folder+'\\'
-        flist = os.listdir(fdir)
-        for f in flist:
-            print(f)
-
-        spatial_dic = {}
-        for f in tqdm(flist):
-            pix_dic = dict(np.load(fdir + f).item())
-            for pix in pix_dic:
-                vals = pix_dic[pix]
-                spatial_dic[pix] = vals
-        x = []
-        y = []
-        for key in spatial_dic:
-            key_split = key.split('.')
-            x.append(key_split[0])
-            y.append(key_split[1])
-        row = len(set(x))
-        col = len(set(y))
-
-        for date in tqdm(range(len(spatial_dic['0000.0000']))):
-            spatial = []
-            for r in range(row):
-                temp = []
-                for c in range(col):
-                    key = '%03d.%03d' % (r, c)
-                    val_pix = spatial_dic[key][date]
-                    temp.append(val_pix)
-                spatial.append(temp)
-            spatial = np.array(spatial)
-            grid = np.isnan(spatial)
-            grid = np.logical_not(grid)
-            spatial[np.logical_not(grid)] = -999999
-            to_raster.array2raster(outfolder+'%03d.tif'%date,originX, originY, pixelWidth, pixelHeight,spatial)
-            # plt.imshow(spatial)
-            # plt.colorbar()
-            # plt.show()
 
 
-
-
-        # x = []
-        # y = []
-        # for key in spatial_dic:
-        #     key_split = key.split('.')
-        #     x.append(key_split[0])
-        #     y.append(key_split[1])
-        # row = len(set(x))
-        # col = len(set(y))
-        # spatial = []
-        # all_vals = []
-        # for r in tqdm(range(row)):
-        #     temp = []
-        #     for c in range(col):
-        #         key = '%03d.%03d' % (r, c)
-        #         val_pix = spatial_dic[key]
-        #         temp.append(val_pix)
-        #         all_vals.append(val_pix)
-        #     spatial.append(temp)
-
-        pass
-
-    def spatial_tif_to_lon_lat_dic(self):
-        tif_template = this_root + 'conf\\SPEI.tif'
-        arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
-        # print(originX, originY, pixelWidth, pixelHeight)
-        # exit()
-        pix_to_lon_lat_dic = {}
-        for i in tqdm(range(len(arr))):
-            for j in range(len(arr[0])):
-                pix = '%03d.%03d'%(i,j)
-                lon = originX+pixelWidth*j
-                lat = originY+pixelHeight*i
-                pix_to_lon_lat_dic[pix] = [lon,lat]
-        print('saving')
-        np.save(this_root+'arr\\pix_to_lon_lat_dic',pix_to_lon_lat_dic)
 
 
     def gen_lag_arr(self,arr1,arr2,lag):
@@ -429,47 +349,7 @@ class Tools:
 
         return P_corr
 
-    def pix_dic_to_spatial_arr(self,spatial_dic):
 
-        x = []
-        y = []
-        for key in spatial_dic:
-            key_split = key.split('.')
-            x.append(key_split[0])
-            y.append(key_split[1])
-        row = len(set(x))
-        col = len(set(y))
-        spatial = []
-        for r in range(row):
-            temp = []
-            for c in range(col):
-                key = '%03d.%03d' % (r, c)
-                if key in spatial_dic:
-                    val_pix = spatial_dic[key]
-                    temp.append(val_pix)
-                else:
-                    temp.append(np.nan)
-            spatial.append(temp)
-
-        # hist = []
-        # for v in all_vals:
-        #     if not np.isnan(v):
-        #         if 00<v<1.5:
-        #             hist.append(v)
-
-        spatial = np.array(spatial)
-        return spatial
-        # # plt.figure()
-        # # plt.hist(hist,bins=100)
-        # # plt.title(str(set_level))
-        # plt.figure()
-        # # spatial = np.ma.masked_where(spatial<0,spatial)
-        # # spatial = np.ma.masked_where(spatial>2,spatial)
-        # # plt.imshow(spatial,'RdBu_r',vmin=0.7 ,vmax=1.3)
-        # plt.imshow(spatial, 'RdBu_r')
-        # plt.colorbar()
-        # # plt.title(str(set_level))
-        # plt.show()
 
     def pix_to_address(self,pix):
         # 只适用于单个像素查看，不可大量for循环pix，存在磁盘重复读写现象
@@ -495,29 +375,13 @@ class Tools:
             np.save(this_root + 'arr\\pix_to_address_history.npy',history_dic)
             return lon,lat,address
 
-    def arr_to_tif_GDT_Byte(self,array,newRasterfn):
-        # template
-        tif_template = this_root + 'conf\\tif_template.tif'
-        _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
-        grid_nan = np.isnan(array)
-        grid = np.logical_not(grid_nan)
-        array[np.logical_not(grid)] = 255
-        to_raster.array2raster_GDT_Byte(newRasterfn,originX, originY,pixelWidth,pixelHeight,array)
-        pass
-
-    def arr_to_tif(self,array,newRasterfn):
-        # template
-        tif_template = this_root + 'conf\\tif_template.tif'
-        _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
-        grid_nan = np.isnan(array)
-        grid = np.logical_not(grid_nan)
-        array[np.logical_not(grid)] = -999999
-        to_raster.array2raster(newRasterfn,originX, originY,pixelWidth,pixelHeight,array)
-        pass
 
 
-    def pick_vals_from_array(self,array, index):
 
+
+
+    def pick_vals_from_2darray(self,array, index):
+        # 2d
         ################# check zone #################
         # plt.imshow(array)
         # for r,c in index:
@@ -535,6 +399,14 @@ class Tools:
         picked_val = np.array(picked_val)
         return picked_val
         pass
+
+    def pick_vals_from_1darray(self,arr, index):
+        # 1d
+        picked_vals = []
+        for i in index:
+            picked_vals.append(arr[i])
+        return picked_vals
+
 
 
     def filter_3_sigma(self,arr_list):
@@ -684,31 +556,6 @@ class Tools:
 
 
 
-    def do_multiprocess(self,func,params,process=6,process_or_thread='p',**kwargs):
-        '''
-        # 并行计算加进度条
-        :param func: input a kenel_function
-        :param params: para1,para2,para3... = params
-        :param process: number of cpu
-        :param thread_or_process: multi-thread or multi-process,'p' or 't'
-        :param kwargs: tqdm kwargs
-        :return:
-        '''
-        if 'text' in kwargs:
-            kwargs['desc'] = kwargs['text']
-            del kwargs['text']
-
-        if process_or_thread == 'p':
-            pool = multiprocessing.Pool(process)
-        elif process_or_thread == 't':
-            pool = TPool()
-        else:
-            raise IOError('process_or_thread key error, input keyword such as "p" or "t"')
-
-        results = list(tqdm(pool.imap(func, params), total=len(params),**kwargs))
-        pool.close()
-        pool.join()
-        return results
 
     def data_transform(self,fdir,outdir):
         self.mk_dir(outdir)
@@ -763,6 +610,165 @@ class Tools:
                 np.save(outdir + 'per_pix_dic_%03d' % (flag / 10000), temp_dic)
                 temp_dic = {}
         np.save(outdir + 'per_pix_dic_%03d' % 0, temp_dic)
+
+
+
+
+
+class DIC_and_TIF:
+    def __init__(self):
+
+        pass
+
+
+    def per_pix_dic_to_spatial_tif(self,mode,folder):
+
+        outfolder = this_root+mode+'\\'+folder+'_tif\\'
+        Tools().mk_dir(outfolder)
+        tif_template = this_root+'conf\\tif_template.tif'
+        _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+        fdir = this_root+mode+'\\'+folder+'\\'
+        flist = os.listdir(fdir)
+        for f in flist:
+            print(f)
+
+        spatial_dic = {}
+        for f in tqdm(flist):
+            pix_dic = dict(np.load(fdir + f).item())
+            for pix in pix_dic:
+                vals = pix_dic[pix]
+                spatial_dic[pix] = vals
+        x = []
+        y = []
+        for key in spatial_dic:
+            key_split = key.split('.')
+            x.append(key_split[0])
+            y.append(key_split[1])
+        row = len(set(x))
+        col = len(set(y))
+
+        for date in tqdm(range(len(spatial_dic['0000.0000']))):
+            spatial = []
+            for r in range(row):
+                temp = []
+                for c in range(col):
+                    key = '%03d.%03d' % (r, c)
+                    val_pix = spatial_dic[key][date]
+                    temp.append(val_pix)
+                spatial.append(temp)
+            spatial = np.array(spatial)
+            grid = np.isnan(spatial)
+            grid = np.logical_not(grid)
+            spatial[np.logical_not(grid)] = -999999
+            to_raster.array2raster(outfolder+'%03d.tif'%date,originX, originY, pixelWidth, pixelHeight,spatial)
+            # plt.imshow(spatial)
+            # plt.colorbar()
+            # plt.show()
+
+
+
+
+        # x = []
+        # y = []
+        # for key in spatial_dic:
+        #     key_split = key.split('.')
+        #     x.append(key_split[0])
+        #     y.append(key_split[1])
+        # row = len(set(x))
+        # col = len(set(y))
+        # spatial = []
+        # all_vals = []
+        # for r in tqdm(range(row)):
+        #     temp = []
+        #     for c in range(col):
+        #         key = '%03d.%03d' % (r, c)
+        #         val_pix = spatial_dic[key]
+        #         temp.append(val_pix)
+        #         all_vals.append(val_pix)
+        #     spatial.append(temp)
+
+        pass
+
+    def arr_to_tif(self,array,newRasterfn):
+        # template
+        tif_template = this_root + 'conf\\tif_template.tif'
+        _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+        grid_nan = np.isnan(array)
+        grid = np.logical_not(grid_nan)
+        array[np.logical_not(grid)] = -999999
+        to_raster.array2raster(newRasterfn,originX, originY,pixelWidth,pixelHeight,array)
+        pass
+
+
+    def arr_to_tif_GDT_Byte(self,array,newRasterfn):
+        # template
+        tif_template = this_root + 'conf\\tif_template.tif'
+        _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+        grid_nan = np.isnan(array)
+        grid = np.logical_not(grid_nan)
+        array[np.logical_not(grid)] = 255
+        to_raster.array2raster_GDT_Byte(newRasterfn,originX, originY,pixelWidth,pixelHeight,array)
+        pass
+
+
+    def pix_dic_to_spatial_arr(self,spatial_dic):
+
+        x = []
+        y = []
+        for key in spatial_dic:
+            key_split = key.split('.')
+            x.append(key_split[0])
+            y.append(key_split[1])
+        row = len(set(x))
+        col = len(set(y))
+        spatial = []
+        for r in range(row):
+            temp = []
+            for c in range(col):
+                key = '%03d.%03d' % (r, c)
+                if key in spatial_dic:
+                    val_pix = spatial_dic[key]
+                    temp.append(val_pix)
+                else:
+                    temp.append(np.nan)
+            spatial.append(temp)
+
+        # hist = []
+        # for v in all_vals:
+        #     if not np.isnan(v):
+        #         if 00<v<1.5:
+        #             hist.append(v)
+
+        spatial = np.array(spatial)
+        return spatial
+        # # plt.figure()
+        # # plt.hist(hist,bins=100)
+        # # plt.title(str(set_level))
+        # plt.figure()
+        # # spatial = np.ma.masked_where(spatial<0,spatial)
+        # # spatial = np.ma.masked_where(spatial>2,spatial)
+        # # plt.imshow(spatial,'RdBu_r',vmin=0.7 ,vmax=1.3)
+        # plt.imshow(spatial, 'RdBu_r')
+        # plt.colorbar()
+        # # plt.title(str(set_level))
+        # plt.show()
+
+
+    def spatial_tif_to_lon_lat_dic(self):
+        tif_template = this_root + 'conf\\SPEI.tif'
+        arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+        # print(originX, originY, pixelWidth, pixelHeight)
+        # exit()
+        pix_to_lon_lat_dic = {}
+        for i in tqdm(range(len(arr))):
+            for j in range(len(arr[0])):
+                pix = '%03d.%03d'%(i,j)
+                lon = originX+pixelWidth*j
+                lat = originY+pixelHeight*i
+                pix_to_lon_lat_dic[pix] = [lon,lat]
+        print('saving')
+        np.save(this_root+'arr\\pix_to_lon_lat_dic',pix_to_lon_lat_dic)
+
 
 
 class MUTIPROCESS:
@@ -964,15 +970,18 @@ class Cal_anomaly:
 
 
 class Pick_Single_events():
-    def __init__(self,interval):
-        self.pick(interval)
+    def __init__(self):
+        # self.pick_plot()
+        # self.pick_growing_season_events(3)
+        # self.composite_global(3)
+        self.check_global_dic()
         pass
 
     def pick_plot(self):
         # 作为pick展示
         # 前36个月和后36个月无极端干旱事件
         n = 36
-        spei_dir = this_root+'SPEI\\per_pix\\'
+        spei_dir = this_root+'SPEI\\per_pix\\SPEI_03\\'
         for f in os.listdir(spei_dir):
             if '015' not in f:
                 continue
@@ -1044,14 +1053,31 @@ class Pick_Single_events():
             picked_vals.append(spei[i])
         return picked_vals
 
+    def get_min_spei_index(self,spei,indexs):
+        min_index = 99999
+        min_val = 99999
+        for i in indexs:
+            val = spei[i]
+            if val < min_val:
+                min_val = val
+                min_index = i
+        return min_index
+
+    def index_to_mon(self,ind):
+
+        # base_date = '198201'
+        mon = ind%12+1
+        return mon
+
+        pass
 
     def pick(self,interval):
-        # 前36个月和后36个月无极端干旱事件
+        # 前n个月和后n个月无极端干旱事件
         n = 24
-        # spei_dir = this_root+'SPEI\\per_pix\\'+'SPEI_{:0>2d}\\'.format(interval)
-        spei_dir = this_root+'PDSI\\per_pix\\'
-        # out_dir = this_root+'SPEI\\single_events_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
-        out_dir = this_root+'PDSI\\single_events\\'
+        spei_dir = this_root+'SPEI\\per_pix\\'+'SPEI_{:0>2d}\\'.format(interval)
+        # spei_dir = this_root+'PDSI\\per_pix\\'
+        out_dir = this_root+'SPEI\\single_events_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
+        # out_dir = this_root+'PDSI\\single_events\\'
         Tools().mk_dir(out_dir)
         for f in tqdm(os.listdir(spei_dir),'file...'):
             spei_dic = dict(np.load(spei_dir+f).item())
@@ -1071,6 +1097,8 @@ class Pick_Single_events():
                     level, date_range = events_dic[i]
                     if level == 4:
                         events_4.append(date_range)
+
+                # 筛选单次事件（前后n个月无干旱事件）
                 single_event = []
                 for i in range(len(events_4)):
                     if i - 1 < 0:# 首次事件
@@ -1093,7 +1121,6 @@ class Pick_Single_events():
                         single_event.append(events_4[i])
                 single_event_dic[pix] = single_event
             np.save(out_dir+f,single_event_dic)
-
 
     def kernel_find_drought_period(self,params):
         # 根据不同干旱程度查找干旱时期
@@ -1166,7 +1193,7 @@ class Pick_Single_events():
             # print(vals)
 
             # if 0 in new_i:
-
+            # SPEI
             # min_val = min(vals)
             # if -1 <= min_val < -.5:
             #     level = 1
@@ -1183,6 +1210,7 @@ class Pick_Single_events():
             #     time.sleep(1)
             #     continue
 
+            # PDSI
             min_val = min(vals)
             if -2 <= min_val < -1:
                 level = 1
@@ -1213,18 +1241,113 @@ class Pick_Single_events():
         # exit()
         return events_dic, key
 
-    def pick_extreme_events(self):
+    def split_winter(self):
+        # 筛选 -30度 ~ 30度之间为无冬季
+        # -30度以下生长季为11-3月
+        # 30度以上生长季为5-9月
+        pix_lon_lat_dic = dict(np.load(this_root+'arr\\pix_to_lon_lat_dic.npy').item())
+        save_dir = this_root+'arr\\split_winter\\'
+        Tools().mk_dir(save_dir)
 
+        north_hemi_pixs = {}
+        south_hemi_pixs = {}
+        tropical_pixs = {}
+        for pix in tqdm(pix_lon_lat_dic):
+            lon,lat = pix_lon_lat_dic[pix]
+            if lat <= -30:
+                south_hemi_pixs[pix] = [lon,lat]
+            elif -30 < lat < 30:
+                tropical_pixs[pix] = [lon,lat]
+            else:
+                north_hemi_pixs[pix] = [lon,lat]
+
+        np.save(save_dir+'north_hemi_pixs',north_hemi_pixs)
+        np.save(save_dir+'south_hemi_pixs',south_hemi_pixs)
+        np.save(save_dir+'tropical_pixs',tropical_pixs)
 
         pass
+    def pick_growing_season_events(self,interval):
+        # north: 5-9
+        # south: 11-3
+        # tropical: 1-12
 
+        interval = '%02d'%interval
 
+        out_dir = this_root+'SPEI\\pick_growing_season_events\\SPEI_{}\\'.format(interval)
+        Tools().mk_dir(out_dir,force=True)
+        print 'loading hemi pix'
+        north_hemi_pix = dict(np.load(this_root+'arr\\split_winter\\north_hemi_pixs.npy').item())
+        south_hemi_pix = dict(np.load(this_root+'arr\\split_winter\\south_hemi_pixs.npy').item())
+        tropical_pix = dict(np.load(this_root+'arr\\split_winter\\tropical_pixs.npy').item())
+        print 'done'
+        SPEI_dir = this_root+'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
+        single_event_dir = this_root+'SPEI\\single_events_24\\SPEI_{}\\'.format(interval)
+        hemi_pix_dic = {'north_hemi_pix':north_hemi_pix,'south_hemi_pix':south_hemi_pix,'tropical_pix':tropical_pix}
+        for pixes_dic in hemi_pix_dic:
+            if pixes_dic == 'north_hemi_pix':
+                growing_date_range = range(5,10)
+            elif pixes_dic == 'south_hemi_pix':
+                growing_date_range = [11,12,1,2,3]
+            else:
+                growing_date_range = range(1,13)
+            hemi_dic = {}
+            for f in tqdm(os.listdir(single_event_dir)):
+                dic = dict(np.load(single_event_dir+f).item())
+                spei_dic = dict(np.load(SPEI_dir+f).item())
+                for pix in dic:
+                    if pix in hemi_pix_dic[pixes_dic]:
+                        val = dic[pix]
+                        spei = spei_dic[pix]
+                        spei = Tools().forward_window_smooth(spei,3)
+                        if len(val) > 0:
+                            selected_date_range = []
+                            for date_range in val:
+                                # picked_vals = self.get_spei_vals(spei,date_range)
+                                min_index = self.get_min_spei_index(spei,date_range)
+                                mon = self.index_to_mon(min_index)
+                                if mon in growing_date_range:
+                                    # hemi_dic[pix] = date_range
+                                    selected_date_range.append(date_range)
+                            hemi_dic[pix] = selected_date_range
+            np.save(out_dir+pixes_dic,hemi_dic)
+
+    def composite_global(self,interval):
+        interval = '%02d'%interval
+        outdir = this_root+'SPEI\\pick_growing_season_events\\SPEI_{}\\'.format(interval)
+        dic_north = this_root+'SPEI\\pick_growing_season_events\\SPEI_{}\\north_hemi_pix.npy'.format(interval)
+        dic_south = this_root+'SPEI\\pick_growing_season_events\\SPEI_{}\\south_hemi_pix.npy'.format(interval)
+        dic_tropical = this_root+'SPEI\\pick_growing_season_events\\SPEI_{}\\tropical_pix.npy'.format(interval)
+        north = dict(np.load(dic_north.format(interval)).item())
+        south = dict(np.load(dic_south.format(interval)).item())
+        tropical = dict(np.load(dic_tropical.format(interval)).item())
+        global_dic ={}
+        for zone in [north,south,tropical]:
+            for pix in zone:
+                global_dic[pix] = zone[pix]
+
+        # global_dic_valid = {}
+        # for pix in global_dic:
+        #     val = global_dic[pix]
+        #     if len(val)>0:
+        #         global_dic_valid[pix] = 1
+        # arr = DIC_and_TIF().pix_dic_to_spatial_arr(global_dic_valid)
+        # plt.imshow(arr)
+        # plt.show()
+        np.save(outdir+'global_pix',global_dic)
+
+    def check_global_dic(self):
+        fdir = r'D:\project05\SPEI\pick_growing_season_events\SPEI_03\\'
+        f = fdir+'global_pix.npy'
+        dic = dict(np.load(f).item())
+        for pix in dic:
+            print pix
+            print dic[pix]
 
 class Recovery_time:
 
     def __init__(self):
         interval = 'PDSI'
-        # self.plot_recovery_time()
+        self.plot_recovery_time()
         # 1 生成per_pix恢复期
         # self.gen_recovery_time(interval)
         # self.plot_recovery_period_per_pix()
@@ -1232,7 +1355,7 @@ class Recovery_time:
         # 2 合成SPEI 3 6 9 12 和 PDSI恢复期
         # self.composite_recovery_time()
         # 3 绘制composite图
-        self.plot_composite_recovery_time()
+        # self.plot_composite_recovery_time()
 
         pass
 
@@ -1350,8 +1473,8 @@ class Recovery_time:
                 # plt.plot(range(len(mode_vals)), [-1.5] * len(mode_vals), '--', c='black')
                 plt.plot(range(len(mode_vals)), [-2.0] * len(mode_vals), '--', c='black')
 
-                plt.plot([], [], c='r', linewidth=4, label='Recovery Periods' + ' (in different colors)')
-                plt.plot([], [], '--', c='black', linewidth=2, label='Drought Events' + ' (in different colors)')
+                plt.plot([], [], c='r', linewidth=4, label='Drought Event')
+                plt.plot([], [], '--', c='black', linewidth=2, label='Recovery Periods')
                 plt.scatter([], [], c='black', marker='v', label='Recovery Start Point')
                 plt.scatter([], [], c='black', marker='^', label='Recovery End Point')
                 # plt.legend([(p2[0],p1[0]),],['Recovery Period'])
@@ -1664,6 +1787,44 @@ class Recovery_time:
         to_raster.array2raster(outf, originX, originY, pixelWidth, pixelHeight, spatial)
 
 
+class Recovery_time_winter:
+
+    def __init__(self):
+        self.plot_recovery_time(3)
+        pass
+
+    def plot_recovery_time(self,interval):
+        pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+        # 1 加载事件
+        interval = '%02d'%interval
+        events = dict(np.load(this_root+'SPEI\\pick_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
+        # 2 加载NDVI
+        ndvi_dir = this_root+'NDVI\\per_pix_anomaly\\'
+        spei_dir = this_root+'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
+        for f in os.listdir(ndvi_dir):
+            if not '005' in f:
+                continue
+            ndvi_dic = dict(np.load(ndvi_dir+f).item())
+            spei_dic = dict(np.load(spei_dir+f).item())
+            for pix in ndvi_dic:
+                if pix in events:
+                    ndvi = ndvi_dic[pix]
+                    spei = spei_dic[pix]
+                    event = events[pix]
+                    ndvi = Tools().forward_window_smooth(ndvi)
+                    spei = Tools().forward_window_smooth(spei)
+                    print pix
+                    print pix_lon_lat_dic[pix]
+                    for date_range in event:
+                        ndvi_picked_vals = Tools().pick_vals_from_1darray(ndvi,date_range)
+                        spei_picked_vals = Tools().pick_vals_from_1darray(spei,date_range)
+                        plt.plot(date_range,ndvi_picked_vals)
+                        plt.plot(date_range,spei_picked_vals)
+                        plt.show()
+
+        pass
+
+
 def main():
     # n = '%02d'%12
     # fdir = this_root+'PDSI\\tif_resample_0.5\\'
@@ -1672,8 +1833,12 @@ def main():
     # Pick_Single_events(1)
     # Cal_anomaly()
     # interval = 12
-    # Pick_Single_events(interval)
-    Recovery_time()
+    # Pick_Single_events()
+    # Recovery_time()
+    # 20191116
+    # Tools().split_winter()
+
+    Recovery_time_winter()
 
 
     pass
