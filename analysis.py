@@ -1,7 +1,7 @@
 # coding=utf-8
 '''
 author: LiYang
-Date: 20190801
+Date: 20191107
 Location: zzq BeiJing
 Desctiption
 '''
@@ -13,12 +13,10 @@ import time
 import to_raster
 import ogr, os, osr
 from tqdm import tqdm
-import log_process
 import multiprocessing
 import datetime
 import lon_lat_to_address
 from scipy import stats, linalg
-import pandas
 import pandas as pd
 import seaborn as sns
 from matplotlib.font_manager import FontProperties
@@ -179,27 +177,7 @@ class Tools:
         # 前窗滤波
         # window = window-1
 
-        if window < 0:
-            raise IOError('window must be greater than 0')
-        elif window == 0:
-            return x
-        else:
-            pass
-
-        x = np.array(x)
-
-        new_x = np.array([])
-        # plt.plot(x)
-        # plt.show()
-        for i in range(len(x)):
-            if i-window<0:
-                continue
-            temp = 0
-            for w in range(window):
-                temp += x[i-w]
-            smoothed = temp/float(window)
-            new_x = np.append(new_x,smoothed)
-        return new_x
+        return SMOOTH().forward_window_smooth(x,window)
 
     def detrend_dic(self,dic):
         dic_new = {}
@@ -407,24 +385,34 @@ class Tools:
             picked_vals.append(arr[i])
         return picked_vals
 
+    def pick_min_indx_from_1darray(self,arr,indexs):
+        min_index = 99999
+        min_val = 99999
+        for i in indexs:
+            val = arr[i]
+            if val < min_val:
+                min_val = val
+                min_index = i
+        return min_index
 
+    def pick_growing_season_vals(self,arr,spei_min_index,growing_season_range):
+        # 获取当前生长季的index
+        year = int(spei_min_index/12)
+        select_vals = []
+        select_index = []
+        for i in range(-5,6):
+            s_index = spei_min_index + i
+            s_mon = s_index%12+1
+            s_year = int(s_index/12)
+            if s_year == year and s_mon in growing_season_range:
+                select_index.append(spei_min_index + i)
+                select_vals.append(arr[spei_min_index+i])
 
-    def filter_3_sigma(self,arr_list):
-        sum_ = []
-        for i in arr_list:
-            if i >= 0:
-                sum_.append(i)
-        sum_ = np.array(sum_)
-        val_mean = np.mean(sum_)
-        sigma = np.std(sum_)
-        n = 3
-        sum_[(val_mean - n * sigma) > sum_] = -999999
-        sum_[(val_mean + n * sigma) < sum_] = -999999
-
-        # for i in
-        return sum_
-
-        pass
+            # s_mon = mon + i
+            # if s_mon in growing_season_range:
+            #     select_index.append(spei_min_index+i)
+            #     select_vals.append(arr[spei_min_index+i])
+        return select_index,select_vals
 
     def get_sta_position(self):
         f = open(this_root+'conf\\sta_pos.csv', 'r')
@@ -613,9 +601,186 @@ class Tools:
 
 
 
+class SMOOTH:
+    def __init__(self):
 
+        pass
+
+    def interp_1d(self,val):
+        if len(val) == 0:
+            return [None]
+
+        # 1、插缺失值
+        x = []
+        val_new = []
+        flag = 0
+        for i in range(len(val)):
+            if val[i] >= -10:
+                flag+=1.
+                index = i
+                x = np.append(x, index)
+                val_new = np.append(val_new, val[i])
+        if flag/len(val) < 0.9:
+            return [None]
+        interp = interpolate.interp1d(x, val_new, kind='nearest', fill_value="extrapolate")
+
+        xi = range(len(val))
+        yi = interp(xi)
+
+        # 2、利用三倍sigma，去除离群值
+        # print(len(yi))
+        val_mean = np.mean(yi)
+        sigma = np.std(yi)
+        n = 3
+        yi[(val_mean - n * sigma) > yi] = -999999
+        yi[(val_mean + n * sigma) < yi] = 999999
+        bottom = val_mean - n * sigma
+        top = val_mean + n * sigma
+        # plt.scatter(range(len(yi)),yi)
+        # print(len(yi),123)
+        # plt.scatter(range(len(yi)),yi)
+        # plt.plot(yi)
+        # plt.show()
+        # print(len(yi))
+
+        # 3、插离群值
+        xii = []
+        val_new_ii = []
+
+        for i in range(len(yi)):
+            if -999999 < yi[i] < 999999:
+                index = i
+                xii = np.append(xii, index)
+                val_new_ii = np.append(val_new_ii, yi[i])
+
+        interp_1 = interpolate.interp1d(xii, val_new_ii, kind='nearest', fill_value="extrapolate")
+
+        xiii = range(len(val))
+        yiii = interp_1(xiii)
+
+        # for i in range(len(yi)):
+        #     if yi[i] == -999999:
+        #         val_new_ii = np.append(val_new_ii, bottom)
+        #     elif yi[i] == 999999:
+        #         val_new_ii = np.append(val_new_ii, top)
+        #     else:
+        #         val_new_ii = np.append(val_new_ii, yi[i])
+
+        return yiii
+
+    def smooth_convolve(self, x, window_len=11, window='hanning'):
+        """
+        1d卷积滤波
+        smooth the data using a window with requested size.
+        This method is based on the convolution of a scaled window with the signal.
+        The signal is prepared by introducing reflected copies of the signal
+        (with the window size) in both ends so that transient parts are minimized
+        in the beginning and end part of the output signal.
+        input:
+            x: the input signal
+            window_len: the dimension of the smoothing window; should be an odd integer
+            window: the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
+                flat window will produce a moving average smoothing.
+        output:
+            the smoothed signal
+        example:
+        t=linspace(-2,2,0.1)
+        x=sin(t)+randn(len(t))*0.1
+        y=smooth(x)
+        see also:
+        numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
+        scipy.signal.lfilter
+        NOTE: length(output) != length(input), to correct this: return y[(window_len/2-1):-(window_len/2)] instead of just y.
+        """
+        x = np.array(x)
+
+        if x.ndim != 1:
+            raise ValueError, "smooth only accepts 1 dimension arrays."
+
+        if x.size < window_len:
+            raise ValueError, "Input vector needs to be bigger than window size."
+
+        if window_len < 3:
+            return x
+
+        if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+            raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+
+        s = np.r_[x[window_len - 1:0:-1], x, x[-2:-window_len - 1:-1]]
+        # print(len(s))
+        if window == 'flat':  # moving average
+            w = np.ones(window_len, 'd')
+        else:
+            w = eval('np.' + window + '(window_len)')
+
+        y = np.convolve(w / w.sum(), s, mode='valid')
+        # return y
+        return y[(window_len / 2 - 1):-(window_len / 2)]
+
+    def smooth(self,x):
+        # 后窗滤波
+        # 滑动平均
+        x = np.array(x)
+        temp = 0
+        new_x = []
+        for i in range(len(x)):
+            if i+3 == len(x):
+                break
+            temp += x[i]+x[i+1]+x[i+2]+x[i+3]
+            new_x.append(temp/4.)
+            temp = 0
+        return np.array(new_x)
+
+    def forward_window_smooth(self,x,window=3):
+        # 前窗滤波
+        # window = window-1
+        # 不改变数据长度
+
+        if window < 0:
+            raise IOError('window must be greater than 0')
+        elif window == 0:
+            return x
+        else:
+            pass
+
+        x = np.array(x)
+
+        new_x = np.array([])
+        # plt.plot(x)
+        # plt.show()
+        for i in range(len(x)):
+            if i-window<0:
+                new_x = np.append(new_x, x[i])
+            else:
+                temp = 0
+                for w in range(window):
+                    temp += x[i-w]
+                smoothed = temp/float(window)
+                new_x = np.append(new_x,smoothed)
+        return new_x
+
+    def filter_3_sigma(self,arr_list):
+        sum_ = []
+        for i in arr_list:
+            if i >= 0:
+                sum_.append(i)
+        sum_ = np.array(sum_)
+        val_mean = np.mean(sum_)
+        sigma = np.std(sum_)
+        n = 3
+        sum_[(val_mean - n * sigma) > sum_] = -999999
+        sum_[(val_mean + n * sigma) < sum_] = -999999
+
+        # for i in
+        return sum_
+
+        pass
 
 class DIC_and_TIF:
+    '''
+    字典转tif
+    tif转字典
+    '''
     def __init__(self):
 
         pass
@@ -937,7 +1102,7 @@ class Cal_anomaly:
             # 算法2
             pix_anomaly = []
             for i in range(len(vals)):
-                mon = i % 12
+                mon = i % 12 + 1
                 std_ = climatology_std[mon]
                 mean_ = climatology_means[mon]
                 if std_ == 0:
@@ -971,12 +1136,20 @@ class Cal_anomaly:
 
 class Pick_Single_events():
     def __init__(self):
-        # self.pick_plot()
-        # self.pick_growing_season_events(3)
-        # self.composite_global(3)
-        self.check_global_dic()
-        pass
+        #
+        interval = 3
+        # 1 找single event 前后24个月无严重干旱事件
+        # 耗时：13 min
+        self.pick(interval)
 
+        # 2 在single event 的基础上，找在生长季的干旱事件，分南北半球和热带
+        # 耗时：15 min
+        self.pick_growing_season_events(interval)
+
+        # 3 合成南北半球和热带区域的生长季事件
+        self.composite_global(interval)
+        # self.check_global_dic()
+        pass
     def pick_plot(self):
         # 作为pick展示
         # 前36个月和后36个月无极端干旱事件
@@ -1071,15 +1244,17 @@ class Pick_Single_events():
 
         pass
 
-    def pick(self,interval):
+    def pick(self,interval,mode='SPEI'):
         # 前n个月和后n个月无极端干旱事件
         n = 24
-        spei_dir = this_root+'SPEI\\per_pix\\'+'SPEI_{:0>2d}\\'.format(interval)
+        spei_dir = this_root+mode+'\\per_pix\\'+'SPEI_{:0>2d}\\'.format(interval)
         # spei_dir = this_root+'PDSI\\per_pix\\'
-        out_dir = this_root+'SPEI\\single_events_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
+        out_dir = this_root+mode+'\\single_events_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
         # out_dir = this_root+'PDSI\\single_events\\'
         Tools().mk_dir(out_dir)
         for f in tqdm(os.listdir(spei_dir),'file...'):
+            # if not '005' in f:
+            #     continue
             spei_dic = dict(np.load(spei_dir+f).item())
             single_event_dic = {}
             for pix in tqdm(spei_dic,f):
@@ -1089,15 +1264,17 @@ class Pick_Single_events():
                     single_event_dic[pix] = []
                     continue
                 spei = Tools().forward_window_smooth(spei, 3)
-                params = [spei,pix]
+                params = [spei,pix,mode]
                 events_dic, key = self.kernel_find_drought_period(params)
-
+                # for i in events_dic:
+                #     print i,events_dic[i]
+                # exit()
                 events_4 = [] # 严重干旱事件
                 for i in events_dic:
                     level, date_range = events_dic[i]
                     if level == 4:
                         events_4.append(date_range)
-
+                # print events_4
                 # 筛选单次事件（前后n个月无干旱事件）
                 single_event = []
                 for i in range(len(events_4)):
@@ -1126,6 +1303,7 @@ class Pick_Single_events():
         # 根据不同干旱程度查找干旱时期
         pdsi = params[0]
         key = params[1]
+        mode = params[2]
         drought_month = []
         for i, val in enumerate(pdsi):
             # if val < -0.5:# SPEI
@@ -1194,39 +1372,43 @@ class Pick_Single_events():
 
             # if 0 in new_i:
             # SPEI
-            # min_val = min(vals)
-            # if -1 <= min_val < -.5:
-            #     level = 1
-            # elif -1.5 <= min_val < -1.:
-            #     level = 2
-            # elif -2 <= min_val < -1.5:
-            #     level = 3
-            # elif min_val <= -2.:
-            #     level = 4
-            # else:
-            #     print('error')
-            #     print(vals)
-            #     print(min_val)
-            #     time.sleep(1)
-            #     continue
+            if mode == 'SPEI':
+                min_val = min(vals)
+                if -1 <= min_val < -.5:
+                    level = 1
+                elif -1.5 <= min_val < -1.:
+                    level = 2
+                elif -2 <= min_val < -1.5:
+                    level = 3
+                elif min_val <= -2.:
+                    level = 4
+                else:
+                    print('error')
+                    print(vals)
+                    print(min_val)
+                    time.sleep(1)
+                    continue
 
             # PDSI
-            min_val = min(vals)
-            if -2 <= min_val < -1:
-                level = 1
-            elif -3 <= min_val < -2:
-                level = 2
-            elif -4 <= min_val < -3:
-                level = 3
-            elif min_val <= -4.:
-                level = 4
-            else:
-                print('error')
-                print(vals)
-                print(min_val)
-                time.sleep(1)
-                continue
+            elif mode == 'PDSI':
+                min_val = min(vals)
+                if -2 <= min_val < -1:
+                    level = 1
+                elif -3 <= min_val < -2:
+                    level = 2
+                elif -4 <= min_val < -3:
+                    level = 3
+                elif min_val <= -4.:
+                    level = 4
+                else:
+                    print('error')
+                    print(vals)
+                    print(min_val)
+                    time.sleep(1)
+                    continue
 
+            else:
+                raise IOError('mode {} error'.format(mode))
 
 
 
@@ -1295,11 +1477,18 @@ class Pick_Single_events():
                 dic = dict(np.load(single_event_dir+f).item())
                 spei_dic = dict(np.load(SPEI_dir+f).item())
                 for pix in dic:
+                    # print pix
+                    # print dic[pix]
                     if pix in hemi_pix_dic[pixes_dic]:
                         val = dic[pix]
                         spei = spei_dic[pix]
-                        spei = Tools().forward_window_smooth(spei,3)
+                        smooth_window = 3
+                        spei = Tools().forward_window_smooth(spei,smooth_window)
+
                         if len(val) > 0:
+                            # print val
+                            # plt.plot(spei)
+                            # plt.show()
                             selected_date_range = []
                             for date_range in val:
                                 # picked_vals = self.get_spei_vals(spei,date_range)
@@ -1343,457 +1532,485 @@ class Pick_Single_events():
             print pix
             print dic[pix]
 
-class Recovery_time:
-
-    def __init__(self):
-        interval = 'PDSI'
-        self.plot_recovery_time()
-        # 1 生成per_pix恢复期
-        # self.gen_recovery_time(interval)
-        # self.plot_recovery_period_per_pix()
-        # self.per_pix_dic_to_spatial_tif(interval)
-        # 2 合成SPEI 3 6 9 12 和 PDSI恢复期
-        # self.composite_recovery_time()
-        # 3 绘制composite图
-        # self.plot_composite_recovery_time()
-
-        pass
-
-    def plot_recovery_time(self):
-        # 恢复期示意图，逐个像元看
-        n = 24
-        interval = '%02d'%3
-        spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
-        ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
-        single_dir = this_root+'SPEI\\single_events_24\\SPEI_{}\\'.format(interval)
-        for f in tqdm(os.listdir(spei_dir)):
-            if '015' not in f:
-                continue
-            spei_dic = dict(np.load(spei_dir + f).item())
-            ndvi_dic = dict(np.load(ndvi_dir + f).item())
-            ndvi_dic = Tools().detrend_dic(ndvi_dic)
-            single_dic = dict(np.load(single_dir + f).item())
-            for pix in spei_dic:
-                spei = spei_dic[pix]
-                ndvi = ndvi_dic[pix]
-                single = single_dic[pix]
-                if len(single) == 0:
-                    continue
-                spei = Tools().interp_1d(spei)
-                ndvi = Tools().interp_1d(ndvi)
-                if len(spei) == 1 or spei[0] == -999999 or ndvi[0] == 0 or len(ndvi) == 1:
-                    continue
-                smooth_window = 3
-                spei = Tools().forward_window_smooth(spei, smooth_window)
-                ndvi = Tools().forward_window_smooth(ndvi, smooth_window)
-                plt.plot(spei,'r')
-                plt.plot(ndvi,'g')
-                for event in single:
-                    start = event[0]
-                    pre_index = []
-                    pre_ndvi_val = []
-                    for i in range(n):
-                        ind = start-i
-                        pre_index.append(ind)
-                        pre_ndvi_val.append(ndvi[ind])
-
-                    # pre_ndvi_mean = np.mean(pre_ndvi_val)
-                    # print(pre_ndvi_mean)
-                    ndvi_drought = []
-                    spei_drought = []
-                    for i in event:
-                        ndvi_drought.append(ndvi[i])
-                        spei_drought.append(spei[i])
-                    plt.plot(event,ndvi_drought,'g',linewidth=4,zorder=99)
-                    plt.plot(event,spei_drought,'r',linewidth=4,zorder=99)
-                    plt.plot(event,[0]*len(event),'--',c='black')
-
-                    # 搜索
-                    max_index = event[-1]
-                    mode_vals = ndvi
-                    # max_val = pre_ndvi_mean
-                    max_val = 0
-                    date_range = event
-                    for search_i in range(len(mode_vals)):
-                        if (max_index + search_i) >= len(mode_vals):
-                            break
-                        search_v = mode_vals[max_index + search_i]
-                        # 设置缓冲区
-                        buffer = 0.0
-                        max_val_buffer_range = [max_val - buffer, max_val + buffer]
-                        if mode_vals[max_index] > max_val:
-                            plt.scatter(max_index, search_v, marker='v', s=50, zorder=99,
-                                        alpha=0.7)
-                            # plt.scatter(recovery_date[-1], recovery_veg_val[-1], marker='^', s=50,
-                            #             zorder=99, alpha=0.7)
-                            xmin = event[0] - 15
-                            xmax = max_index + 15
-                            break
-                        # print(search_v)
-
-                        # if search_v > max_val:
-                        # print((search_v > max_val) or (max_val_buffer_range[0] < search_v < max_val_buffer_range[1]))
-                        # print(search_v > max_val) or (max_val_buffer_range[0] < search_v < max_val_buffer_range[1] and search_i > 5)
-                        if (search_v > max_val) or (
-                                max_val_buffer_range[0] < search_v < max_val_buffer_range[1] and search_i > 2):
-                            # print(search_v, date_range[-1])
-                            # print(search_v,max_index+search_i)
-                            if (max_index + search_i) <= date_range[-1]:
-                                continue
-
-                            start = date_range[-1]
-                            if max_index >= start:
-                                start = max_index
-
-                            end = max_index + search_i + 1
-                            recovery_date = range(start, end)
-
-                            # print(recovery_date)
-                            recovery_veg_val = []
-                            for rd in recovery_date:
-                                rvv = mode_vals[rd]
-                                recovery_veg_val.append(rvv)
-                            plt.plot(recovery_date, recovery_veg_val, '--',c='black',linewidth=4, zorder=50, alpha=0.5)
-                            plt.scatter(recovery_date[0], recovery_veg_val[0], marker='v', s=50, zorder=99,
-                                        alpha=0.7)
-                            plt.scatter(recovery_date[-1], recovery_veg_val[-1], marker='^', s=50,
-                                        zorder=99, alpha=0.7)
-                            xmin = event[0] - 15
-                            xmax = end + 15
-
-                            break
-                    # print(in_drought_dic)
-                    # print('****')
-
-                    # exit()
-
-                    # plt.plot(mode_vals_smooth,'--',c='g')
-                # plt.plot(range(len(mode_vals)), [0.0] * len(mode_vals), '--', c='black')
-                # plt.plot(range(len(mode_vals)), [-1.0] * len(mode_vals), '--', c='black')
-                # plt.plot(range(len(mode_vals)), [-1.5] * len(mode_vals), '--', c='black')
-                plt.plot(range(len(mode_vals)), [-2.0] * len(mode_vals), '--', c='black')
-
-                plt.plot([], [], c='r', linewidth=4, label='Drought Event')
-                plt.plot([], [], '--', c='black', linewidth=2, label='Recovery Periods')
-                plt.scatter([], [], c='black', marker='v', label='Recovery Start Point')
-                plt.scatter([], [], c='black', marker='^', label='Recovery End Point')
-                # plt.legend([(p2[0],p1[0]),],['Recovery Period'])
-                # plt.legend([p2, p1], ['Stuff'])
-                plt.legend(loc='upper left')
-
-                xtick = []
-                for iii in np.arange(smooth_window, len(mode_vals) + smooth_window):
-                    year = 1982 + iii / 12
-                    mon = (iii) % 12 + 1
-                    mon = '%02d' % mon
-                    xtick.append('{}.{}'.format(year, mon))
-                plt.xticks(range(len(xtick))[::3], xtick[::3], rotation=90)
-                # minx =
-                plt.xlim(xmin, xmax)
-                plt.grid()
-                plt.show()
-
-
-    def get_min_spei_val_and_index(self,event,spei):
-        min_val = 99999
-        min_index = 99999
-        for i in event:
-            val = spei[i]
-            if val < min_val:
-                min_val = val
-                min_index = i
-        mon = min_index % 12 + 1
-        return mon
-
-
-    def gen_recovery_time(self,interval):
-        # 无效值
-        ndv = -999999
-        # 生成逐个像元恢复期
-        n = 24 # 选取干旱事件前n个月的NDVI平均值，
-        if interval == 'PDSI':
-            spei_dir = this_root + 'PDSI\\per_pix\\'
-            single_dir = this_root + 'PDSI\\single_events\\'
-            out_dir = this_root + 'PDSI\\recovery_time_per_pix\\'
-
-        else:
-            spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{:0>2d}\\'.format(interval)
-            single_dir = this_root+'SPEI\\single_events_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
-            out_dir = this_root + 'SPEI\\recovery_time_per_pix_{}\\'.format(n) + 'SPEI_{:0>2d}\\'.format(interval)
-
-        ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
-        Tools().mk_dir(out_dir)
-        for f in tqdm(os.listdir(spei_dir)):
-            spei_dic = dict(np.load(spei_dir + f).item())
-            ndvi_dic = dict(np.load(ndvi_dir + f).item())
-            # NDVI detrend
-            ndvi_dic = Tools().detrend_dic(ndvi_dic)
-            single_dic = dict(np.load(single_dir + f).item())
-            recovery_time_list_dic = {}
-            for pix in spei_dic:
-                spei = spei_dic[pix]
-                ndvi = ndvi_dic[pix]
-                single = single_dic[pix]
-                if len(single) == 0:
-                    recovery_time_list_dic[pix] = ndv
-                    continue
-                # 数据清洗，去除-999999 和3倍sigma
-                spei = Tools().interp_1d(spei)
-                ndvi = Tools().interp_1d(ndvi)
-                if len(spei) == 1 or spei[0] == -999999 or ndvi[0] == 0 or len(ndvi) == 1:
-                    recovery_time_list_dic[pix] = ndv
-                    continue
-                # 前窗滤波
-                smooth_window = 3
-                spei = Tools().forward_window_smooth(spei, smooth_window)
-                ndvi = Tools().forward_window_smooth(ndvi, smooth_window)
-                recovery_time_list = []
-                for event in single:
-                    ####################################
-                    ####################################
-                    ####################################
-                    # 选取干旱事件前n个月的NDVI平均值
-                    start = event[0]
-                    pre_index = []
-                    pre_ndvi_val = []
-                    for i in range(n):
-                        ind = start-i
-                        pre_index.append(ind)
-                        pre_ndvi_val.append(ndvi[ind])
-                    pre_ndvi_mean = np.mean(pre_ndvi_val)
-                    # 选取干旱事件前n个月的NDVI平均值
-                    ####################################
-                    ####################################
-                    ####################################
-                    # print(pre_ndvi_mean)
-                    # 获取spei最低点和开始点的月份, 为了看事件发生在那个月
-                    spei_min_mon = self.get_min_spei_val_and_index(event,spei)
-
-                    ndvi_drought = []
-                    spei_drought = []
-                    for i in event:
-                        ndvi_drought.append(ndvi[i])
-                        spei_drought.append(spei[i])
-                    # 搜索
-                    max_index = event[-1]
-                    mode_vals = ndvi
-                    # max_val = 0 # 设置anomaly为0时恢复
-                    max_val = pre_ndvi_mean # 设置anomaly为前n个月平均值
-                    date_range = event
-                    # 如果最后一个月的值大于阈值则恢复期为0
-                    if mode_vals[max_index] > max_val:
-                        recovery_time = 0
-                        recovery_time_list.append([str(spei_min_mon),recovery_time])
-                        break
-                    for search_i in range(len(mode_vals)):
-                        if (max_index + search_i) >= len(mode_vals):
-                            break
-                        search_v = mode_vals[max_index + search_i]
-                        # 设置缓冲区
-                        buffer = 0.0
-                        max_val_buffer_range = [max_val - buffer, max_val + buffer]
-
-                        if (search_v > max_val) or (
-                                max_val_buffer_range[0] < search_v < max_val_buffer_range[1] and search_i > 2):
-                            # print(search_v, date_range[-1])
-                            # print(search_v,max_index+search_i)
-                            if (max_index + search_i) <= date_range[-1]:
-                                continue
-
-                            start = date_range[-1]
-                            if max_index >= start:
-                                start = max_index
-
-                            end = max_index + search_i + 1
-                            recovery_date = range(start, end)
-                            recovery_time = len(recovery_date)
-                            recovery_time_list.append([str(spei_min_mon), recovery_time])
-
-                            break
-                recovery_time_list_dic[pix] = recovery_time_list
-
-
-            np.save(out_dir+f,recovery_time_list_dic)
-
-
-    def plot_recovery_period_per_pix(self):
-        fdir = this_root+'SPEI\\recovery_time_per_pix\\'
-
-        hist = []
-        mon_hist = []
-        for f in tqdm(os.listdir(fdir)):
-
-            dic = dict(np.load(fdir+f).item())
-            for pix in dic:
-                val = dic[pix]
-                if type(val) == list:
-                    for i in val:
-                        mon, recovery = i
-                        mon = int(mon)
-                        # if recovery > 25 or recovery == 0:
-                        if recovery > 25:
-                            continue
-                        # print(mon,recovery)
-                        hist.append(recovery)
-                        mon_hist.append(mon)
-        # hist
-        plt.hist(hist,bins=23)
-        plt.figure()
-        plt.hist(mon_hist,bins=12)
-        plt.show()
-
-
-
-        pass
-
-
-
-    def per_pix_dic_to_spatial_tif(self):
-
-        outfolder = this_root+'SPEI\\recovery_tif\\'
-        Tools().mk_dir(outfolder)
-        tif_template = this_root+'conf\\SPEI.tif'
-        _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
-        fdir = this_root+'SPEI\\recovery_time_per_pix_24\\'
-        flist = os.listdir(fdir)
-
-        spatial_dic = {}
-        for f in tqdm(flist):
-            pix_dic = dict(np.load(fdir + f).item())
-            for pix in pix_dic:
-                vals = pix_dic[pix]
-                if type(vals) == list:
-                    recovery_sum = []
-                    for i in vals:
-                        mon, recovery = i
-                        mon = int(mon)
-                        if not mon in range(5,10):
-                            continue
-                        recovery_sum.append(recovery)
-                    recovery_mean = np.mean(recovery_sum)
-                    spatial_dic[pix] = recovery_mean
-                else:
-                    spatial_dic[pix] = -999999
-        x = []
-        y = []
-        for key in spatial_dic:
-            key_split = key.split('.')
-            x.append(key_split[0])
-            y.append(key_split[1])
-        row = len(set(x))
-        col = len(set(y))
-
-        spatial = []
-        for r in range(row):
-            temp = []
-            for c in range(col):
-                key = '%03d.%03d' % (r, c)
-                val_pix = spatial_dic[key]
-                temp.append(val_pix)
-            spatial.append(temp)
-        spatial = np.array(spatial)
-        grid = np.isnan(spatial)
-        grid = np.logical_not(grid)
-        spatial[np.logical_not(grid)] = -999999
-        to_raster.array2raster(outfolder+'recovery_time1.tif',originX, originY, pixelWidth, pixelHeight,spatial)
-            # plt.imshow(spatial)
-            # plt.colorbar()
-            # plt.show()
-
-    def composite_recovery_time(self):
-        # for interval in [3,6,9,12]:
-        fdir = this_root+'SPEI\\recovery_time_per_pix_24\\SPEI_03\\'
-        # outdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI_PDSI\\'
-        outdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI\\'
-        Tools().mk_dir(outdir,force=1)
-        flist = os.listdir(fdir)
-        for f in tqdm(flist):
-            void_dic = {}
-            fdir_ = this_root+'SPEI\\recovery_time_per_pix_24\\SPEI_03\\'
-            dic_ = dict(np.load(fdir_ + f).item())
-
-            for pix in dic_:
-                void_dic[pix] = []
-
-            for interval in [3,6,9,12]:
-                interval = '%02d'%interval
-                fdir = this_root+'SPEI\\recovery_time_per_pix_24\\SPEI_{}\\'.format(interval)
-                dic = dict(np.load(fdir+f).item())
-                for pix in dic:
-                    vals = dic[pix]
-                    void_dic[pix].append(vals)
-            # 加PDSI
-            # pdsi_fdir_ = this_root+'PDSI\\recovery_time_per_pix\\'
-            # dic = dict(np.load(pdsi_fdir_ + f).item())
-            # for pix in dic:
-            #     vals = dic[pix]
-            #     void_dic[pix].append(vals)
-
-            np.save(outdir+f,void_dic)
-
-        pass
-
-    def plot_composite_recovery_time(self):
-        # fdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI\\'
-        fdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI_PDSI\\'
-        outfolder = this_root+'SPEI\\recovery_tif\\'
-        outf = outfolder+'recovery_PDSI_SPEI.tif'
-        # outf = outfolder+'recovery_SPEI.tif'
-        tif_template = this_root + 'conf\\SPEI.tif'
-        _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
-
-        spatial_dic = {}
-        for f in tqdm(os.listdir(fdir)):
-            dic = dict(np.load(fdir+f).item())
-            # print(f)
-            for pix in dic:
-                _vals = dic[pix]
-                val_sum = []
-                for vals in _vals:
-                    if type(vals) == list:
-                        for val in vals:
-                            mon,recovery_time = val
-                            mon = int(mon)
-                            val_sum.append(recovery_time)
-                    else:
-                        pass
-                if len(val_sum) > 0:
-                    val_mean = np.mean(val_sum)
-                    spatial_dic[pix] = val_mean
-                else:
-                    spatial_dic[pix] = -999999
-
-        x = []
-        y = []
-        for key in spatial_dic:
-            key_split = key.split('.')
-            x.append(key_split[0])
-            y.append(key_split[1])
-        row = len(set(x))
-        col = len(set(y))
-
-        spatial = []
-        for r in range(row):
-            temp = []
-            for c in range(col):
-                key = '%03d.%03d' % (r, c)
-                val_pix = spatial_dic[key]
-                temp.append(val_pix)
-            spatial.append(temp)
-        spatial = np.array(spatial)
-        grid = np.isnan(spatial)
-        grid = np.logical_not(grid)
-        spatial[np.logical_not(grid)] = -999999
-        to_raster.array2raster(outf, originX, originY, pixelWidth, pixelHeight, spatial)
+# class Recovery_time:
+#
+#     def __init__(self):
+#         interval = 'PDSI'
+#         self.plot_recovery_time()
+#         # 1 生成per_pix恢复期
+#         # self.gen_recovery_time(interval)
+#         # self.plot_recovery_period_per_pix()
+#         # self.per_pix_dic_to_spatial_tif(interval)
+#         # 2 合成SPEI 3 6 9 12 和 PDSI恢复期
+#         # self.composite_recovery_time()
+#         # 3 绘制composite图
+#         # self.plot_composite_recovery_time()
+#
+#         pass
+#
+#     def plot_recovery_time(self):
+#         # 恢复期示意图，逐个像元看
+#         n = 24
+#         interval = '%02d'%3
+#         spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
+#         ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
+#         single_dir = this_root+'SPEI\\single_events_24\\SPEI_{}\\'.format(interval)
+#         for f in tqdm(os.listdir(spei_dir)):
+#             if '015' not in f:
+#                 continue
+#             spei_dic = dict(np.load(spei_dir + f).item())
+#             ndvi_dic = dict(np.load(ndvi_dir + f).item())
+#             ndvi_dic = Tools().detrend_dic(ndvi_dic)
+#             single_dic = dict(np.load(single_dir + f).item())
+#             for pix in spei_dic:
+#                 spei = spei_dic[pix]
+#                 ndvi = ndvi_dic[pix]
+#                 single = single_dic[pix]
+#                 if len(single) == 0:
+#                     continue
+#                 spei = Tools().interp_1d(spei)
+#                 ndvi = Tools().interp_1d(ndvi)
+#                 if len(spei) == 1 or spei[0] == -999999 or ndvi[0] == 0 or len(ndvi) == 1:
+#                     continue
+#                 smooth_window = 3
+#                 spei = Tools().forward_window_smooth(spei, smooth_window)
+#                 ndvi = Tools().forward_window_smooth(ndvi, smooth_window)
+#                 plt.plot(spei,'r')
+#                 plt.plot(ndvi,'g')
+#                 for event in single:
+#                     start = event[0]
+#                     pre_index = []
+#                     pre_ndvi_val = []
+#                     for i in range(n):
+#                         ind = start-i
+#                         pre_index.append(ind)
+#                         pre_ndvi_val.append(ndvi[ind])
+#
+#                     # pre_ndvi_mean = np.mean(pre_ndvi_val)
+#                     # print(pre_ndvi_mean)
+#                     ndvi_drought = []
+#                     spei_drought = []
+#                     for i in event:
+#                         ndvi_drought.append(ndvi[i])
+#                         spei_drought.append(spei[i])
+#                     plt.plot(event,ndvi_drought,'g',linewidth=4,zorder=99)
+#                     plt.plot(event,spei_drought,'r',linewidth=4,zorder=99)
+#                     plt.plot(event,[0]*len(event),'--',c='black')
+#
+#                     # 搜索
+#                     max_index = event[-1]
+#                     mode_vals = ndvi
+#                     # max_val = pre_ndvi_mean
+#                     max_val = 0
+#                     date_range = event
+#                     for search_i in range(len(mode_vals)):
+#                         if (max_index + search_i) >= len(mode_vals):
+#                             break
+#                         search_v = mode_vals[max_index + search_i]
+#                         # 设置缓冲区
+#                         buffer = 0.0
+#                         max_val_buffer_range = [max_val - buffer, max_val + buffer]
+#                         if mode_vals[max_index] > max_val:
+#                             plt.scatter(max_index, search_v, marker='v', s=50, zorder=99,
+#                                         alpha=0.7)
+#                             # plt.scatter(recovery_date[-1], recovery_veg_val[-1], marker='^', s=50,
+#                             #             zorder=99, alpha=0.7)
+#                             xmin = event[0] - 15
+#                             xmax = max_index + 15
+#                             break
+#                         # print(search_v)
+#
+#                         # if search_v > max_val:
+#                         # print((search_v > max_val) or (max_val_buffer_range[0] < search_v < max_val_buffer_range[1]))
+#                         # print(search_v > max_val) or (max_val_buffer_range[0] < search_v < max_val_buffer_range[1] and search_i > 5)
+#                         if (search_v > max_val) or (
+#                                 max_val_buffer_range[0] < search_v < max_val_buffer_range[1] and search_i > 2):
+#                             # print(search_v, date_range[-1])
+#                             # print(search_v,max_index+search_i)
+#                             if (max_index + search_i) <= date_range[-1]:
+#                                 continue
+#
+#                             start = date_range[-1]
+#                             if max_index >= start:
+#                                 start = max_index
+#
+#                             end = max_index + search_i + 1
+#                             recovery_date = range(start, end)
+#
+#                             # print(recovery_date)
+#                             recovery_veg_val = []
+#                             for rd in recovery_date:
+#                                 rvv = mode_vals[rd]
+#                                 recovery_veg_val.append(rvv)
+#                             plt.plot(recovery_date, recovery_veg_val, '--',c='black',linewidth=4, zorder=50, alpha=0.5)
+#                             plt.scatter(recovery_date[0], recovery_veg_val[0], marker='v', s=50, zorder=99,
+#                                         alpha=0.7)
+#                             plt.scatter(recovery_date[-1], recovery_veg_val[-1], marker='^', s=50,
+#                                         zorder=99, alpha=0.7)
+#                             xmin = event[0] - 15
+#                             xmax = end + 15
+#
+#                             break
+#                     # print(in_drought_dic)
+#                     # print('****')
+#
+#                     # exit()
+#
+#                     # plt.plot(mode_vals_smooth,'--',c='g')
+#                 # plt.plot(range(len(mode_vals)), [0.0] * len(mode_vals), '--', c='black')
+#                 # plt.plot(range(len(mode_vals)), [-1.0] * len(mode_vals), '--', c='black')
+#                 # plt.plot(range(len(mode_vals)), [-1.5] * len(mode_vals), '--', c='black')
+#                 plt.plot(range(len(mode_vals)), [-2.0] * len(mode_vals), '--', c='black')
+#
+#                 plt.plot([], [], c='r', linewidth=4, label='Drought Event')
+#                 plt.plot([], [], '--', c='black', linewidth=2, label='Recovery Periods')
+#                 plt.scatter([], [], c='black', marker='v', label='Recovery Start Point')
+#                 plt.scatter([], [], c='black', marker='^', label='Recovery End Point')
+#                 # plt.legend([(p2[0],p1[0]),],['Recovery Period'])
+#                 # plt.legend([p2, p1], ['Stuff'])
+#                 plt.legend(loc='upper left')
+#
+#                 xtick = []
+#                 for iii in np.arange(smooth_window, len(mode_vals) + smooth_window):
+#                     year = 1982 + iii / 12
+#                     mon = (iii) % 12 + 1
+#                     mon = '%02d' % mon
+#                     xtick.append('{}.{}'.format(year, mon))
+#                 plt.xticks(range(len(xtick))[::3], xtick[::3], rotation=90)
+#                 # minx =
+#                 plt.xlim(xmin, xmax)
+#                 plt.grid()
+#                 plt.show()
+#
+#
+#     def get_min_spei_val_and_index(self,event,spei):
+#         min_val = 99999
+#         min_index = 99999
+#         for i in event:
+#             val = spei[i]
+#             if val < min_val:
+#                 min_val = val
+#                 min_index = i
+#         mon = min_index % 12 + 1
+#         return mon
+#
+#
+#     def gen_recovery_time(self,interval):
+#         # 无效值
+#         ndv = -999999
+#         # 生成逐个像元恢复期
+#         n = 24 # 选取干旱事件前n个月的NDVI平均值，
+#         if interval == 'PDSI':
+#             spei_dir = this_root + 'PDSI\\per_pix\\'
+#             single_dir = this_root + 'PDSI\\single_events\\'
+#             out_dir = this_root + 'PDSI\\recovery_time_per_pix\\'
+#
+#         else:
+#             spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{:0>2d}\\'.format(interval)
+#             single_dir = this_root+'SPEI\\single_events_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
+#             out_dir = this_root + 'SPEI\\recovery_time_per_pix_{}\\'.format(n) + 'SPEI_{:0>2d}\\'.format(interval)
+#
+#         ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
+#         Tools().mk_dir(out_dir)
+#         for f in tqdm(os.listdir(spei_dir)):
+#             spei_dic = dict(np.load(spei_dir + f).item())
+#             ndvi_dic = dict(np.load(ndvi_dir + f).item())
+#             # NDVI detrend
+#             ndvi_dic = Tools().detrend_dic(ndvi_dic)
+#             single_dic = dict(np.load(single_dir + f).item())
+#             recovery_time_list_dic = {}
+#             for pix in spei_dic:
+#                 spei = spei_dic[pix]
+#                 ndvi = ndvi_dic[pix]
+#                 single = single_dic[pix]
+#                 if len(single) == 0:
+#                     recovery_time_list_dic[pix] = ndv
+#                     continue
+#                 # 数据清洗，去除-999999 和3倍sigma
+#                 spei = Tools().interp_1d(spei)
+#                 ndvi = Tools().interp_1d(ndvi)
+#                 if len(spei) == 1 or spei[0] == -999999 or ndvi[0] == 0 or len(ndvi) == 1:
+#                     recovery_time_list_dic[pix] = ndv
+#                     continue
+#                 # 前窗滤波
+#                 smooth_window = 3
+#                 spei = Tools().forward_window_smooth(spei, smooth_window)
+#                 ndvi = Tools().forward_window_smooth(ndvi, smooth_window)
+#                 recovery_time_list = []
+#                 for event in single:
+#                     ####################################
+#                     ####################################
+#                     ####################################
+#                     # 选取干旱事件前n个月的NDVI平均值
+#                     start = event[0]
+#                     pre_index = []
+#                     pre_ndvi_val = []
+#                     for i in range(n):
+#                         ind = start-i
+#                         pre_index.append(ind)
+#                         pre_ndvi_val.append(ndvi[ind])
+#                     pre_ndvi_mean = np.mean(pre_ndvi_val)
+#                     # 选取干旱事件前n个月的NDVI平均值
+#                     ####################################
+#                     ####################################
+#                     ####################################
+#                     # print(pre_ndvi_mean)
+#                     # 获取spei最低点和开始点的月份, 为了看事件发生在那个月
+#                     spei_min_mon = self.get_min_spei_val_and_index(event,spei)
+#
+#                     ndvi_drought = []
+#                     spei_drought = []
+#                     for i in event:
+#                         ndvi_drought.append(ndvi[i])
+#                         spei_drought.append(spei[i])
+#                     # 搜索
+#                     max_index = event[-1]
+#                     mode_vals = ndvi
+#                     # max_val = 0 # 设置anomaly为0时恢复
+#                     max_val = pre_ndvi_mean # 设置anomaly为前n个月平均值
+#                     date_range = event
+#                     # 如果最后一个月的值大于阈值则恢复期为0
+#                     if mode_vals[max_index] > max_val:
+#                         recovery_time = 0
+#                         recovery_time_list.append([str(spei_min_mon),recovery_time])
+#                         break
+#                     for search_i in range(len(mode_vals)):
+#                         if (max_index + search_i) >= len(mode_vals):
+#                             break
+#                         search_v = mode_vals[max_index + search_i]
+#                         # 设置缓冲区
+#                         buffer = 0.0
+#                         max_val_buffer_range = [max_val - buffer, max_val + buffer]
+#
+#                         if (search_v > max_val) or (
+#                                 max_val_buffer_range[0] < search_v < max_val_buffer_range[1] and search_i > 2):
+#                             # print(search_v, date_range[-1])
+#                             # print(search_v,max_index+search_i)
+#                             if (max_index + search_i) <= date_range[-1]:
+#                                 continue
+#
+#                             start = date_range[-1]
+#                             if max_index >= start:
+#                                 start = max_index
+#
+#                             end = max_index + search_i + 1
+#                             recovery_date = range(start, end)
+#                             recovery_time = len(recovery_date)
+#                             recovery_time_list.append([str(spei_min_mon), recovery_time])
+#
+#                             break
+#                 recovery_time_list_dic[pix] = recovery_time_list
+#
+#
+#             np.save(out_dir+f,recovery_time_list_dic)
+#
+#
+#     def plot_recovery_period_per_pix(self):
+#         fdir = this_root+'SPEI\\recovery_time_per_pix\\'
+#
+#         hist = []
+#         mon_hist = []
+#         for f in tqdm(os.listdir(fdir)):
+#
+#             dic = dict(np.load(fdir+f).item())
+#             for pix in dic:
+#                 val = dic[pix]
+#                 if type(val) == list:
+#                     for i in val:
+#                         mon, recovery = i
+#                         mon = int(mon)
+#                         # if recovery > 25 or recovery == 0:
+#                         if recovery > 25:
+#                             continue
+#                         # print(mon,recovery)
+#                         hist.append(recovery)
+#                         mon_hist.append(mon)
+#         # hist
+#         plt.hist(hist,bins=23)
+#         plt.figure()
+#         plt.hist(mon_hist,bins=12)
+#         plt.show()
+#
+#
+#
+#         pass
+#
+#
+#
+#     def per_pix_dic_to_spatial_tif(self):
+#
+#         outfolder = this_root+'SPEI\\recovery_tif\\'
+#         Tools().mk_dir(outfolder)
+#         tif_template = this_root+'conf\\SPEI.tif'
+#         _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+#         fdir = this_root+'SPEI\\recovery_time_per_pix_24\\'
+#         flist = os.listdir(fdir)
+#
+#         spatial_dic = {}
+#         for f in tqdm(flist):
+#             pix_dic = dict(np.load(fdir + f).item())
+#             for pix in pix_dic:
+#                 vals = pix_dic[pix]
+#                 if type(vals) == list:
+#                     recovery_sum = []
+#                     for i in vals:
+#                         mon, recovery = i
+#                         mon = int(mon)
+#                         if not mon in range(5,10):
+#                             continue
+#                         recovery_sum.append(recovery)
+#                     recovery_mean = np.mean(recovery_sum)
+#                     spatial_dic[pix] = recovery_mean
+#                 else:
+#                     spatial_dic[pix] = -999999
+#         x = []
+#         y = []
+#         for key in spatial_dic:
+#             key_split = key.split('.')
+#             x.append(key_split[0])
+#             y.append(key_split[1])
+#         row = len(set(x))
+#         col = len(set(y))
+#
+#         spatial = []
+#         for r in range(row):
+#             temp = []
+#             for c in range(col):
+#                 key = '%03d.%03d' % (r, c)
+#                 val_pix = spatial_dic[key]
+#                 temp.append(val_pix)
+#             spatial.append(temp)
+#         spatial = np.array(spatial)
+#         grid = np.isnan(spatial)
+#         grid = np.logical_not(grid)
+#         spatial[np.logical_not(grid)] = -999999
+#         to_raster.array2raster(outfolder+'recovery_time1.tif',originX, originY, pixelWidth, pixelHeight,spatial)
+#             # plt.imshow(spatial)
+#             # plt.colorbar()
+#             # plt.show()
+#
+#     def composite_recovery_time(self):
+#         # for interval in [3,6,9,12]:
+#         fdir = this_root+'SPEI\\recovery_time_per_pix_24\\SPEI_03\\'
+#         # outdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI_PDSI\\'
+#         outdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI\\'
+#         Tools().mk_dir(outdir,force=1)
+#         flist = os.listdir(fdir)
+#         for f in tqdm(flist):
+#             void_dic = {}
+#             fdir_ = this_root+'SPEI\\recovery_time_per_pix_24\\SPEI_03\\'
+#             dic_ = dict(np.load(fdir_ + f).item())
+#
+#             for pix in dic_:
+#                 void_dic[pix] = []
+#
+#             for interval in [3,6,9,12]:
+#                 interval = '%02d'%interval
+#                 fdir = this_root+'SPEI\\recovery_time_per_pix_24\\SPEI_{}\\'.format(interval)
+#                 dic = dict(np.load(fdir+f).item())
+#                 for pix in dic:
+#                     vals = dic[pix]
+#                     void_dic[pix].append(vals)
+#             # 加PDSI
+#             # pdsi_fdir_ = this_root+'PDSI\\recovery_time_per_pix\\'
+#             # dic = dict(np.load(pdsi_fdir_ + f).item())
+#             # for pix in dic:
+#             #     vals = dic[pix]
+#             #     void_dic[pix].append(vals)
+#
+#             np.save(outdir+f,void_dic)
+#
+#         pass
+#
+#     def plot_composite_recovery_time(self):
+#         # fdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI\\'
+#         fdir = this_root+'arr\\recovery_time_per_pix\\composite_SPEI_PDSI\\'
+#         outfolder = this_root+'SPEI\\recovery_tif\\'
+#         outf = outfolder+'recovery_PDSI_SPEI.tif'
+#         # outf = outfolder+'recovery_SPEI.tif'
+#         tif_template = this_root + 'conf\\SPEI.tif'
+#         _, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+#
+#         spatial_dic = {}
+#         for f in tqdm(os.listdir(fdir)):
+#             dic = dict(np.load(fdir+f).item())
+#             # print(f)
+#             for pix in dic:
+#                 _vals = dic[pix]
+#                 val_sum = []
+#                 for vals in _vals:
+#                     if type(vals) == list:
+#                         for val in vals:
+#                             mon,recovery_time = val
+#                             mon = int(mon)
+#                             val_sum.append(recovery_time)
+#                     else:
+#                         pass
+#                 if len(val_sum) > 0:
+#                     val_mean = np.mean(val_sum)
+#                     spatial_dic[pix] = val_mean
+#                 else:
+#                     spatial_dic[pix] = -999999
+#
+#         x = []
+#         y = []
+#         for key in spatial_dic:
+#             key_split = key.split('.')
+#             x.append(key_split[0])
+#             y.append(key_split[1])
+#         row = len(set(x))
+#         col = len(set(y))
+#
+#         spatial = []
+#         for r in range(row):
+#             temp = []
+#             for c in range(col):
+#                 key = '%03d.%03d' % (r, c)
+#                 val_pix = spatial_dic[key]
+#                 temp.append(val_pix)
+#             spatial.append(temp)
+#         spatial = np.array(spatial)
+#         grid = np.isnan(spatial)
+#         grid = np.logical_not(grid)
+#         spatial[np.logical_not(grid)] = -999999
+#         to_raster.array2raster(outf, originX, originY, pixelWidth, pixelHeight, spatial)
 
 
 class Recovery_time_winter:
-
+    '''
+    考虑冬季的恢复期
+    '''
     def __init__(self):
-        self.plot_recovery_time(3)
+        # self.plot_recovery_time(3)
+        self.gen_recovery_time(3)
         pass
 
+    def return_hemi(self,pix,pix_lon_lat_dic):
+        lon,lat = pix_lon_lat_dic[pix]
+        if lat <= -30:
+            return 's'
+        elif -30 < lat < 30:
+            return 't'
+        else:
+            return 'n'
+
+    def get_growing_months(self,hemi):
+        if hemi == 'n':
+            growing_date_range = range(5, 10)
+        elif hemi == 's':
+            growing_date_range = [11, 12, 1, 2, 3]
+        elif hemi == 't':
+            growing_date_range = range(1, 13)
+        else:
+            raise IOError('hemi {} error'.format(hemi))
+        return growing_date_range
+
     def plot_recovery_time(self,interval):
+        '''
+        画示意图
+        :param interval: SPEI_{interval}
+        :return:
+        '''
         pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
         # 1 加载事件
         interval = '%02d'%interval
@@ -1802,8 +2019,10 @@ class Recovery_time_winter:
         ndvi_dir = this_root+'NDVI\\per_pix_anomaly\\'
         spei_dir = this_root+'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
         for f in os.listdir(ndvi_dir):
+            ############################
             if not '005' in f:
                 continue
+            ############################
             ndvi_dic = dict(np.load(ndvi_dir+f).item())
             spei_dic = dict(np.load(spei_dir+f).item())
             for pix in ndvi_dic:
@@ -1811,17 +2030,184 @@ class Recovery_time_winter:
                     ndvi = ndvi_dic[pix]
                     spei = spei_dic[pix]
                     event = events[pix]
-                    ndvi = Tools().forward_window_smooth(ndvi)
-                    spei = Tools().forward_window_smooth(spei)
-                    print pix
-                    print pix_lon_lat_dic[pix]
+                    smooth_window = 3
+                    ndvi = Tools().forward_window_smooth(ndvi,smooth_window)
+                    spei = Tools().forward_window_smooth(spei,smooth_window)
+
+                    hemi = self.return_hemi(pix,pix_lon_lat_dic)
+                    growing_date_range = self.get_growing_months(hemi)# return [5,6,7,8,9], [11,12,1,2,3], [1-12]
                     for date_range in event:
+                        if len(ndvi) < 300:
+                            continue
+                        # 1 挑出此次干旱事件的NDVI和SPEI值
                         ndvi_picked_vals = Tools().pick_vals_from_1darray(ndvi,date_range)
                         spei_picked_vals = Tools().pick_vals_from_1darray(spei,date_range)
-                        plt.plot(date_range,ndvi_picked_vals)
-                        plt.plot(date_range,spei_picked_vals)
+                        # 2 挑出此次干旱事件SPEI最低的索引
+                        min_spei_indx = Tools().pick_min_indx_from_1darray(spei,date_range)
+                        # 3 在此次干旱事件SPEI最低索引的周围搜索NDVI的索引和值
+                        # 在当前生长季搜索
+                        growing_index,growing_vals = Tools().pick_growing_season_vals(ndvi,min_spei_indx,growing_date_range)
+                        # 4 搜索恢复期
+                        # 4.1 获取growing season NDVI的最小值
+                        min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi,growing_index)
+                        min_ndvi = min(growing_vals)
+                        # 4.2 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
+                        recovery_time,mark= self.search(ndvi,min_ndvi_indx,growing_date_range)
+                        print recovery_time,mark
+                        recovery_date_range = range(min_ndvi_indx,min_ndvi_indx+recovery_time+1)
+                        recovery_ndvi = Tools().pick_vals_from_1darray(ndvi,recovery_date_range)
+
+                        plt.plot(recovery_date_range,recovery_ndvi,c='g',linewidth=6)
+                        plt.plot(date_range,spei_picked_vals,c='r',linewidth=6)
+                        plt.plot(range(len(ndvi)),ndvi,'--',c='gray',zorder=99)
+                        plt.plot(range(len(spei)),spei,'--',c='r',zorder=99)
+                        # plt.plot(growing_index,growing_vals,c='g',linewidth=6)
+
+                        minx = 9999
+                        maxx = -9999
+
+                        for ii in recovery_date_range:
+                            if ii > maxx:
+                                maxx = ii
+                            if ii < minx:
+                                minx = ii
+
+                        for ii in date_range:
+                            if ii > maxx:
+                                maxx = ii
+                            if ii < minx:
+                                minx = ii
+                        # print date_range[0]-5,recovery_date_range[-1]+5
+
+                        xtick = []
+                        for iii in np.arange(len(ndvi)):
+                            year = 1982 + iii / 12
+                            mon = iii % 12 + 1
+                            mon = '%02d' % mon
+                            xtick.append('{}.{}'.format(year, mon))
+                        # plt.xticks(range(len(xtick))[::3], xtick[::3], rotation=90)
+                        plt.xticks(range(len(xtick)), xtick, rotation=90)
+                        plt.grid()
+                        plt.xlim(minx-5, maxx+5)
                         plt.show()
 
+        pass
+
+    def kernel_gen_recovery_time(self,params):
+
+        pass
+
+
+    def gen_recovery_time(self,interval):
+        '''
+        生成全球恢复期
+        :param interval: SPEI_{interval}
+        :return:
+        '''
+        pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+
+        out_dir = this_root+'arr\\gen_recovery_time\\SPEI_{}\\'.format(interval)
+        Tools().mk_dir(out_dir,force=True)
+        # 1 加载事件
+        interval = '%02d' % interval
+        events = dict(
+            np.load(this_root + 'SPEI\\pick_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
+        # 2 加载NDVI
+        ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
+        spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
+        for f in tqdm(os.listdir(ndvi_dir)):
+            ndvi_dic = dict(np.load(ndvi_dir + f).item())
+            spei_dic = dict(np.load(spei_dir + f).item())
+            recovery_time_dic = {}
+            for pix in ndvi_dic:
+                if pix in events:
+                    ndvi = ndvi_dic[pix]
+                    spei = spei_dic[pix]
+                    event = events[pix]
+                    smooth_window = 3
+                    ndvi = Tools().forward_window_smooth(ndvi, smooth_window)
+                    spei = Tools().forward_window_smooth(spei, smooth_window)
+                    # 输入Pixel：001.001 输出s:south, n:north ,t: tropical
+                    hemi = self.return_hemi(pix, pix_lon_lat_dic)
+                    # 输入s,n,t 输出 [5,6,7,8,9], [11,12,1,2,3], [1-12]
+                    growing_date_range = self.get_growing_months(hemi)  # return [5,6,7,8,9], [11,12,1,2,3], [1-12]
+                    recovery_time_result = []
+                    for date_range in event:
+                        if len(ndvi) < 300:
+                            continue
+                        # 1 挑出此次干旱事件的NDVI和SPEI值 （画图需要）
+                        # spei_picked_vals = Tools().pick_vals_from_1darray(spei, date_range)
+                        # 2 挑出此次干旱事件SPEI最低的索引
+                        min_spei_indx = Tools().pick_min_indx_from_1darray(spei, date_range)
+                        # 3 在此次干旱事件SPEI最低索引的周围搜索NDVI的索引和值
+                        # 在当前生长季搜索
+                        growing_index, growing_vals = Tools().pick_growing_season_vals(ndvi, min_spei_indx,
+                                                                                       growing_date_range)
+                        # 4 搜索恢复期
+                        # 4.1 获取growing season NDVI的最小值
+                        min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
+                        # 4.2 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
+                        recovery_time, mark = self.search(ndvi, min_ndvi_indx, growing_date_range)
+                        recovery_time_result.append([recovery_time, mark])
+                    recovery_time_dic[pix] = recovery_time_result
+                else:
+                    recovery_time_dic[pix] = []
+            np.save(out_dir+f,recovery_time_dic)
+        pass
+
+
+    def search(self,ndvi,min_ndvi_indx,growing_date_range):
+        if ndvi[min_ndvi_indx] >= 0:  # 如果在生长季中，NDVI最小值大于0，则恢复期为0个月
+            return 0,'in'
+        for i in range(len(ndvi)):
+            if (min_ndvi_indx + i) >= len(ndvi):  # 到头了
+                break
+            search_ = min_ndvi_indx + i
+            search_v = ndvi[search_]
+            if search_v >= 0:
+                recovery_time = i
+                end_mon = search_ % 12 + 1
+
+                if len(growing_date_range) <= 10:  # 存在冬季的地区
+                    if end_mon in growing_date_range and recovery_time <= 5: # 在当年内恢复
+                        return recovery_time,'in'  # 在生长季恢复
+                    else:
+                        return recovery_time,'out'  # 不在生长季恢复
+                else:  # 不存在冬季的地区
+                    return recovery_time,'tropical'
+        return None,None
+
+    def search1(self,ndvi):
+        for search_i in range(len(ndvi)):
+            if (min_ndvi_indx + search_i) >= len(ndvi):
+                break
+            search_v = ndvi[min_ndvi_indx + search_i]
+            if search_v > 0:
+                if (min_ndvi_indx + search_i) <= date_range[-1]:
+                    continue
+
+                start = date_range[-1]
+                if max_index >= start:
+                    start = max_index
+
+                end = max_index + search_i + 1
+                recovery_date = range(start, end)
+
+                # print(recovery_date)
+                recovery_veg_val = []
+                for rd in recovery_date:
+                    rvv = mode_vals[rd]
+                    recovery_veg_val.append(rvv)
+                plt.plot(recovery_date, recovery_veg_val, '--', c='black', linewidth=4, zorder=50,
+                         alpha=0.5)
+                plt.scatter(recovery_date[0], recovery_veg_val[0], marker='v', s=50, zorder=99,
+                            alpha=0.7)
+                plt.scatter(recovery_date[-1], recovery_veg_val[-1], marker='^', s=50,
+                            zorder=99, alpha=0.7)
+                xmin = event[0] - 15
+                xmax = end + 15
+
+                break
         pass
 
 
@@ -1839,7 +2225,6 @@ def main():
     # Tools().split_winter()
 
     Recovery_time_winter()
-
 
     pass
 
