@@ -36,6 +36,9 @@ plt.rcParams['axes.unicode_minus'] = False
 
 
 class Tools:
+    '''
+    小工具
+    '''
     def __init__(self):
         pass
 
@@ -602,6 +605,9 @@ class Tools:
 
 
 class SMOOTH:
+    '''
+    一些平滑算法
+    '''
     def __init__(self):
 
         pass
@@ -918,6 +924,31 @@ class DIC_and_TIF:
         # # plt.title(str(set_level))
         # plt.show()
 
+
+    def pix_dic_to_tif(self, spatial_dic,out_tif):
+
+        x = []
+        y = []
+        for key in spatial_dic:
+            key_split = key.split('.')
+            x.append(key_split[0])
+            y.append(key_split[1])
+        row = len(set(x))
+        col = len(set(y))
+        spatial = []
+        for r in range(row):
+            temp = []
+            for c in range(col):
+                key = '%03d.%03d' % (r, c)
+                if key in spatial_dic:
+                    val_pix = spatial_dic[key]
+                    temp.append(val_pix)
+                else:
+                    temp.append(np.nan)
+            spatial.append(temp)
+
+        spatial = np.array(spatial)
+        self.arr_to_tif(spatial,out_tif)
 
     def spatial_tif_to_lon_lat_dic(self):
         tif_template = this_root + 'conf\\SPEI.tif'
@@ -1981,8 +2012,9 @@ class Recovery_time_winter:
     考虑冬季的恢复期
     '''
     def __init__(self):
-        # self.plot_recovery_time(3)
-        self.gen_recovery_time(3)
+        self.plot_recovery_time(3)
+        # self.gen_recovery_time(3)
+        # self.plot_gen_recovery_time()
         pass
 
     def return_hemi(self,pix,pix_lon_lat_dic):
@@ -2105,7 +2137,7 @@ class Recovery_time_winter:
         :return:
         '''
         pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
-
+        interval = '%02d'%interval
         out_dir = this_root+'arr\\gen_recovery_time\\SPEI_{}\\'.format(interval)
         Tools().mk_dir(out_dir,force=True)
         # 1 加载事件
@@ -2177,39 +2209,48 @@ class Recovery_time_winter:
                     return recovery_time,'tropical'
         return None,None
 
-    def search1(self,ndvi):
-        for search_i in range(len(ndvi)):
-            if (min_ndvi_indx + search_i) >= len(ndvi):
-                break
-            search_v = ndvi[min_ndvi_indx + search_i]
-            if search_v > 0:
-                if (min_ndvi_indx + search_i) <= date_range[-1]:
-                    continue
+    def plot_gen_recovery_time(self):
+        '''
+        看全球的结果
+        :return:
+        '''
+        interval = 3
+        interval = '%02d'%interval
+        fdir = this_root+ 'arr\\gen_recovery_time\\SPEI_{}\\'.format(interval)
+        out_tif_dir = this_root+'tif\\plot_gen_recovery_time\\'
+        Tools().mk_dir(out_tif_dir)
+        out_tif = out_tif_dir+'out_winter.tif'
+        global_recovery = {}
+        for f in tqdm(os.listdir(fdir)):
+            # #################
+            # if not '015' in f:
+            #     continue
+            # #################
 
-                start = date_range[-1]
-                if max_index >= start:
-                    start = max_index
+            dic = dict(np.load(fdir+f).item())
+            for pix in dic:
+                events = dic[pix]
+                if len(events) > 0:
+                    recovery_sum = []
+                    for recovery, mark in events:
+                        # if mark == 'in' or mark == 'tropical':
+                        if mark == 'out' or mark == 'tropical':
+                            recovery_sum.append(recovery)
+                    if len(recovery_sum) > 0:
+                        recovery_mean = int(np.mean(recovery_sum))
+                    else:
+                        recovery_mean = -999999
+                else:
+                    recovery_mean = -999999
+                global_recovery[pix] = recovery_mean
 
-                end = max_index + search_i + 1
-                recovery_date = range(start, end)
-
-                # print(recovery_date)
-                recovery_veg_val = []
-                for rd in recovery_date:
-                    rvv = mode_vals[rd]
-                    recovery_veg_val.append(rvv)
-                plt.plot(recovery_date, recovery_veg_val, '--', c='black', linewidth=4, zorder=50,
-                         alpha=0.5)
-                plt.scatter(recovery_date[0], recovery_veg_val[0], marker='v', s=50, zorder=99,
-                            alpha=0.7)
-                plt.scatter(recovery_date[-1], recovery_veg_val[-1], marker='^', s=50,
-                            zorder=99, alpha=0.7)
-                xmin = event[0] - 15
-                xmax = end + 15
-
-                break
+        DIC_and_TIF().pix_dic_to_tif(global_recovery,out_tif)
+        # arr = DIC_and_TIF().pix_dic_to_spatial_arr(global_recovery)
+        # arr = np.ma.masked_where(arr < -999,arr)
+        # plt.imshow(arr,'jet',vmin=0,vmax=6)
+        # plt.colorbar()
+        # plt.show()
         pass
-
 
 def main():
     # n = '%02d'%12

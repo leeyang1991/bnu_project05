@@ -22,6 +22,7 @@ import pandas
 import seaborn as sns
 import datetime
 from netCDF4 import Dataset
+import requests
 
 this_root = 'D:\\project05\\'
 
@@ -151,14 +152,32 @@ def nc_to_tif(nc,outdir):
         # nc_dic[date_str] = arr
         # exit()
 
+
+def downloadFILE(url,name):
+    resp = requests.get(url=url,stream=True)
+    #stream=True的作用是仅让响应头被下载，连接保持打开状态，
+    content_size = int(resp.headers['Content-Length'])/1024        #确定整个安装包的大小
+    with open(name, "wb") as f:
+        for data in tqdm(iterable=resp.iter_content(1024),total=content_size,unit='k',desc=name):
+            f.write(data)
+
+def download_spei():
+    outdir = this_root + 'SPEI\\download_from_web\\'
+    for i in range(1,25):
+        i = '%02d'%i
+        url = 'http://digital.csic.es/bitstream/10261/153475/8/spei{}.nc'.format(i)
+        downloadFILE(url,outdir+'spei{}.nc'.format(i))
+
+
 def main():
-    n=12
-    n='%02d'%n
-    nc = this_root+'SPEI\\download_from_web\\spei{}.nc'.format(n)
-    out_dir = this_root+'SPEI\\tif\\SPEI_{}\\'.format(n)
+    # n=12
+    # n='%02d'%n
+    # nc = this_root+'SPEI\\download_from_web\\spei{}.nc'.format(n)
+    # out_dir = this_root+'SPEI\\tif\\SPEI_{}\\'.format(n)
     # npz = this_root+'SPEI\\npz\\spei_3'
     # nc_to_npz(nc,npz)
-    nc_to_tif(nc,out_dir)
+    # nc_to_tif(nc,out_dir)
+    download_spei()
 
 if __name__ == '__main__':
     main()
