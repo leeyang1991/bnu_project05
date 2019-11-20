@@ -23,6 +23,7 @@ import seaborn as sns
 import datetime
 from netCDF4 import Dataset
 import requests
+import analysis
 
 this_root = 'D:\\project05\\'
 
@@ -158,15 +159,25 @@ def downloadFILE(url,name):
     #stream=True的作用是仅让响应头被下载，连接保持打开状态，
     content_size = int(resp.headers['Content-Length'])/1024        #确定整个安装包的大小
     with open(name, "wb") as f:
-        for data in tqdm(iterable=resp.iter_content(1024),total=content_size,unit='k',desc=name):
+        # for data in tqdm(iterable=resp.iter_content(1024),total=content_size,unit='k',desc=name):
+        for data in resp.iter_content(1024):
             f.write(data)
+
+def kernel_download_spei(params):
+    i,outdir = params
+    interval = '%02d' % i
+    url = 'http://digital.csic.es/bitstream/10261/153475/{}/spei{}.nc'.format(i + 2, interval)
+    print url
+    downloadFILE(url, outdir + 'spei{}.nc'.format('%02d'%i))
+
 
 def download_spei():
     outdir = this_root + 'SPEI\\download_from_web\\'
+    params = []
     for i in range(1,25):
-        i = '%02d'%i
-        url = 'http://digital.csic.es/bitstream/10261/153475/8/spei{}.nc'.format(i)
-        downloadFILE(url,outdir+'spei{}.nc'.format(i))
+        params.append([i,outdir])
+    analysis.MUTIPROCESS(kernel_download_spei,params).run(6,'t')
+
 
 
 def main():
