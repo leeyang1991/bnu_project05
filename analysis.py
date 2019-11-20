@@ -1003,7 +1003,7 @@ class MUTIPROCESS:
         if process_or_thread == 'p':
             pool = multiprocessing.Pool(process)
         elif process_or_thread == 't':
-            pool = TPool()
+            pool = TPool(process)
         else:
             raise IOError('process_or_thread key error, input keyword such as "p" or "t"')
 

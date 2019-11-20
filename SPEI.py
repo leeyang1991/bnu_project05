@@ -128,7 +128,7 @@ def nc_to_tif(nc,outdir):
     for i in range(1982, 2016):
         valid_year.append(str(i))
 
-    for i in tqdm(range(len(time))):
+    for i in range(len(time)):
 
         flag += 1
         # print(time[i])
@@ -176,8 +176,24 @@ def download_spei():
     params = []
     for i in range(1,25):
         params.append([i,outdir])
-    analysis.MUTIPROCESS(kernel_download_spei,params).run(6,'t')
+        # kernel_download_spei([i,outdir])
+    analysis.MUTIPROCESS(kernel_download_spei,params).run(24,'t')
 
+def kernel_run_nc_to_tif(params):
+    nc_dir, interval, out_dir = params
+
+    f = nc_dir + 'spei{}.nc'.format('%02d' % interval)
+    out_dir = out_dir + 'spei{}\\'.format('%02d' % interval)
+    nc_to_tif(f, out_dir)
+    pass
+
+def run_nc_to_tif():
+    nc_dir = r'D:\project05\SPEI\download_from_web\\'
+    out_dir = r'D:\project05\SPEI\tif\\'
+    params = []
+    for interval in range(1,25):
+        params.append([nc_dir, interval, out_dir])
+    analysis.MUTIPROCESS(kernel_run_nc_to_tif,params).run()
 
 
 def main():
@@ -187,8 +203,8 @@ def main():
     # out_dir = this_root+'SPEI\\tif\\SPEI_{}\\'.format(n)
     # npz = this_root+'SPEI\\npz\\spei_3'
     # nc_to_npz(nc,npz)
-    # nc_to_tif(nc,out_dir)
-    download_spei()
+    run_nc_to_tif()
+    # download_spei()
 
 if __name__ == '__main__':
     main()
