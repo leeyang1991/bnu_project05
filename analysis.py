@@ -548,61 +548,9 @@ class Tools:
 
 
 
-    def data_transform(self,fdir,outdir):
-        self.mk_dir(outdir)
-        # 将空间图转换为数组
-        # per_pix_data
-        flist = os.listdir(fdir)
-        date_list = []
-        for f in flist:
-            if f.endswith('.tif'):
-                date = f.split('.')[0]
-                date_list.append(date)
-        date_list.sort()
-        all_array = []
-        for d in tqdm(date_list,'loading...'):
-        # for d in date_list:
-            for f in flist:
-                if f.endswith('.tif'):
-                    if f.split('.')[0] == d:
-                        # print(d)
-                        array, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(fdir + f)
-                        all_array.append(array)
-
-        row = len(all_array[0])
-        col = len(all_array[0][0])
-
-        void_dic = {}
-        void_dic_list = []
-        for r in range(row):
-            for c in range(col):
-                void_dic['%03d.%03d' % (r, c)] = []
-                void_dic_list.append('%03d.%03d' % (r, c))
-
-        # print(len(void_dic))
-        # exit()
-        for r in tqdm(range(row),'transforming...'):
-            for c in range(col):
-                for arr in all_array:
-                    val = arr[r][c]
-                    void_dic['%03d.%03d' % (r, c)].append(val)
-
-        # for i in void_dic_list:
-        #     print(i)
-        # exit()
-        flag = 0
-        temp_dic = {}
-        for key in tqdm(void_dic_list,'saving...'):
-            flag += 1
-            # print('saving ',flag,'/',len(void_dic)/100000)
-            temp_dic[key] = void_dic[key]
-            if flag % 10000 == 0:
-                # print('\nsaving %02d' % (flag / 10000)+'\n')
-                np.save(outdir + 'per_pix_dic_%03d' % (flag / 10000), temp_dic)
-                temp_dic = {}
-        np.save(outdir + 'per_pix_dic_%03d' % 0, temp_dic)
 
 
+    
 
 class SMOOTH:
     '''
@@ -965,6 +913,15 @@ class DIC_and_TIF:
         print('saving')
         np.save(this_root+'arr\\pix_to_lon_lat_dic',pix_to_lon_lat_dic)
 
+    def void_spatial_dic(self):
+        tif_template = this_root + 'conf\\tif_template.tif'
+        arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+        void_dic = {}
+        for row in range(len(arr)):
+            for col in range(len(arr[row])):
+                key = '%03d.%03d'%(row,col)
+                void_dic[key] = []
+        return void_dic
 
 
 class MUTIPROCESS:
@@ -1082,10 +1039,79 @@ class KDE_plot:
 
 
 
-class Cal_anomaly:
+class Pre_Process:
     def __init__(self):
-        # self.cal_anomaly()
+        self.do_data_transform()
         pass
+    
+    
+    def do_data_transform(self):
+        father_dir = this_root+'SPEI\\tif\\'
+        for spei_dir in os.listdir(father_dir):
+            print spei_dir+'\n'
+            interval = spei_dir[-2:]
+
+            spei_dir_ = spei_dir.upper()[:4]+'_'+interval
+            outdir = this_root+'SPEI\\per_pix\\'+spei_dir_+'\\'
+            print outdir
+            Tools().mk_dir(outdir)
+            self.data_transform(father_dir+spei_dir+'\\',outdir)
+
+    def data_transform(self,fdir,outdir):
+        # 不可并行，内存不足
+        Tools().mk_dir(outdir)
+        # 将空间图转换为数组
+        # per_pix_data
+        flist = os.listdir(fdir)
+        date_list = []
+        for f in flist:
+            if f.endswith('.tif'):
+                date = f.split('.')[0]
+                date_list.append(date)
+        date_list.sort()
+        all_array = []
+        for d in tqdm(date_list,'loading...'):
+        # for d in date_list:
+            for f in flist:
+                if f.endswith('.tif'):
+                    if f.split('.')[0] == d:
+                        # print(d)
+                        array, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(fdir + f)
+                        all_array.append(array)
+
+        row = len(all_array[0])
+        col = len(all_array[0][0])
+
+        void_dic = {}
+        void_dic_list = []
+        for r in range(row):
+            for c in range(col):
+                void_dic['%03d.%03d' % (r, c)] = []
+                void_dic_list.append('%03d.%03d' % (r, c))
+
+        # print(len(void_dic))
+        # exit()
+        for r in tqdm(range(row),'transforming...'):
+            for c in range(col):
+                for arr in all_array:
+                    val = arr[r][c]
+                    void_dic['%03d.%03d' % (r, c)].append(val)
+
+        # for i in void_dic_list:
+        #     print(i)
+        # exit()
+        flag = 0
+        temp_dic = {}
+        for key in tqdm(void_dic_list,'saving...'):
+            flag += 1
+            # print('saving ',flag,'/',len(void_dic)/100000)
+            temp_dic[key] = void_dic[key]
+            if flag % 10000 == 0:
+                # print('\nsaving %02d' % (flag / 10000)+'\n')
+                np.save(outdir + 'per_pix_dic_%03d' % (flag / 10000), temp_dic)
+                temp_dic = {}
+        np.save(outdir + 'per_pix_dic_%03d' % 0, temp_dic)
+
 
     def kernel_cal_anomaly(self,params):
         fdir,f ,save_dir= params
@@ -1166,9 +1192,8 @@ class Cal_anomaly:
 
 
 class Pick_Single_events():
-    def __init__(self):
+    def __init__(self,interval):
         #
-        interval = 3
         # 1 找single event 前后24个月无严重干旱事件
         # 耗时：13 min
         self.pick(interval)
@@ -2011,10 +2036,17 @@ class Recovery_time_winter:
     '''
     考虑冬季的恢复期
     '''
-    def __init__(self):
-        self.plot_recovery_time(3)
-        # self.gen_recovery_time(3)
+    def __init__(self,interval):
+        # self.plot_recovery_time(3)
+
+        # interval = ''
+        self.gen_recovery_time(interval)
         # self.plot_gen_recovery_time()
+        # self.composite_recovery_time()
+        # in_or_out = 'in'
+        # in_or_out = 'out'
+        # in_or_out = 'all'
+        # self.plot_composite_recovery_time(in_or_out)
         pass
 
     def return_hemi(self,pix,pix_lon_lat_dic):
@@ -2141,7 +2173,7 @@ class Recovery_time_winter:
         out_dir = this_root+'arr\\gen_recovery_time\\SPEI_{}\\'.format(interval)
         Tools().mk_dir(out_dir,force=True)
         # 1 加载事件
-        interval = '%02d' % interval
+        # interval = '%02d' % interval
         events = dict(
             np.load(this_root + 'SPEI\\pick_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
         # 2 加载NDVI
@@ -2189,8 +2221,8 @@ class Recovery_time_winter:
 
 
     def search(self,ndvi,min_ndvi_indx,growing_date_range):
-        if ndvi[min_ndvi_indx] >= 0:  # 如果在生长季中，NDVI最小值大于0，则恢复期为0个月
-            return 0,'in'
+        # if ndvi[min_ndvi_indx] >= 0:  # 如果在生长季中，NDVI最小值大于0，则恢复期为0个月
+        #     return 0,'in'
         for i in range(len(ndvi)):
             if (min_ndvi_indx + i) >= len(ndvi):  # 到头了
                 break
@@ -2252,20 +2284,79 @@ class Recovery_time_winter:
         # plt.show()
         pass
 
+
+    def composite_recovery_time(self):
+        '''
+        合成SPEI 1 - 24 的recovery time
+        :return:
+        '''
+        fdir = this_root+'arr\\gen_recovery_time\\'
+        out_dir = this_root+'arr\\composite_recovery_time\\'
+        Tools().mk_dir(out_dir)
+        void_dic = DIC_and_TIF().void_spatial_dic()
+        for folder in tqdm(os.listdir(fdir)):
+            for f in os.listdir(fdir+folder):
+                dic = dict(np.load(fdir+folder+'\\'+f).item())
+                for pix in dic:
+                    recovery_events = dic[pix]
+                    for event in recovery_events:
+                        void_dic[pix].append(event)
+        print '\nsaving...'
+        np.save(out_dir+'composite',void_dic)
+            # exit()
+        pass
+
+    def plot_composite_recovery_time(self,in_or_out):
+        # in_or_out = 'in', or 'out'
+        composite_recovery = dict(np.load(this_root+'arr\\composite_recovery_time\\composite.npy').item())
+        out_tif_dir = this_root + 'tif\\plot_gen_recovery_time\\'
+        Tools().mk_dir(out_tif_dir)
+        out_tif = out_tif_dir + in_or_out+'_winter_global.tif'
+        global_recovery = {}
+        for pix in tqdm(composite_recovery):
+            # val = composite_recovery[key]
+            events = composite_recovery[pix]
+            if len(events) > 0:
+                recovery_sum = []
+                for recovery, mark in events:
+                    # if mark == 'in' or mark == 'tropical':
+                    # if mark == in_or_out or mark == 'tropical':
+                    if recovery:
+                        recovery_sum.append(recovery)
+                if len(recovery_sum) > 0:
+                    recovery_mean = np.mean(recovery_sum)
+                else:
+                    recovery_mean = -999999
+            else:
+                recovery_mean = -999999
+            global_recovery[pix] = recovery_mean
+
+        DIC_and_TIF().pix_dic_to_tif(global_recovery, out_tif)
+
+
+
+def kernel_run(param):
+    interval = param
+    # Pick_Single_events(interval)
+    Recovery_time_winter(interval)
+
+def run():
+    param = []
+    for interval in range(1,25):
+        param.append(interval)
+    MUTIPROCESS(kernel_run,param).run()
+
+
 def main():
     # n = '%02d'%12
     # fdir = this_root+'PDSI\\tif_resample_0.5\\'
     # outdir = this_root+'PDSI\\per_pix\\'
     # Tools().data_transform(fdir,outdir)
     # Pick_Single_events(1)
-    # Cal_anomaly()
+    # Pre_Process()
     # interval = 12
-    # Pick_Single_events()
-    # Recovery_time()
-    # 20191116
-    # Tools().split_winter()
-
-    Recovery_time_winter()
+    # run()
+    # Recovery_time_winter()
 
     pass
 
