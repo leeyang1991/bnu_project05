@@ -59,7 +59,7 @@ class Tools:
         val_new = []
         flag = 0
         for i in range(len(val)):
-            if val[i] >= -10:
+            if val[i] >= -10000:
                 flag+=1.
                 index = i
                 x = np.append(x, index)
@@ -1041,7 +1041,11 @@ class KDE_plot:
 
 class Pre_Process:
     def __init__(self):
-        self.do_data_transform()
+        # fdir = this_root+'PRE\\tif\\'
+        # outdir = this_root+'PRE\\per_pix\\'
+        # Tools().mk_dir(outdir)
+        # self.data_transform(fdir,outdir)
+        self.cal_anomaly()
         pass
     
     
@@ -1159,7 +1163,7 @@ class Pre_Process:
             # 算法2
             pix_anomaly = []
             for i in range(len(vals)):
-                mon = i % 12 + 1
+                mon = i % 12
                 std_ = climatology_std[mon]
                 mean_ = climatology_means[mon]
                 if std_ == 0:
@@ -1174,8 +1178,8 @@ class Pre_Process:
 
 
     def cal_anomaly(self):
-        fdir = this_root + 'NDVI\\per_pix\\'
-        save_dir = this_root + 'NDVI\\per_pix_anomaly\\'
+        fdir = this_root + 'TMP\\per_pix\\'
+        save_dir = this_root + 'TMP\\per_pix_anomaly\\'
         Tools().mk_dir(save_dir)
         flist = os.listdir(fdir)
         # flag = 0
@@ -1186,8 +1190,7 @@ class Pre_Process:
 
         # for p in params:
         #     print(p[1])
-        #     kernel_cal_anomaly(p)
-        # Tools().do_multiprocess(self.kernel_cal_anomaly,params,process=2,process_or_thread='t',text='calculating anomaly...')
+        #     self.kernel_cal_anomaly(p)
         MUTIPROCESS(self.kernel_cal_anomaly,params).run(process=6,process_or_thread='p',text='calculating anomaly...')
 
 
@@ -2040,7 +2043,7 @@ class Recovery_time_winter:
         # self.plot_recovery_time(3)
 
         # interval = ''
-        self.gen_recovery_time(interval)
+        self.plot_recovery_time(interval)
         # self.plot_gen_recovery_time()
         # self.composite_recovery_time()
         # in_or_out = 'in'
@@ -2082,6 +2085,8 @@ class Recovery_time_winter:
         # 2 加载NDVI
         ndvi_dir = this_root+'NDVI\\per_pix_anomaly\\'
         spei_dir = this_root+'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
+        pre_dir = this_root+'PRE\\per_pix_anomaly\\'
+        tmp_dir = this_root+'TMP\\per_pix_anomaly\\'
         for f in os.listdir(ndvi_dir):
             ############################
             if not '005' in f:
@@ -2089,15 +2094,20 @@ class Recovery_time_winter:
             ############################
             ndvi_dic = dict(np.load(ndvi_dir+f).item())
             spei_dic = dict(np.load(spei_dir+f).item())
+            pre_dic = dict(np.load(pre_dir+f).item())
+            tmp_dic = dict(np.load(tmp_dir+f).item())
             for pix in ndvi_dic:
                 if pix in events:
                     ndvi = ndvi_dic[pix]
                     spei = spei_dic[pix]
+                    pre = pre_dic[pix]
+                    tmp = tmp_dic[pix]
                     event = events[pix]
                     smooth_window = 3
                     ndvi = Tools().forward_window_smooth(ndvi,smooth_window)
                     spei = Tools().forward_window_smooth(spei,smooth_window)
-
+                    pre = Tools().forward_window_smooth(pre,smooth_window)
+                    tmp = Tools().forward_window_smooth(tmp,smooth_window)
                     hemi = self.return_hemi(pix,pix_lon_lat_dic)
                     growing_date_range = self.get_growing_months(hemi)# return [5,6,7,8,9], [11,12,1,2,3], [1-12]
                     for date_range in event:
@@ -2106,6 +2116,10 @@ class Recovery_time_winter:
                         # 1 挑出此次干旱事件的NDVI和SPEI值
                         ndvi_picked_vals = Tools().pick_vals_from_1darray(ndvi,date_range)
                         spei_picked_vals = Tools().pick_vals_from_1darray(spei,date_range)
+                        # date_range_post = []
+                        # for i in range(10):
+
+
                         # 2 挑出此次干旱事件SPEI最低的索引
                         min_spei_indx = Tools().pick_min_indx_from_1darray(spei,date_range)
                         # 3 在此次干旱事件SPEI最低索引的周围搜索NDVI的索引和值
@@ -2116,16 +2130,29 @@ class Recovery_time_winter:
                         min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi,growing_index)
                         min_ndvi = min(growing_vals)
                         # 4.2 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
-                        recovery_time,mark= self.search(ndvi,min_ndvi_indx,growing_date_range)
+                        recovery_time, mark = self.search(ndvi,min_ndvi_indx,growing_date_range)
                         print recovery_time,mark
                         recovery_date_range = range(min_ndvi_indx,min_ndvi_indx+recovery_time+1)
                         recovery_ndvi = Tools().pick_vals_from_1darray(ndvi,recovery_date_range)
 
-                        plt.plot(recovery_date_range,recovery_ndvi,c='g',linewidth=6)
-                        plt.plot(date_range,spei_picked_vals,c='r',linewidth=6)
-                        plt.plot(range(len(ndvi)),ndvi,'--',c='gray',zorder=99)
+                        tmp_pre_date_range = []
+                        for i in recovery_date_range:
+                            tmp_pre_date_range.append(i)
+                        for i in date_range:
+                            tmp_pre_date_range.append(i)
+                        tmp_pre_date_range = list(set(tmp_pre_date_range))
+                        tmp_pre_date_range.sort()
+                        pre_picked_vals = Tools().pick_vals_from_1darray(pre, tmp_pre_date_range)
+                        tmp_picked_vals = Tools().pick_vals_from_1darray(tmp, tmp_pre_date_range)
+
+                        plt.plot(tmp_pre_date_range,pre_picked_vals,'--',c='blue',label='precipitation')
+                        plt.plot(tmp_pre_date_range,tmp_picked_vals,'--',c='cyan',label='temperature')
+                        plt.plot(recovery_date_range,recovery_ndvi,c='g',linewidth=6,label='NDVI')
+                        plt.plot(date_range,spei_picked_vals,c='r',linewidth=6,label='SPEI_{}'.format(interval))
+                        plt.plot(range(len(ndvi)),ndvi,'--',c='g',zorder=99)
                         plt.plot(range(len(spei)),spei,'--',c='r',zorder=99)
                         # plt.plot(growing_index,growing_vals,c='g',linewidth=6)
+                        plt.legend()
 
                         minx = 9999
                         maxx = -9999
@@ -2356,7 +2383,7 @@ def main():
     # Pre_Process()
     # interval = 12
     # run()
-    # Recovery_time_winter()
+    Recovery_time_winter(3)
 
     pass
 

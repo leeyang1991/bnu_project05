@@ -140,9 +140,9 @@ def nc_to_tif(nc,outdir):
         if not date_str[:4] in valid_year:
             continue
         # print(date_str)
-        arr = ncin.variables['spei'][i][::-1]
+        arr = ncin.variables['tmp'][i][::-1]
         arr = np.array(arr)
-        grid = arr < 100
+        grid = arr < 99999
         arr[np.logical_not(grid)] = -999999
         newRasterfn = outdir+date_str+'.tif'
         to_raster.array2raster(newRasterfn,longitude_start,latitude_start,pixelWidth,pixelHeight,arr)
@@ -203,8 +203,13 @@ def main():
     # out_dir = this_root+'SPEI\\tif\\SPEI_{}\\'.format(n)
     # npz = this_root+'SPEI\\npz\\spei_3'
     # nc_to_npz(nc,npz)
-    run_nc_to_tif()
+    # run_nc_to_tif()
     # download_spei()
+    # CRU
+    nc = this_root+'CRU\\cru_ts4.02.1901.2017.tmp.dat.nc\\cru_ts4.02.1901.2017.tmp.dat.nc'
+    outdir = this_root+'TMP\\tif\\'
+    analysis.Tools().mk_dir(outdir,force=True)
+    nc_to_tif(nc,outdir)
 
 if __name__ == '__main__':
     main()
