@@ -1045,7 +1045,7 @@ class Pre_Process:
         # outdir = this_root+'PRE\\per_pix\\'
         # Tools().mk_dir(outdir)
         # self.data_transform(fdir,outdir)
-        self.cal_anomaly()
+        # self.cal_anomaly()
         pass
     
     
@@ -1178,8 +1178,8 @@ class Pre_Process:
 
 
     def cal_anomaly(self):
-        fdir = this_root + 'TMP\\per_pix\\'
-        save_dir = this_root + 'TMP\\per_pix_anomaly\\'
+        fdir = this_root + 'GLOBSWE\\per_pix\\SWE_max_408\\'
+        save_dir = this_root + 'GLOBSWE\\per_pix_SWE_max_anomaly\\'
         Tools().mk_dir(save_dir)
         flist = os.listdir(fdir)
         # flag = 0
@@ -2087,27 +2087,39 @@ class Recovery_time_winter:
         spei_dir = this_root+'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
         pre_dir = this_root+'PRE\\per_pix_anomaly\\'
         tmp_dir = this_root+'TMP\\per_pix_anomaly\\'
+        swe_dir = this_root+'GLOBSWE\\per_pix_SWE_max_anomaly\\'
         for f in os.listdir(ndvi_dir):
             ############################
             if not '005' in f:
                 continue
             ############################
+
             ndvi_dic = dict(np.load(ndvi_dir+f).item())
             spei_dic = dict(np.load(spei_dir+f).item())
             pre_dic = dict(np.load(pre_dir+f).item())
             tmp_dic = dict(np.load(tmp_dir+f).item())
+            swe_dic = dict(np.load(swe_dir+f).item())
+
             for pix in ndvi_dic:
                 if pix in events:
+
                     ndvi = ndvi_dic[pix]
                     spei = spei_dic[pix]
                     pre = pre_dic[pix]
                     tmp = tmp_dic[pix]
+                    swe = swe_dic[pix]
                     event = events[pix]
+
                     smooth_window = 3
+
                     ndvi = Tools().forward_window_smooth(ndvi,smooth_window)
                     spei = Tools().forward_window_smooth(spei,smooth_window)
                     pre = Tools().forward_window_smooth(pre,smooth_window)
                     tmp = Tools().forward_window_smooth(tmp,smooth_window)
+                    # swe = Tools().forward_window_smooth(swe,smooth_window)
+                    swe = np.array(swe)
+                    grid = swe > -999
+                    swe[np.logical_not(grid)] = np.nan
                     hemi = self.return_hemi(pix,pix_lon_lat_dic)
                     growing_date_range = self.get_growing_months(hemi)# return [5,6,7,8,9], [11,12,1,2,3], [1-12]
                     for date_range in event:
@@ -2144,13 +2156,19 @@ class Recovery_time_winter:
                         tmp_pre_date_range.sort()
                         pre_picked_vals = Tools().pick_vals_from_1darray(pre, tmp_pre_date_range)
                         tmp_picked_vals = Tools().pick_vals_from_1darray(tmp, tmp_pre_date_range)
+                        if len(swe) == 0:
+                            continue
+                        swe_picked_vals = Tools().pick_vals_from_1darray(swe,tmp_pre_date_range)
 
+
+                        plt.figure(figsize=(6,6))
                         plt.plot(tmp_pre_date_range,pre_picked_vals,'--',c='blue',label='precipitation')
                         plt.plot(tmp_pre_date_range,tmp_picked_vals,'--',c='cyan',label='temperature')
+                        plt.plot(tmp_pre_date_range,swe_picked_vals,'--',c='black',linewidth=2,label='SWE',zorder=99)
                         plt.plot(recovery_date_range,recovery_ndvi,c='g',linewidth=6,label='NDVI')
                         plt.plot(date_range,spei_picked_vals,c='r',linewidth=6,label='SPEI_{}'.format(interval))
-                        plt.plot(range(len(ndvi)),ndvi,'--',c='g',zorder=99)
-                        plt.plot(range(len(spei)),spei,'--',c='r',zorder=99)
+                        plt.plot(range(len(ndvi)),ndvi,'--',c='g',zorder=99,label='ndvi')
+                        plt.plot(range(len(spei)),spei,'--',c='r',zorder=99,label='SPEI_{}')
                         # plt.plot(growing_index,growing_vals,c='g',linewidth=6)
                         plt.legend()
 

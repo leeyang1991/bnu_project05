@@ -33,11 +33,26 @@ this_root = r'd:\\project05\\'
 
 
 def foo_():
-    for i in tqdm(range(1000)):
-        for j in tqdm(range(100),desc=str(i),ncols=70):
-            time.sleep(0.01)
-        sys.stdout('clear')
 
+    # normal = []
+    # for y in range(1982,2016):
+    #     for mon in range(1,13):
+    #         normal.append('{}{}'.format(y,'%02d'%mon))
+
+    # datelist = []
+    # for y in range(1982,2016):
+    #     for mon in range(1,13):
+    #         if not mon in range(5,10):
+    #             datelist.append('{}{}'.format(y,'%02d'%mon))
+    # for i in range(len(vals)):
+    #     start = 3
+    # print normal
+    for i in range(238/7):
+        for j in range(5):
+            datelist.insert(4+i*12,'------')
+    # print datelist
+    # for i in range(len(datelist)):
+    #     print datelist[i],normal[i]
 
 def func():
     interval = 50
