@@ -1310,7 +1310,7 @@ class Pick_Single_events():
         # spei_dir = this_root+'PDSI\\per_pix\\'
         out_dir = this_root+mode+'\\single_events_{}\\'.format(n)+'SPEI_{:0>2d}\\'.format(interval)
         # out_dir = this_root+'PDSI\\single_events\\'
-        Tools().mk_dir(out_dir)
+        Tools().mk_dir(out_dir,force=True)
         for f in tqdm(os.listdir(spei_dir),'file...'):
             # if not '005' in f:
             #     continue
@@ -1333,29 +1333,34 @@ class Pick_Single_events():
                     level, date_range = events_dic[i]
                     if level == 4:
                         events_4.append(date_range)
+
+                # # # # # # # # # # # # # # # # # # # # # # #
+                single_event_dic[pix] = events_4
                 # print events_4
                 # 筛选单次事件（前后n个月无干旱事件）
-                single_event = []
-                for i in range(len(events_4)):
-                    if i - 1 < 0:# 首次事件
-                        if events_4[i][0] - n < 0 or events_4[i][-1] + n >= len(spei):# 触及两边则忽略
-                            continue
-                        if len(events_4) == 1:
-                            single_event.append(events_4[i])
-                        elif events_4[i][-1] + n <= events_4[i+1][0]:
-                            single_event.append(events_4[i])
-                        continue
-
-                    # 最后一次事件
-                    if i + 1 >= len(events_4):
-                        if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= len(spei):
-                            single_event.append(events_4[i])
-                        break
-
-                    # 中间事件
-                    if events_4[i][0] - events_4[i-1][-1] >= n and events_4[i][-1] + n <= events_4[i+1][0]:
-                        single_event.append(events_4[i])
-                single_event_dic[pix] = single_event
+                # # # # # # # # # # # # # # # # # # # # # # #
+            #     single_event = []
+            #     for i in range(len(events_4)):
+            #         if i - 1 < 0:# 首次事件
+            #             if events_4[i][0] - n < 0 or events_4[i][-1] + n >= len(spei):# 触及两边则忽略
+            #                 continue
+            #             if len(events_4) == 1:
+            #                 single_event.append(events_4[i])
+            #             elif events_4[i][-1] + n <= events_4[i+1][0]:
+            #                 single_event.append(events_4[i])
+            #             continue
+            #
+            #         # 最后一次事件
+            #         if i + 1 >= len(events_4):
+            #             if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= len(spei):
+            #                 single_event.append(events_4[i])
+            #             break
+            #
+            #         # 中间事件
+            #         if events_4[i][0] - events_4[i-1][-1] >= n and events_4[i][-1] + n <= events_4[i+1][0]:
+            #             single_event.append(events_4[i])
+            #     single_event_dic[pix] = single_event
+            #     # # # # # # # # # # # # # # # # # # # # # # #
             np.save(out_dir+f,single_event_dic)
 
     def kernel_find_drought_period(self,params):
@@ -2045,10 +2050,17 @@ class Recovery_time_winter:
         # interval = ''
         self.plot_recovery_time(interval)
         # self.plot_gen_recovery_time()
+
+
+        # 1 生成recovery time 1-24
+        # self.gen_recovery_time(interval)
+        # 2 合成 spei 1-24
         # self.composite_recovery_time()
+        # 3 选择参数
         # in_or_out = 'in'
         # in_or_out = 'out'
         # in_or_out = 'all'
+        # 4 出tif图
         # self.plot_composite_recovery_time(in_or_out)
         pass
 
@@ -2090,11 +2102,12 @@ class Recovery_time_winter:
         swe_dir = this_root+'GLOBSWE\\per_pix_SWE_max_anomaly\\'
         for f in os.listdir(ndvi_dir):
             ############################
-            if not '005' in f:
+            if not '008' in f:
                 continue
             ############################
 
             ndvi_dic = dict(np.load(ndvi_dir+f).item())
+            ndvi_dic = Tools().detrend_dic(ndvi_dic)
             spei_dic = dict(np.load(spei_dir+f).item())
             pre_dic = dict(np.load(pre_dir+f).item())
             tmp_dic = dict(np.load(tmp_dir+f).item())
@@ -2161,14 +2174,14 @@ class Recovery_time_winter:
                         swe_picked_vals = Tools().pick_vals_from_1darray(swe,tmp_pre_date_range)
 
 
-                        plt.figure(figsize=(6,6))
+                        plt.figure(figsize=(8,6))
                         plt.plot(tmp_pre_date_range,pre_picked_vals,'--',c='blue',label='precipitation')
                         plt.plot(tmp_pre_date_range,tmp_picked_vals,'--',c='cyan',label='temperature')
                         plt.plot(tmp_pre_date_range,swe_picked_vals,'--',c='black',linewidth=2,label='SWE',zorder=99)
-                        plt.plot(recovery_date_range,recovery_ndvi,c='g',linewidth=6,label='NDVI')
-                        plt.plot(date_range,spei_picked_vals,c='r',linewidth=6,label='SPEI_{}'.format(interval))
+                        plt.plot(recovery_date_range,recovery_ndvi,c='g',linewidth=6,label='Recovery Period')
+                        plt.plot(date_range,spei_picked_vals,c='r',linewidth=6,label='SPEI_{} Event'.format(interval))
                         plt.plot(range(len(ndvi)),ndvi,'--',c='g',zorder=99,label='ndvi')
-                        plt.plot(range(len(spei)),spei,'--',c='r',zorder=99,label='SPEI_{}')
+                        plt.plot(range(len(spei)),spei,'--',c='r',zorder=99,label='SPEI_{}'.format(interval))
                         # plt.plot(growing_index,growing_vals,c='g',linewidth=6)
                         plt.legend()
 
@@ -2198,6 +2211,9 @@ class Recovery_time_winter:
                         plt.xticks(range(len(xtick)), xtick, rotation=90)
                         plt.grid()
                         plt.xlim(minx-5, maxx+5)
+
+                        lon,lat,address = Tools().pix_to_address(pix)
+                        plt.title('lon:{} lat:{} address:{}'.format(lon,lat,address))
                         plt.show()
 
         pass
@@ -2226,6 +2242,7 @@ class Recovery_time_winter:
         spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
         for f in tqdm(os.listdir(ndvi_dir)):
             ndvi_dic = dict(np.load(ndvi_dir + f).item())
+            ndvi_dic = Tools().detrend_dic(ndvi_dic)
             spei_dic = dict(np.load(spei_dir + f).item())
             recovery_time_dic = {}
             for pix in ndvi_dic:
@@ -2273,7 +2290,7 @@ class Recovery_time_winter:
                 break
             search_ = min_ndvi_indx + i
             search_v = ndvi[search_]
-            if search_v >= 0:
+            if search_v >= -0.5:
                 recovery_time = i
                 end_mon = search_ % 12 + 1
 
@@ -2382,13 +2399,15 @@ class Recovery_time_winter:
 
 def kernel_run(param):
     interval = param
-    # Pick_Single_events(interval)
+    Pick_Single_events(interval)
     Recovery_time_winter(interval)
 
 def run():
     param = []
     for interval in range(1,25):
         param.append(interval)
+        # Pick_Single_events(interval)
+        # Recovery_time_winter(interval)
     MUTIPROCESS(kernel_run,param).run()
 
 
@@ -2401,7 +2420,7 @@ def main():
     # Pre_Process()
     # interval = 12
     # run()
-    Recovery_time_winter(3)
+    Recovery_time_winter(6)
 
     pass
 
