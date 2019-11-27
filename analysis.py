@@ -2048,7 +2048,8 @@ class Recovery_time_winter:
         # self.plot_recovery_time(3)
 
         # interval = ''
-        self.plot_recovery_time(interval)
+        # self.plot_recovery_time(interval)
+        self.statistic_recovery_p_t_swe(interval)
         # self.plot_gen_recovery_time()
 
 
@@ -2394,6 +2395,173 @@ class Recovery_time_winter:
             global_recovery[pix] = recovery_mean
 
         DIC_and_TIF().pix_dic_to_tif(global_recovery, out_tif)
+
+
+    def _count_nan(self,array):
+        flag = 0.
+        for i in array:
+            if np.isnan(i):
+                flag += 1.
+        ratio = flag/len(array)
+
+        return ratio
+
+
+    def _pick_winter_vals(self,min_indx,arr):
+        print min_indx
+        print len(arr)
+        print min_indx%12+1
+        for i in range(len(arr)):
+            mon = (min_indx + i) % 12 + 1
+            if mon in [11,12,1,2,3]:
+
+
+            pass
+
+
+
+
+        return arr
+        pass
+
+
+    def statistic_recovery_p_t_swe(self, interval):
+
+        pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+        # 1 加载事件
+        interval = '%02d' % interval
+        events = dict(
+            np.load(this_root + 'SPEI\\pick_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
+        # 2 加载NDVI
+        ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
+        spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
+        pre_dir = this_root + 'PRE\\per_pix\\'  # 原始值
+        tmp_dir = this_root + 'TMP\\per_pix\\'  # 原始值
+        swe_dir = this_root + 'GLOBSWE\\per_pix\\SWE_max_408\\'  # 原始值
+        for f in os.listdir(ndvi_dir):
+            ############################
+            if not '006' in f:
+                continue
+            ############################
+
+            ndvi_dic = dict(np.load(ndvi_dir + f).item())
+            ndvi_dic = Tools().detrend_dic(ndvi_dic)
+            spei_dic = dict(np.load(spei_dir + f).item())
+            pre_dic = dict(np.load(pre_dir + f).item())
+            tmp_dic = dict(np.load(tmp_dir + f).item())
+            swe_dic = dict(np.load(swe_dir + f).item())
+
+            for pix in ndvi_dic:
+                if pix in events:
+
+                    ndvi = ndvi_dic[pix]
+                    spei = spei_dic[pix]
+                    pre = pre_dic[pix]
+                    tmp = tmp_dic[pix]
+                    swe = swe_dic[pix]
+                    event = events[pix]
+
+                    smooth_window = 3
+
+                    ndvi = Tools().forward_window_smooth(ndvi, smooth_window)
+                    spei = Tools().forward_window_smooth(spei, smooth_window)
+                    pre = Tools().forward_window_smooth(pre, smooth_window)
+                    tmp = Tools().forward_window_smooth(tmp, smooth_window)
+                    # swe = Tools().forward_window_smooth(swe,smooth_window)
+                    swe = np.array(swe,dtype=float)
+                    grid = swe > -999
+                    # print swe
+                    swe[np.logical_not(grid)] = np.nan
+                    # print swe
+                    ratio = self._count_nan(swe)
+                    if ratio == 1:
+                        continue
+                    hemi = self.return_hemi(pix, pix_lon_lat_dic)
+                    growing_date_range = self.get_growing_months(hemi)  # return [5,6,7,8,9], [11,12,1,2,3], [1-12]
+                    for date_range in event:
+                        if len(ndvi) < 300:
+                            continue
+                        # 1 挑出此次干旱事件的NDVI和SPEI值
+                        ndvi_picked_vals = Tools().pick_vals_from_1darray(ndvi, date_range)
+                        spei_picked_vals = Tools().pick_vals_from_1darray(spei, date_range)
+                        # date_range_post = []
+                        # for i in range(10):
+
+                        # 2 挑出此次干旱事件SPEI最低的索引
+                        min_spei_indx = Tools().pick_min_indx_from_1darray(spei, date_range)
+                        # 3 在此次干旱事件SPEI最低索引的周围搜索NDVI的索引和值
+                        # 在当前生长季搜索
+                        growing_index, growing_vals = Tools().pick_growing_season_vals(ndvi, min_spei_indx,
+                                                                                       growing_date_range)
+                        # 4 搜索恢复期
+                        # 4.1 获取growing season NDVI的最小值
+                        min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
+                        min_ndvi = min(growing_vals)
+                        # 4.2 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
+                        recovery_time, mark = self.search(ndvi, min_ndvi_indx, growing_date_range)
+                        print recovery_time, mark
+                        # 4.3 搜索 during winter vals
+                        winter_swe = self._pick_winter_vals(min_spei_indx,swe)
+                        recovery_date_range = range(min_ndvi_indx, min_ndvi_indx + recovery_time + 1)
+                        recovery_ndvi = Tools().pick_vals_from_1darray(ndvi, recovery_date_range)
+
+                        tmp_pre_date_range = []
+                        for i in recovery_date_range:
+                            tmp_pre_date_range.append(i)
+                        for i in date_range:
+                            tmp_pre_date_range.append(i)
+                        tmp_pre_date_range = list(set(tmp_pre_date_range))
+                        tmp_pre_date_range.sort()
+                        pre_picked_vals = Tools().pick_vals_from_1darray(pre, tmp_pre_date_range)
+                        tmp_picked_vals = Tools().pick_vals_from_1darray(tmp, tmp_pre_date_range)
+                        if len(swe) == 0:
+                            continue
+                        swe_picked_vals = Tools().pick_vals_from_1darray(swe, tmp_pre_date_range)
+
+                        plt.figure(figsize=(8, 6))
+                        plt.plot(tmp_pre_date_range, pre_picked_vals, '--', c='blue', label='precipitation')
+                        plt.plot(tmp_pre_date_range, tmp_picked_vals, '--', c='cyan', label='temperature')
+                        plt.plot(tmp_pre_date_range, swe_picked_vals, '--', c='black', linewidth=2, label='SWE',
+                                 zorder=99)
+                        plt.plot(recovery_date_range, recovery_ndvi, c='g', linewidth=6, label='Recovery Period')
+                        plt.plot(date_range, spei_picked_vals, c='r', linewidth=6,
+                                 label='SPEI_{} Event'.format(interval))
+                        plt.plot(range(len(ndvi)), ndvi, '--', c='g', zorder=99, label='ndvi')
+                        plt.plot(range(len(spei)), spei, '--', c='r', zorder=99, label='SPEI_{}'.format(interval))
+                        plt.plot(range(len(swe)), swe, '--', c='black', linewidth=2, zorder=99, label='SWE')
+                        # plt.plot(growing_index,growing_vals,c='g',linewidth=6)
+                        plt.legend()
+
+                        minx = 9999
+                        maxx = -9999
+
+                        for ii in recovery_date_range:
+                            if ii > maxx:
+                                maxx = ii
+                            if ii < minx:
+                                minx = ii
+
+                        for ii in date_range:
+                            if ii > maxx:
+                                maxx = ii
+                            if ii < minx:
+                                minx = ii
+                        # print date_range[0]-5,recovery_date_range[-1]+5
+
+                        xtick = []
+                        for iii in np.arange(len(ndvi)):
+                            year = 1982 + iii / 12
+                            mon = iii % 12 + 1
+                            mon = '%02d' % mon
+                            xtick.append('{}.{}'.format(year, mon))
+                        # plt.xticks(range(len(xtick))[::3], xtick[::3], rotation=90)
+                        plt.xticks(range(len(xtick)), xtick, rotation=90)
+                        plt.grid()
+                        plt.xlim(minx - 5, maxx + 5)
+
+                        lon, lat, address = Tools().pix_to_address(pix)
+                        plt.title('lon:{} lat:{} address:{}'.format(lon, lat, address))
+                        plt.show()
 
 
 
