@@ -2392,6 +2392,18 @@ class Recovery_time_winter:
             raise IOError('hemi {} error'.format(hemi))
         return growing_date_range
 
+    def get_non_growing_months(self,hemi):
+        if hemi == 'n':
+            growing_date_range = [1, 2, 3, 4, 10, 11, 12]
+        elif hemi == 's':
+            growing_date_range = [4, 5, 6, 7, 8, 9, 10]
+        elif hemi == 't':
+            growing_date_range = range(1, 13)
+        else:
+            raise IOError('hemi {} error'.format(hemi))
+        return growing_date_range
+
+
     def plot_recovery_time(self,interval):
         '''
         画示意图
@@ -2610,6 +2622,28 @@ class Recovery_time_winter:
                 else:  # 不存在冬季的地区
                     return recovery_time,'tropical'
         return None,None
+
+    def search_non_growing_season(self,ndvi,min_ndvi_indx,growing_date_range):
+        # if ndvi[min_ndvi_indx] >= 0:  # 如果在生长季中，NDVI最小值大于0，则恢复期为0个月
+        #     return 0,'in'
+        for i in range(len(ndvi)):
+            if (min_ndvi_indx + i) >= len(ndvi):  # 到头了
+                break
+            search_ = min_ndvi_indx + i
+            search_v = ndvi[search_]
+            if search_v >= 0:
+                recovery_time = i
+                # end_mon = search_ % 12 + 1
+                return recovery_time,None
+                # if len(growing_date_range) <= 10:  # 存在冬季的地区
+                #     if end_mon in growing_date_range and recovery_time <= 5: # 在当年内恢复
+                #         return recovery_time,'in'  # 在生长季恢复
+                #     else:
+                #         return recovery_time,'out'  # 不在生长季恢复
+                # else:  # 不存在冬季的地区
+                #     return recovery_time,'tropical'
+        return None,None
+
 
     def plot_gen_recovery_time(self):
         '''
@@ -2893,7 +2927,7 @@ class PRE_POST_NON_Recovery_time:
         # 1 加载事件
         interval = '%02d' % interval
         events = dict(
-            np.load(this_root + 'SPEI\\pick_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
+            np.load(this_root + 'SPEI\\pick_non_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
         NDVI_mask_arr = np.load(this_root+'arr\\NDVI_mask_arr.npy')
         # 1.1
         valid_pix = []
@@ -2919,8 +2953,8 @@ class PRE_POST_NON_Recovery_time:
             pre_dic = dict(np.load(pre_dir + f).item())
             tmp_dic = dict(np.load(tmp_dir + f).item())
             swe_dic = dict(np.load(swe_dir + f).item())
-            print events
-            exit()
+            # print events
+            # exit()
             for pix in ndvi_dic:
                 if pix in events:
 
@@ -2942,7 +2976,8 @@ class PRE_POST_NON_Recovery_time:
                     grid = swe > -999
                     swe[np.logical_not(grid)] = np.nan
                     hemi = Recovery_time_winter().return_hemi(pix, pix_lon_lat_dic)
-                    growing_date_range = Recovery_time_winter().get_growing_months(hemi)  # return [5,6,7,8,9], [11,12,1,2,3], [1-12]
+                    growing_date_range = Recovery_time_winter().get_non_growing_months(hemi)  # return [5,6,7,8,9], [11,12,1,2,3], [1-12]
+                    # growing_date_range = Recovery_time_winter().get_growing_months(hemi)  # return [5,6,7,8,9], [11,12,1,2,3], [1-12]
                     for date_range in event:
                         if len(ndvi) < 300:
                             continue
@@ -2963,7 +2998,7 @@ class PRE_POST_NON_Recovery_time:
                         min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
                         min_ndvi = min(growing_vals)
                         # 4.2 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
-                        recovery_time, mark = self.search(ndvi, min_ndvi_indx, growing_date_range)
+                        recovery_time, mark = Recovery_time_winter().search_non_growing_season(ndvi, min_ndvi_indx, growing_date_range)
                         print recovery_time, mark
                         recovery_date_range = range(min_ndvi_indx, min_ndvi_indx + recovery_time + 1)
                         recovery_ndvi = Tools().pick_vals_from_1darray(ndvi, recovery_date_range)
@@ -3027,6 +3062,64 @@ class PRE_POST_NON_Recovery_time:
 
         pass
 
+    def gen_recovery_time(self,interval,mode):
+        '''
+        生成全球恢复期
+        :param interval: SPEI_{interval}
+        :param mode: pre-growing post-growing , non-growing
+        :return:
+        '''
+        pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+        interval = '%02d'%interval
+        out_dir = this_root+'arr\\gen_recovery_time\\SPEI_{}\\'.format(interval)
+        Tools().mk_dir(out_dir,force=True)
+        # 1 加载事件
+        # interval = '%02d' % interval
+        events = dict(
+            np.load(this_root + 'SPEI\\pick_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
+        # 2 加载NDVI
+        ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
+        spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
+        for f in tqdm(os.listdir(ndvi_dir)):
+            ndvi_dic = dict(np.load(ndvi_dir + f).item())
+            ndvi_dic = Tools().detrend_dic(ndvi_dic)
+            spei_dic = dict(np.load(spei_dir + f).item())
+            recovery_time_dic = {}
+            for pix in ndvi_dic:
+                if pix in events:
+                    ndvi = ndvi_dic[pix]
+                    spei = spei_dic[pix]
+                    event = events[pix]
+                    smooth_window = 3
+                    ndvi = Tools().forward_window_smooth(ndvi, smooth_window)
+                    spei = Tools().forward_window_smooth(spei, smooth_window)
+                    # 输入Pixel：001.001 输出s:south, n:north ,t: tropical
+                    hemi = self.return_hemi(pix, pix_lon_lat_dic)
+                    # 输入s,n,t 输出 [5,6,7,8,9], [11,12,1,2,3], [1-12]
+                    growing_date_range = self.get_growing_months(hemi)  # return [5,6,7,8,9], [11,12,1,2,3], [1-12]
+                    recovery_time_result = []
+                    for date_range in event:
+                        if len(ndvi) < 300:
+                            continue
+                        # 1 挑出此次干旱事件的NDVI和SPEI值 （画图需要）
+                        # spei_picked_vals = Tools().pick_vals_from_1darray(spei, date_range)
+                        # 2 挑出此次干旱事件SPEI最低的索引
+                        min_spei_indx = Tools().pick_min_indx_from_1darray(spei, date_range)
+                        # 3 在此次干旱事件SPEI最低索引的周围搜索NDVI的索引和值
+                        # 在当前生长季搜索
+                        growing_index, growing_vals = Tools().pick_growing_season_vals(ndvi, min_spei_indx,
+                                                                                       growing_date_range)
+                        # 4 搜索恢复期
+                        # 4.1 获取growing season NDVI的最小值
+                        min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
+                        # 4.2 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
+                        recovery_time, mark = self.search(ndvi, min_ndvi_indx, growing_date_range)
+                        recovery_time_result.append([recovery_time, mark])
+                    recovery_time_dic[pix] = recovery_time_result
+                else:
+                    recovery_time_dic[pix] = []
+            np.save(out_dir+f,recovery_time_dic)
+        pass
 
 def kernel_run(param):
     interval = param
@@ -3049,12 +3142,12 @@ def main():
     # Pick_Single_events(1)
     # Pre_Process()
     # interval = 12
-    run()
+    # run()
     # Recovery_time_winter(24)
     # Tools().mask_ndvi_arr()
     # PRE_POST_NON_Recovery_time().run()
     # Pick_Single_events().run(3)
-
+    PRE_POST_NON_Recovery_time().run()
     pass
 
 
