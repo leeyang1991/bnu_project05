@@ -17,8 +17,8 @@ def mk_dir( dir, force=False):
 
 
 def resample30m():
-    ndvi_8km_dir = this_root+'PDSI\\tif\\'
-    ndvi_0_5_dir = this_root+'PDSI\\tif_resample_0.5\\'
+    ndvi_8km_dir = this_root+'NDVI\\tif\\'
+    ndvi_0_5_dir = this_root+'NDVI\\tif_resample_0.5\\'
     mk_dir(ndvi_0_5_dir)
     for f in os.listdir(ndvi_8km_dir):
         if f.endswith('.tif'):
@@ -55,6 +55,10 @@ def re_projection_swe():
 def main():
 
     # define_swe_projection()
-    re_projection_swe()
+    # re_projection_swe()
+    resample30m()
+
+
+    pass
 if __name__ == '__main__':
     main()

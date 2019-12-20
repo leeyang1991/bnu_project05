@@ -13,7 +13,7 @@ import time
 import to_raster
 import ogr, os, osr
 from tqdm import tqdm
-import multiprocessing
+
 import datetime
 import lon_lat_to_address
 from scipy import stats, linalg
@@ -23,6 +23,8 @@ from matplotlib.font_manager import FontProperties
 import imageio
 from scipy.stats import gaussian_kde as kde
 import matplotlib as mpl
+
+import multiprocessing
 from multiprocessing.pool import ThreadPool as TPool
 import copy_reg
 import types
@@ -221,6 +223,14 @@ class Tools:
             dic_new[key] = vals_new
 
         return dic_new
+
+    # def arrs_mean(self,arrs):
+    #     for i in range(len(arrs[0])):
+    #         for j in range
+    #
+    #
+    #     pass
+
 
     def arr_mean(self, arr, threshold):
         grid = arr > threshold
@@ -619,6 +629,24 @@ class Tools:
         #         plt.show()
 
 
+    def check_ndvi_perpix(self):
+        fdir = this_root + 'NDVI\\per_pix\\'
+        mask_arr = this_root + 'arr\\NDVI_mask_arr'
+        pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+        spatial_dic = {}
+        for f in tqdm(os.listdir(fdir)):
+            dic = dict(np.load(fdir + f).item())
+            for pix in dic:
+                hemi = Recovery_time_winter().return_hemi(pix, pix_lon_lat_dic)
+
+                val = dic[pix]
+                val = np.array(val, dtype=float)
+                picked_vals = self._pick_growing_season(val, hemi)
+                mean = self._cal_mean_false(picked_vals)
+
+        pass
+
+
 class SMOOTH:
     '''
     一些平滑算法
@@ -1006,7 +1034,7 @@ class MUTIPROCESS:
         else:
             return getattr, (m.im_self, m.im_func.func_name)
 
-    def run(self, process=6, process_or_thread='p', **kwargs):
+    def run(self, process=-9999, process_or_thread='p', **kwargs):
         '''
         # 并行计算加进度条
         :param func: input a kenel_function
@@ -1020,17 +1048,30 @@ class MUTIPROCESS:
             kwargs['desc'] = kwargs['text']
             del kwargs['text']
 
-        if process_or_thread == 'p':
-            pool = multiprocessing.Pool(process)
-        elif process_or_thread == 't':
-            pool = TPool(process)
-        else:
-            raise IOError('process_or_thread key error, input keyword such as "p" or "t"')
+        if process > 0:
+            if process_or_thread == 'p':
+                pool = multiprocessing.Pool(process)
+            elif process_or_thread == 't':
+                pool = TPool(process)
+            else:
+                raise IOError('process_or_thread key error, input keyword such as "p" or "t"')
 
-        results = list(tqdm(pool.imap(self.func, self.params), total=len(self.params), **kwargs))
-        pool.close()
-        pool.join()
-        return results
+            results = list(tqdm(pool.imap(self.func, self.params), total=len(self.params), **kwargs))
+            pool.close()
+            pool.join()
+            return results
+        else:
+            if process_or_thread == 'p':
+                pool = multiprocessing.Pool()
+            elif process_or_thread == 't':
+                pool = TPool()
+            else:
+                raise IOError('process_or_thread key error, input keyword such as "p" or "t"')
+
+            results = list(tqdm(pool.imap(self.func, self.params), total=len(self.params), **kwargs))
+            pool.close()
+            pool.join()
+            return results
 
 
 class KDE_plot:
@@ -1102,11 +1143,12 @@ class KDE_plot:
 
 class Pre_Process:
     def __init__(self):
-        # fdir = this_root+'PRE\\tif\\'
-        # outdir = this_root+'PRE\\per_pix\\'
+        fdir = this_root+'NDVI\\tif_resample_0.5\\'
+        per_pix = this_root+'NDVI\\per_pix\\'
+        anomaly = this_root+'NDVI\\per_pix_anomaly\\'
         # Tools().mk_dir(outdir)
-        # self.data_transform(fdir,outdir)
-        # self.cal_anomaly()
+        self.data_transform(fdir,per_pix)
+        self.cal_anomaly(per_pix,anomaly)
         pass
 
     def do_data_transform(self):
@@ -1184,7 +1226,7 @@ class Pre_Process:
             ####### one pix #######
             vals = pix_dic[pix]
             # 清洗数据
-            vals = Tools().interp_1d(vals)
+            vals = Tools().interp_1d_1(vals)
             if len(vals) == 1:
                 anomaly_pix_dic[pix] = []
                 continue
@@ -1235,9 +1277,9 @@ class Pre_Process:
 
         np.save(save_dir + f, anomaly_pix_dic)
 
-    def cal_anomaly(self):
-        fdir = this_root + 'GLOBSWE\\per_pix\\SWE_max_408\\'
-        save_dir = this_root + 'GLOBSWE\\per_pix_SWE_max_anomaly\\'
+    def cal_anomaly(self,fdir,save_dir):
+        # fdir = this_root + 'NDVI\\per_pix\\'
+        # save_dir = this_root + 'NDVI\\per_pix_anomaly\\'
         Tools().mk_dir(save_dir)
         flist = os.listdir(fdir)
         # flag = 0
@@ -2473,7 +2515,7 @@ class Recovery_time_winter:
             param = []
             for interval in range(1,13):
                 param.append([interval,m])
-            MUTIPROCESS(self.gen_recovery_time,param).run(7)
+            MUTIPROCESS(self.gen_recovery_time,param).run(6)
             # self.gen_recovery_time(interval)
             # 2 合成 spei 1-24
             self.composite_recovery_time(m)
@@ -2712,8 +2754,8 @@ class Recovery_time_winter:
                         # 4.1 获取growing season NDVI的最小值
                         min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
                         # 4.2 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
-                        # recovery_time, mark = self.search(ndvi, min_ndvi_indx, growing_date_range)
-                        recovery_time, mark = self.search_non_growing_season(ndvi, min_ndvi_indx)
+                        recovery_time, mark = self.search(ndvi, min_ndvi_indx, growing_date_range)
+                        # recovery_time, mark = self.search_non_growing_season(ndvi, min_ndvi_indx)
                         recovery_time_result.append([recovery_time, mark])
                     recovery_time_dic[pix] = recovery_time_result
                 else:
@@ -3349,6 +3391,46 @@ class PRE_POST_NON_Recovery_time:
         DIC_and_TIF().pix_dic_to_tif(global_recovery, out_tif)
 
 
+class Winter:
+    '''
+    主要思想：
+    1、计算每个NDVI像素每个月的多年平均值
+    2、计算值大于3000的月的个数
+    3、如果大于3000的个数大于10，则没有冬季，反之则有冬季
+    '''
+    def __init__(self):
+
+
+        self.cal_monthly_mean()
+        pass
+
+    def cal_monthly_mean(self):
+
+        outdir = this_root+'NDVI\\mon_mean_tif\\'
+        Tools().mk_dir(outdir)
+        fdir = this_root+'NDVI\\tif_resample_0.5\\'
+        for m in range(1,13):
+            arrs_sum = 0.
+            for y in range(1982,2016):
+                date = '{}{}'.format(y,'%02d'%m)
+                tif = fdir+date+'.tif'
+                arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
+                arrs_sum += arr
+                # plt.imshow(arr)
+                # plt.colorbar()
+                # plt.show()
+                # print tif
+            mean_arr = arrs_sum/len(range(1982,2016))
+            mean_arr = np.array(mean_arr,dtype=float)
+            DIC_and_TIF().arr_to_tif(mean_arr,outdir+'%02d.tif'%m)
+            # mean_arr = np.ma.masked_where(mean_arr < -10000,mean_arr)
+            # plt.imshow(mean_arr)
+            # plt.colorbar()
+            # plt.show()
+
+
+
+
 class Statistic:
     def __init__(self):
 
@@ -3463,7 +3545,8 @@ def main():
     #         PRE_POST_NON_Recovery_time().run1(mode,mark)
     # Pick_Single_events().check_global_dic()
     # Recovery_time_winter().run()
-    Statistic().histogram()
+    # Statistic().histogram()
+    Winter()
     pass
 
 

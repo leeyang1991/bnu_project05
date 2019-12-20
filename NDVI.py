@@ -53,7 +53,7 @@ def read_hdf():
             pixelHeight = lat[1]-lat[0]
             arr = np.array(arr,dtype=float)
             # print(arr.dtype)
-            grid = arr > - 3000
+            grid = arr > - 10000
             arr[np.logical_not(grid)] = -999999
             # plt.imshow(arr)
             # plt.show()
