@@ -26,7 +26,8 @@ import matplotlib as mpl
 from multiprocessing.pool import ThreadPool as TPool
 import copy_reg
 import types
-
+from scipy.stats import gamma as gam
+import math
 
 this_root = 'D:\\project05\\'
 # 显示中文
@@ -1255,7 +1256,7 @@ class Pre_Process:
 class Pick_Single_events():
     def __init__(self):
         # self.check_global_dic()
-        self.check_events()
+        # self.check_events()
         pass
 
     def run(self, interval):
@@ -1266,14 +1267,14 @@ class Pick_Single_events():
 
         # 2 在single event 的基础上，找在生长季的干旱事件，分南北半球和热带
         # 耗时：15 min
-        # self.pick_non_growing_season_events(interval)
+        self.pick_non_growing_season_events(interval)
         self.pick_pre_growing_season_events(interval)
         self.pick_post_growing_season_events(interval)
         # self.pick_growing_season_events(interval)
 
         # 3 合成南北半球和热带区域的生长季事件
         # self.composite_global_growing(interval)
-        # self.composite_global_non_growing(interval)
+        self.composite_global_non_growing(interval)
         self.composite_global_pre_growing(interval)
         self.composite_global_post_growing(interval)
 
@@ -1402,31 +1403,34 @@ class Pick_Single_events():
                         events_4.append(date_range)
 
                 # # # # # # # # # # # # # # # # # # # # # # #
-                # single_event_dic[pix] = events_4
+                # 不筛选单次事件（前后n个月无干旱事件）
+                single_event_dic[pix] = events_4
                 # print events_4
-                # 筛选单次事件（前后n个月无干旱事件）
                 # # # # # # # # # # # # # # # # # # # # # # #
-                single_event = []
-                for i in range(len(events_4)):
-                    if i - 1 < 0:  # 首次事件
-                        if events_4[i][0] - n < 0 or events_4[i][-1] + n >= len(spei):  # 触及两边则忽略
-                            continue
-                        if len(events_4) == 1:
-                            single_event.append(events_4[i])
-                        elif events_4[i][-1] + n <= events_4[i + 1][0]:
-                            single_event.append(events_4[i])
-                        continue
 
-                    # 最后一次事件
-                    if i + 1 >= len(events_4):
-                        if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= len(spei):
-                            single_event.append(events_4[i])
-                        break
-
-                    # 中间事件
-                    if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= events_4[i + 1][0]:
-                        single_event.append(events_4[i])
-                single_event_dic[pix] = single_event
+                # # # # # # # # # # # # # # # # # # # # # # #
+                # # 筛选单次事件（前后n个月无干旱事件）
+                # single_event = []
+                # for i in range(len(events_4)):
+                #     if i - 1 < 0:  # 首次事件
+                #         if events_4[i][0] - n < 0 or events_4[i][-1] + n >= len(spei):  # 触及两边则忽略
+                #             continue
+                #         if len(events_4) == 1:
+                #             single_event.append(events_4[i])
+                #         elif events_4[i][-1] + n <= events_4[i + 1][0]:
+                #             single_event.append(events_4[i])
+                #         continue
+                #
+                #     # 最后一次事件
+                #     if i + 1 >= len(events_4):
+                #         if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= len(spei):
+                #             single_event.append(events_4[i])
+                #         break
+                #
+                #     # 中间事件
+                #     if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= events_4[i + 1][0]:
+                #         single_event.append(events_4[i])
+                # single_event_dic[pix] = single_event
                 # # # # # # # # # # # # # # # # # # # # # # #
             np.save(out_dir + f, single_event_dic)
 
@@ -1929,7 +1933,7 @@ class Pick_Single_events():
         arr = np.array(arr)
         grid = arr == 0
         arr[grid] = 255
-        tif = this_root + 'tif\\plot_gen_recovery_time\\old_ver\\single_events.tif'
+        tif = this_root + 'tif\\plot_gen_recovery_time\\20191218\\single_events.tif'
         DIC_and_TIF().arr_to_tif_GDT_Byte(arr, tif)
         # plt.imshow(arr)
         # plt.show()
@@ -2452,24 +2456,39 @@ class Recovery_time_winter:
     def __init__(self):
         # self.plot_recovery_time(3)
 
-        interval = 3
-        self.plot_recovery_time(interval)
+
         # self.statistic_recovery_p_t_swe(interval)
         # self.plot_gen_recovery_time()
         pass
 
-    def run(self, interval):
+    def run(self):
         # 1 生成recovery time 1-24
-        self.gen_recovery_time(interval)
-        # 2 合成 spei 1-24
-        self.composite_recovery_time()
-        # 3 选择参数
-        # in_or_out = 'in'
-        # in_or_out = 'out'
-        in_or_out = 'all'
-        # 4 出tif图
-        self.plot_composite_recovery_time(in_or_out)
+
+        mode = ['pick_non_growing_season_events',
+                'pick_pre_growing_season_events',
+                'pick_post_growing_season_events'
+                ]
+        for m in mode:
+            print m
+            param = []
+            for interval in range(1,13):
+                param.append([interval,m])
+            MUTIPROCESS(self.gen_recovery_time,param).run(7)
+            # self.gen_recovery_time(interval)
+            # 2 合成 spei 1-24
+            self.composite_recovery_time(m)
+            # 3 选择参数
+            # in_or_out = 'in'
+            # in_or_out = 'out'
+            # in_or_out = 'all'
+            # 4 出tif图
+            self.plot_composite_recovery_time(m)
         pass
+
+
+    def run1(self):
+        self.check_events()
+
 
     def return_hemi(self, pix, pix_lon_lat_dic):
         lon, lat = pix_lon_lat_dic[pix]
@@ -2512,7 +2531,7 @@ class Recovery_time_winter:
         # 1 加载事件
         interval = '%02d' % interval
         events = dict(
-            np.load(this_root + 'SPEI\\pick_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
+            np.load(this_root + 'SPEI\\pick_pre_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
         # 2 加载NDVI
         ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
         spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
@@ -2642,24 +2661,25 @@ class Recovery_time_winter:
 
         pass
 
-    def gen_recovery_time(self, interval):
+    def gen_recovery_time(self,params):
         '''
         生成全球恢复期
         :param interval: SPEI_{interval}
         :return:
         '''
+        interval, mode = params
         pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
         interval = '%02d' % interval
-        out_dir = this_root + 'arr\\gen_recovery_time\\SPEI_{}\\'.format(interval)
+        out_dir = this_root + 'arr\\{}\\SPEI_{}\\'.format(mode,interval)
         Tools().mk_dir(out_dir, force=True)
         # 1 加载事件
         # interval = '%02d' % interval
         events = dict(
-            np.load(this_root + 'SPEI\\pick_growing_season_events\\SPEI_{}\\global_pix.npy'.format(interval)).item())
+            np.load(this_root + 'SPEI\\{}\\SPEI_{}\\global_pix.npy'.format(mode,interval)).item())
         # 2 加载NDVI
         ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
         spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
-        for f in tqdm(os.listdir(ndvi_dir)):
+        for f in os.listdir(ndvi_dir):
             ndvi_dic = dict(np.load(ndvi_dir + f).item())
             ndvi_dic = Tools().detrend_dic(ndvi_dic)
             spei_dic = dict(np.load(spei_dir + f).item())
@@ -2692,7 +2712,8 @@ class Recovery_time_winter:
                         # 4.1 获取growing season NDVI的最小值
                         min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
                         # 4.2 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
-                        recovery_time, mark = self.search(ndvi, min_ndvi_indx, growing_date_range)
+                        # recovery_time, mark = self.search(ndvi, min_ndvi_indx, growing_date_range)
+                        recovery_time, mark = self.search_non_growing_season(ndvi, min_ndvi_indx)
                         recovery_time_result.append([recovery_time, mark])
                     recovery_time_dic[pix] = recovery_time_result
                 else:
@@ -2705,7 +2726,7 @@ class Recovery_time_winter:
         #     return 0,'in'
         for i in range(len(ndvi)):
             if (min_ndvi_indx + i) >= len(ndvi):  # 到头了
-                break
+                return None, None
             search_ = min_ndvi_indx + i
             search_v = ndvi[search_]
             if search_v >= 0:
@@ -2719,9 +2740,9 @@ class Recovery_time_winter:
                         return recovery_time, 'out'  # 不在生长季恢复
                 else:  # 不存在冬季的地区
                     return recovery_time, 'tropical'
-        return None, None
 
-    def search_non_growing_season(self, ndvi, min_ndvi_indx, growing_date_range):
+
+    def search_non_growing_season(self, ndvi, min_ndvi_indx):
         # if ndvi[min_ndvi_indx] >= 0:  # 如果在生长季中，NDVI最小值大于0，则恢复期为0个月
         #     return 0,'in'
         for i in range(len(ndvi)):
@@ -2785,35 +2806,35 @@ class Recovery_time_winter:
         # plt.show()
         pass
 
-    def composite_recovery_time(self):
+    def composite_recovery_time(self,mode):
         '''
         合成SPEI 1 - 24 的recovery time
         :return:
         '''
-        fdir = this_root + 'arr\\gen_recovery_time\\'
-        out_dir = this_root + 'arr\\composite_recovery_time\\'
+        fdir = this_root + 'arr\\{}\\'.format(mode)
+        out_dir = this_root + 'arr\\{}_composite_recovery_time\\'.format(mode)
         Tools().mk_dir(out_dir)
         void_dic = DIC_and_TIF().void_spatial_dic()
-        for folder in tqdm(os.listdir(fdir)):
+        for folder in os.listdir(fdir):
             for f in os.listdir(fdir + folder):
                 dic = dict(np.load(fdir + folder + '\\' + f).item())
                 for pix in dic:
                     recovery_events = dic[pix]
                     for event in recovery_events:
                         void_dic[pix].append(event)
-        print '\nsaving...'
+        # print '\nsaving...'
         np.save(out_dir + 'composite', void_dic)
         # exit()
         pass
 
-    def plot_composite_recovery_time(self, in_or_out):
+    def plot_composite_recovery_time(self,mode):
         # in_or_out = 'in', or 'out'
-        composite_recovery = dict(np.load(this_root + 'arr\\composite_recovery_time\\composite.npy').item())
-        out_tif_dir = this_root + 'tif\\plot_gen_recovery_time\\'
+        composite_recovery = dict(np.load(this_root + 'arr\\{}_composite_recovery_time\\composite.npy'.format(mode)).item())
+        out_tif_dir = this_root + 'tif\\{}_plot_gen_recovery_time\\'.format(mode)
         Tools().mk_dir(out_tif_dir)
-        out_tif = out_tif_dir + in_or_out + '_winter_global.tif'
+        out_tif = out_tif_dir + 'global.tif'
         global_recovery = {}
-        for pix in tqdm(composite_recovery):
+        for pix in composite_recovery:
             # val = composite_recovery[key]
             events = composite_recovery[pix]
             if len(events) > 0:
@@ -2995,6 +3016,29 @@ class Recovery_time_winter:
                         lon, lat, address = Tools().pix_to_address(pix)
                         plt.title('lon:{} lat:{} address:{}'.format(lon, lat, address))
                         plt.show()
+
+    def check_events(self):
+        mode = ['pick_non_growing_season_events',
+                'pick_pre_growing_season_events',
+                'pick_post_growing_season_events'
+                ]
+        png_dir = this_root+'png\\check_events\\'
+        Tools().mk_dir(png_dir,True)
+        for m in mode:
+            for interval in tqdm(range(1,13)):
+                events = dict(
+                    np.load(this_root + 'SPEI\\{}\\SPEI_{}\\global_pix.npy'.format(m, '%02d'%interval)).item())
+                new_dic = {}
+                for key in events:
+                    new_dic[key] = 1
+                arr = DIC_and_TIF().pix_dic_to_spatial_arr(new_dic)
+                title = '{}_{}'.format(m,interval)
+                plt.imshow(arr)
+                plt.title(title)
+                plt.savefig(png_dir+title+'.png',dpi=144)
+
+                # exit()
+        pass
 
 
 class PRE_POST_NON_Recovery_time:
@@ -3305,16 +3349,97 @@ class PRE_POST_NON_Recovery_time:
         DIC_and_TIF().pix_dic_to_tif(global_recovery, out_tif)
 
 
+class Statistic:
+    def __init__(self):
+
+        pass
+
+    def get_u_sig(self,val):
+        '''
+        获取数据的均值μ和标准差σ
+        :return: μ,σ
+        '''
+        u = sum(val) / float(len(val))
+        sigma = np.std(val)
+        return u, sigma
+
+    def normal_distribution(self, x,u,sig):
+        '''
+        :param x: input x,single value, not list or tuple
+        :return: 正态分布函数值
+        '''
+        x = float(x)
+        norm = (1 / (math.sqrt(2 * math.pi) * sig)) * math.exp(-((x - u) ** 2) / (2 * sig ** 2))
+        return norm
+
+    def fit_normal(self,val):
+        val_min = min(val)
+        val_max = max(val)
+        x = np.linspace(val_min, val_max, 1000)
+        u, sigma = self.get_u_sig(val)
+        y = []
+        for i in range(len(x)):
+            y.append(self.normal_distribution(x[i], u, sigma))
+        # plt.hist(val, bins=11, normed=1, color='b')
+        plt.plot(x, y)
+
+
+    def histogram(self):
+        mode = ['pick_non_growing_season_events',
+                'pick_pre_growing_season_events',
+                'pick_post_growing_season_events'
+                ]
+
+        pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+
+        for m in mode:
+            tif = this_root+'tif\\{}_plot_gen_recovery_time\\global.tif'.format(m)
+            print tif
+            array,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
+            grid = array<0
+
+            # hist = []
+            # for i in array:
+            #     for j in i:
+            #         if 0 <= j < 10:
+            #             hist.append(j)
+            hist = []
+            for i in range(len(array)):
+                for j in range(len(array[0])):
+                    pix = '%03d.%03d'%(i,j)
+                    hemi = Recovery_time_winter().return_hemi(pix, pix_lon_lat_dic)
+                    if hemi == 'n':
+                        val = array[i][j]
+                        if 0<=val<8:
+                            hist.append(val)
+
+
+            # Gamma fit
+            # _, bins, patchs = plt.hist(hist, bins=48,density=1)
+            # val_fit = gam.fit(hist)
+            # pdf = gam.pdf(bins, val_fit[0], 0, val_fit[2])
+            # plt.plot(bins, pdf, linewidth=1)
+
+            # Normal fit
+            # _, bins, patchs = plt.hist(hist, bins=8, density=1)
+            self.fit_normal(hist)
+        plt.show()
+        pass
+
+
+
 def kernel_run(param):
     interval = param
-    PRE_POST_NON_Recovery_time().run(interval, 'non-growing')
+    # PRE_POST_NON_Recovery_time().run(interval, 'non-growing')
+    # Pick_Single_events().run(interval)
+    Pick_Single_events().run(interval)
 
 
 def run():
     param = []
     for interval in range(1, 13):
         param.append(interval)
-        # Pick_Single_events(interval)
+        # Pick_Single_events().run()
         # Recovery_time_winter(interval)
     MUTIPROCESS(kernel_run, param).run()
 
@@ -3336,9 +3461,9 @@ def main():
     # # for mode in ['non-growing']:
     #     for mark in ['in','out']:
     #         PRE_POST_NON_Recovery_time().run1(mode,mark)
-    Pick_Single_events()
-
-
+    # Pick_Single_events().check_global_dic()
+    # Recovery_time_winter().run()
+    Statistic().histogram()
     pass
 
 
