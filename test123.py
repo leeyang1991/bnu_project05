@@ -33,15 +33,24 @@ this_root = r'd:\\project05\\'
 
 
 def foo_():
+    a = [1,2,3,11,12]
 
-    for i in tqdm(range(1000)):
-        time.sleep(0.01)
-
-
+    if 1 in a and 12 in a:
+        if list(a) == [1,2,3,4,12]:
+            pre = [1,2,12]
+        elif list(a) == [1,2,3,11,12]:
+            pre = [11,12,1]
+        elif list(a) == [1,2,10,11,12]:
+            pre = [10,11,12]
+        elif list(a) == [1,9,10,11,12]:
+            pre = [9,10,11]
+        else:
+            raise IOError('error')
+        print pre
 def func():
     interval = 50
     a = 'SPEI\\per_pix\\SPEI_{:1>3d}\\'.format(interval)
-    print(a)
+    # for i in a
 
     pass
 
