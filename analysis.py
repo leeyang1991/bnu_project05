@@ -3397,11 +3397,14 @@ class Winter:
     1、计算每个NDVI像素每个月的多年平均值
     2、计算值大于3000的月的个数
     3、如果大于3000的个数大于10，则没有冬季，反之则有冬季
+    4、选出冬季date range
     '''
     def __init__(self):
 
 
-        self.cal_monthly_mean()
+        # self.cal_monthly_mean()
+        # self.count_num()
+        self.get_grow_season_index()
         pass
 
     def cal_monthly_mean(self):
@@ -3416,17 +3419,112 @@ class Winter:
                 tif = fdir+date+'.tif'
                 arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
                 arrs_sum += arr
-                # plt.imshow(arr)
-                # plt.colorbar()
-                # plt.show()
-                # print tif
             mean_arr = arrs_sum/len(range(1982,2016))
             mean_arr = np.array(mean_arr,dtype=float)
             DIC_and_TIF().arr_to_tif(mean_arr,outdir+'%02d.tif'%m)
-            # mean_arr = np.ma.masked_where(mean_arr < -10000,mean_arr)
-            # plt.imshow(mean_arr)
-            # plt.colorbar()
-            # plt.show()
+
+    def count_num(self):
+        fdir = this_root + 'NDVI\\mon_mean_tif\\'
+        pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+        arrs = []
+        month = range(1,13)
+        for m in month:
+            tif = fdir+'%02d.tif'%m
+            arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
+            arrs.append(arr)
+
+        row = len(arrs[0])
+        col = len(arrs[0][0])
+
+        winter_count = []
+        winter_pix = []
+        for i in tqdm(range(row)):
+            temp = []
+            for j in range(col):
+                flag = 0
+                for arr in arrs:
+                    val = arr[i][j]
+                    if val>4500:
+                        flag += 1.
+                if flag >=10:
+                    winter_pix.append('%03d.%03d'%(i,j))
+                temp.append(flag)
+            winter_count.append(temp)
+
+        np.save(this_root+'NDVI\\winter_pix',winter_pix)
+        winter_count = np.array(winter_count)
+        winter_count = np.ma.masked_where(winter_count<10,winter_count)
+        plt.imshow(winter_count,'jet')
+        plt.colorbar()
+        plt.show()
+        pass
+
+
+    def max_5_vals(self,vals):
+
+        vals = np.array(vals)
+        # 从小到大排序，获取索引值
+        a = np.argsort(vals)
+        maxvs = []
+        maxv_ind = []
+        for i in a[-5:][::-1]:
+            maxvs.append(vals[i])
+            maxv_ind.append(i)
+        # 南半球
+        if 0 in maxv_ind or 1 in maxv_ind:
+            if 9 in maxv_ind:
+                growing_season = [8, 9, 10, 11, 0]
+            elif 10 in maxv_ind:
+                growing_season = [10,11,0,1,2]
+            elif 11 in maxv_ind:
+                growing_season = [11, 0, 1, 2, 3]
+            else:
+                mid = int(np.mean(maxv_ind))
+                growing_season = [mid-2,mid-1,mid,mid+1,mid+2]
+        # 北半球
+        else:
+            mid = int(np.mean(maxv_ind))
+            growing_season = [mid-2,mid-1,mid,mid+1,mid+2]
+        return growing_season
+
+    def get_grow_season_index(self):
+        tropical_pix = np.load(this_root+'NDVI\\winter_pix.npy')
+        fdir = this_root + 'NDVI\\mon_mean_tif\\'
+        arrs = []
+        month = range(1, 13)
+        for m in month:
+            tif = fdir + '%02d.tif' % m
+            arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif)
+            arrs.append(arr)
+
+        row = len(arrs[0])
+        col = len(arrs[0][0])
+
+        winter_dic = {}
+        for i in tqdm(range(row)):
+            for j in range(col):
+                # if i < 150:
+                #     continue
+                pix = '%03d.%03d' % (i, j)
+                if pix in tropical_pix:
+                   continue
+                vals = []
+                for arr in arrs:
+                    val = arr[i][j]
+                    vals.append(val)
+                if vals[0] > -10000:
+                    std = np.std(vals)
+                    if std == 0:
+                        continue
+                    growing_season = self.max_5_vals(vals)
+                    # print growing_season
+                    # plt.plot(vals)
+                    # plt.grid()
+                    # plt.show()
+                    winter_dic[pix] = growing_season
+        np.save(this_root+'NDVI\\growing_season_index',winter_dic)
+
+        pass
 
 
 
