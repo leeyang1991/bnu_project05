@@ -682,6 +682,24 @@ class Tools:
         pass
 
 
+    def filter_NDVI_valid_pix(self):
+        mask_ndvi_arr = np.load(this_root + 'NDVI\\NDVI_growing_season_mean.npy')
+
+        valid_pix = []
+        for i in range(len(mask_ndvi_arr)):
+            for j in range(len(mask_ndvi_arr[0])):
+                val = mask_ndvi_arr[i][j]
+                if not np.isnan(val):
+                    pix = '%03d.%03d' % (i, j)
+                    valid_pix.append(pix)
+        valid_pix = set(valid_pix)
+
+        return valid_pix
+        pass
+
+    def filter_tropical_valid_pix(self,arr):
+        pass
+
 class SMOOTH:
     '''
     一些平滑算法
@@ -4062,7 +4080,7 @@ class Recovery_time_winter_2:
 
 class Statistic:
     def __init__(self):
-
+        self.histogram()
         pass
 
     def get_u_sig(self,val):
@@ -4096,52 +4114,80 @@ class Statistic:
 
 
     def histogram(self):
-        mode = ['pick_non_growing_season_events',
-                'pick_pre_growing_season_events',
-                'pick_post_growing_season_events'
+        mode = [
+            # 'pick_non_growing_season_events',
+            'pick_pre_growing_season_events',
+            'pick_post_growing_season_events'
                 ]
 
-        pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+        global_growing_season = dict(np.load(this_root+'NDVI\\global_growing_season.npy').item())
 
+        flag = 0
+        plt.figure(figsize=(15, 3))
         for m in mode:
-            tif = this_root+'tif\\{}_plot_gen_recovery_time\\global.tif'.format(m)
-            print tif
-            array,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
-            grid = array<0
+            f = this_root+'arr\\{}_composite_recovery_time\\composite.npy'.format(m)
+            dic = dict(np.load(f).item())
+            in_hist = []
+            out_hist = []
+            tropical_hist = []
+            for pix in tqdm(dic):
+                if pix in global_growing_season:
+                    vals = dic[pix]
+                    if len(vals) > 0:
+                        # print vals
+                        for recovery,in_or_out in vals:
+                            if in_or_out == 'in':
+                                flag += 1
+                                in_hist.append(recovery)
+                            elif in_or_out == 'out':
+                                flag += 1
+                                if recovery < 48:
+                                    out_hist.append(recovery)
+                            elif in_or_out == 'tropical':
+                                flag += 1
+                                if recovery < 15:
+                                    tropical_hist.append(recovery)
+                            else:
+                                pass
 
-            # hist = []
-            # for i in array:
-            #     for j in i:
-            #         if 0 <= j < 10:
-            #             hist.append(j)
-            hist = []
-            for i in range(len(array)):
-                for j in range(len(array[0])):
-                    pix = '%03d.%03d'%(i,j)
-                    hemi = Recovery_time_winter().return_hemi(pix, pix_lon_lat_dic)
-                    if hemi == 'n':
-                        val = array[i][j]
-                        if 0<=val<8:
-                            hist.append(val)
-
-
-            # Gamma fit
-            # _, bins, patchs = plt.hist(hist, bins=48,density=1)
-            # val_fit = gam.fit(hist)
-            # pdf = gam.pdf(bins, val_fit[0], 0, val_fit[2])
-            # plt.plot(bins, pdf, linewidth=1)
-
-            # Normal fit
-            # _, bins, patchs = plt.hist(hist, bins=8, density=1)
-            self.fit_normal(hist)
+            # plt.suptitle(m)
+            plt.subplot(131)
+            plt.hist(in_hist, bins=5, alpha=0.5,label=m)
+            plt.legend()
+            plt.title('recovered in current growing season')
+            plt.subplot(132)
+            plt.hist(out_hist, bins=8, alpha=0.5,label=m)
+            plt.legend()
+            plt.title('not recovered in current growing season')
+            plt.subplot(133)
+            plt.hist(tropical_hist, bins=12, density=1,alpha=0.5)
+            plt.title('tropical')
+        print flag
         plt.show()
+
+
+        # Gamma fit
+        # plt.figure()
+        # _, bins, patchs = plt.hist(hist, bins=12,density=1,alpha=0.3)
+        # val_fit = gam.fit(hist)
+        # pdf = gam.pdf(range(6), val_fit[0], 0, val_fit[2])
+        # plt.plot(range(6), pdf, linewidth=1)
+
+        # Normal fit
+        # _, bins, patchs = plt.hist(hist, bins=8, density=1)
+        # self.fit_normal(hist)
         pass
+
+
+
+
 
 
     def count_events(self):
         '''
         events with NDVI
         # events number = 1248579
+        # events number = 747612
         :return:
         '''
         mode = ['pick_non_growing_season_events',
@@ -4204,26 +4250,39 @@ class Statistic:
         pass
 
 
+    # def
+
 
 class RATIO:
 
     def __init__(self):
         # self.cal_ratio()
-        # self.plot_in_or_out()
+        self.plot_in_or_out()
+        # self.ratio_histogram_latitude()
         pass
 
 
     def cal_ratio(self):
-        mode = ['pick_non_growing_season_events',
-                'pick_pre_growing_season_events',
-                'pick_post_growing_season_events'
+        out_dir = this_root+'arr\\ratio\\'
+        Tools().mk_dir(out_dir)
+
+        mode = [
+            'pick_non_growing_season_events',
+            'pick_pre_growing_season_events',
+            'pick_post_growing_season_events'
                 ]
+        ndvi_valid_pix = Tools().filter_NDVI_valid_pix()
+        tropical_pix = np.load(this_root+'NDVI\\tropical_pix.npy')
 
         for m in mode:
             f = this_root + 'arr\\{}_composite_recovery_time\\composite.npy'.format(m)
             dic = dict(np.load(f).item())
             ratio_dic = {}
             for pix in tqdm(dic):
+                if not pix in ndvi_valid_pix:
+                    continue
+                if pix in tropical_pix:
+                    continue
                 vals = dic[pix]
                 if len(vals) == 0:
                     continue
@@ -4237,6 +4296,7 @@ class RATIO:
                 ratio = in_flag/len(vals)
                 ratio_dic[pix] = int(ratio*100)
             arr = DIC_and_TIF().pix_dic_to_spatial_arr(ratio_dic)
+            np.save(out_dir+m,arr)
             plt.figure()
             plt.imshow(arr,'jet')
             plt.colorbar()
@@ -4246,17 +4306,20 @@ class RATIO:
         pass
 
     def plot_in_or_out(self):
-        mode = ['pick_non_growing_season_events',
-                'pick_pre_growing_season_events',
-                'pick_post_growing_season_events'
+        mode = [
+            # 'pick_non_growing_season_events',
+            'pick_pre_growing_season_events',
+            'pick_post_growing_season_events'
                 ]
-
+        ndvi_valid_arr = Tools().filter_NDVI_valid_pix()
         for m in mode:
             f = this_root + 'arr\\{}_composite_recovery_time\\composite.npy'.format(m)
             dic = dict(np.load(f).item())
             in_dic = {}
             out_dic = {}
             for pix in tqdm(dic):
+                if not pix in ndvi_valid_arr:
+                    continue
                 vals = dic[pix]
                 if len(vals) == 0:
                     continue
@@ -4285,6 +4348,56 @@ class RATIO:
             plt.title(m+'_OUT')
             plt.show()
 
+    def ratio_histogram_latitude(self):
+        fdir = this_root + 'arr\\ratio\\'
+        mode = [
+            # 'pick_non_growing_season_events',
+            'pick_pre_growing_season_events',
+            'pick_post_growing_season_events'
+        ]
+        lats_ticks = []
+        lats = np.linspace(0,360,361)
+        lats = np.array(lats,dtype=int)
+        ranges = []
+        for i in range(len(lats)):
+            if i+1 == len(lats):
+                break
+            range_i = [lats[i],lats[i+1]]
+            ranges.append(range_i)
+            lat_tick = 90. - 0.5*range_i[0]
+            lats_ticks.append(lat_tick)
+
+        for m in mode:
+            arr = np.load(fdir+m+'.npy')
+            lats_selected = []
+            for range_i in ranges:
+                # print range_i
+                selected_i = []
+                for i in range(len(arr)):
+                    if range_i[0] < i <= range_i[1]:
+                        # print i
+                        selected_i.append(arr[i])
+
+                selected_pix = []
+                for j in selected_i:
+                    for k in j:
+                        if not np.isnan(k):
+                            selected_pix.append(k)
+
+                lats_selected.append(selected_pix)
+            bar = []
+            for i in lats_selected:
+                if len(i) > 0:
+                    bar.append(np.mean(i))
+                else:
+                    bar.append(np.nan)
+            # plt.bar(range(len(bar)),bar)
+            plt.plot(range(len(bar)),bar,label=m)
+            plt.title('Recovered in current growing season Ratio')
+            plt.xticks(range(len(bar))[10::10],lats_ticks[10::10])
+            plt.legend()
+        plt.show()
+
 
 def kernel_run(param):
     interval = param
@@ -4310,6 +4423,12 @@ def main():
     # Recovery_time_winter_2()
     # Statistic()
     # RATIO()
+
+
+
+
+
+
     pass
 
 
