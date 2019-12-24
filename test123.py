@@ -55,7 +55,23 @@ def func():
     pass
 
 
+class abc:
+
+    def __init__(self):
+        self.get_val()
+        pass
+
+    def get_val(self):
+
+        self.a = 123
+
+    def get_a(self):
+
+        print self.a
+
 def main():
-    foo_()
+    # foo_()
+
+    abc().get_a()
 if __name__ == '__main__':
     main()

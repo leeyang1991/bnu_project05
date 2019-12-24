@@ -975,6 +975,19 @@ class DIC_and_TIF:
         to_raster.array2raster_GDT_Byte(newRasterfn, originX, originY, pixelWidth, pixelHeight, array)
         pass
 
+
+    def spatial_arr_to_dic(self,arr):
+
+        pix_dic = {}
+        for i in range(len(arr)):
+            for j in range(len(arr[0])):
+                pix = '%03d.%03d'%(i,j)
+                val = arr[i][j]
+                pix_dic[pix] = val
+
+        return pix_dic
+
+
     def pix_dic_to_spatial_arr(self, spatial_dic):
 
         # x = []
@@ -4264,11 +4277,39 @@ class Statistic:
 class RATIO:
 
     def __init__(self):
+
+        self.valid_pix()
         # self.cal_ratio()
         # self.plot_in_or_out()
         # self.ratio_latitude()
+        # self.load_data()
+        # self.gen_landcover_dic()
         self.ratio_landcover()
         pass
+
+    def valid_pix(self):
+        self.ndvi_valid_pix = Tools().filter_NDVI_valid_pix()
+        self.tropical_pix = np.load(this_root + 'NDVI\\tropical_pix.npy')
+
+    def load_data(self):
+
+        mode = [
+            'pick_non_growing_season_events',
+            'pick_pre_growing_season_events',
+            'pick_post_growing_season_events'
+        ]
+
+        mode_dic = {}
+        for m in mode:
+            f = this_root + 'arr\\{}_composite_recovery_time\\composite.npy'.format(m)
+            dic = dict(np.load(f).item())
+            mode_i = {}
+            for pix in tqdm(dic,desc=m):
+                vals = dic[pix]
+                mode_i[pix] = vals
+            mode_dic[m] = mode_i
+
+        return mode_dic
 
 
     def cal_ratio(self):
@@ -4410,16 +4451,63 @@ class RATIO:
             plt.show()
 
 
-    def ratio_landcover(self):
-        landcover_dir = this_root+'landcover\\per_pix\\'
+    def gen_landcover_dic(self):
+
+        # tif = r'D:\project05\landcover\tif\0.5\landcover_0.5.tif'
+        # array,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
+        # plt.imshow(array)
+        # plt.colorbar()
+        # plt.show()
+        landcover_dir = this_root + 'landcover\\per_pix\\'
         landcover_dic = {}
-        for f in tqdm(os.listdir(landcover_dir),desc='loading landcover'):
-            dic = dict(np.load(landcover_dir+f).item())
+
+        for i in range(18):
+            landcover_dic[i] = []
+
+        for f in tqdm(os.listdir(landcover_dir), desc='loading landcover'):
+            dic = dict(np.load(landcover_dir + f).item())
             for pix in dic:
-                val = dic[pix]
-                landcover_dic[pix] = val[0]
+                val = dic[pix][0]
+                landcover_dic[val].append(pix)
+        # for type_ in range()
+        landcover_dic_array = {}
+        for i in landcover_dic:
+            landcover_dic_array[i] = np.array(landcover_dic[i])
 
+        np.save(this_root+'arr\\landcover_dic',landcover_dic_array)
 
+    def ratio_landcover(self):
+        landcover_dic = dict(np.load(this_root+'arr\\landcover_dic.npy').item())
+        # mode_dic = self.load_data()
+        fdir = this_root + 'arr\\ratio\\'
+        mode = [
+            # 'pick_non_growing_season_events',
+            'pick_pre_growing_season_events',
+            'pick_post_growing_season_events'
+        ]
+        for m in mode:
+            arr = np.load(fdir + m + '.npy')
+            dic = DIC_and_TIF().spatial_arr_to_dic(arr)
+            bars = []
+            for landcover_type in tqdm(landcover_dic):
+                landcover_pix = landcover_dic[landcover_type]
+                landcover_selected = []
+                for pix in dic:
+                    if not pix in self.ndvi_valid_pix:
+                        continue
+                    if pix in self.tropical_pix:
+                        continue
+                    if not pix in landcover_pix:
+                        continue
+                    val = dic[pix]
+                    if np.isnan(val):
+                        continue
+                    landcover_selected.append(val)
+                bars.append(np.mean(landcover_selected))
+
+            plt.bar(range(len(bars)),bars)
+            plt.title(m)
+            plt.show()
 
 
 
