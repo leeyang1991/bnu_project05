@@ -1200,14 +1200,15 @@ class KDE_plot:
 
 class Pre_Process:
     def __init__(self):
-        # fdir = this_root+'NDVI\\tif_resample_0.5\\'
-        per_pix = this_root+'NDVI\\per_pix\\'
-        anomaly = this_root+'NDVI\\per_pix_anomaly\\'
+        fdir = this_root+'landcover\\tif\\0.5\\'
+        per_pix = this_root+'landcover\\per_pix\\'
+        # anomaly = this_root+'NDVI\\per_pix_anomaly\\'
         # # Tools().mk_dir(outdir)
         # self.data_transform(fdir,per_pix)
-        self.cal_anomaly(per_pix,anomaly)
+        # self.cal_anomaly(per_pix,anomaly)
 
         # self.check_ndvi_anomaly()
+        self.check_per_pix(per_pix)
 
         pass
 
@@ -1380,6 +1381,13 @@ class Pre_Process:
                 plt.show()
         pass
 
+    def check_per_pix(self,fdir):
+
+        for f in os.listdir(fdir):
+            dic = dict(np.load(fdir+f).item())
+            for pix in dic:
+                val = dic[pix]
+                print pix,val
 
 
 class Pick_Single_events():
@@ -4257,8 +4265,9 @@ class RATIO:
 
     def __init__(self):
         # self.cal_ratio()
-        self.plot_in_or_out()
-        # self.ratio_histogram_latitude()
+        # self.plot_in_or_out()
+        # self.ratio_latitude()
+        self.ratio_landcover()
         pass
 
 
@@ -4290,7 +4299,7 @@ class RATIO:
                 in_flag = 0.
                 for recovery,in_or_out in vals:
                     # print recovery,in_or_out
-                    if in_or_out == 'in':
+                    if in_or_out == 'out':
                         in_flag += 1
                 # if in_flag != 0:
                 ratio = in_flag/len(vals)
@@ -4348,15 +4357,15 @@ class RATIO:
             plt.title(m+'_OUT')
             plt.show()
 
-    def ratio_histogram_latitude(self):
+    def ratio_latitude(self):
         fdir = this_root + 'arr\\ratio\\'
         mode = [
-            # 'pick_non_growing_season_events',
+            'pick_non_growing_season_events',
             'pick_pre_growing_season_events',
             'pick_post_growing_season_events'
         ]
         lats_ticks = []
-        lats = np.linspace(0,360,361)
+        lats = np.linspace(0,360,13)
         lats = np.array(lats,dtype=int)
         ranges = []
         for i in range(len(lats)):
@@ -4391,12 +4400,27 @@ class RATIO:
                     bar.append(np.mean(i))
                 else:
                     bar.append(np.nan)
-            # plt.bar(range(len(bar)),bar)
-            plt.plot(range(len(bar)),bar,label=m)
+            plt.bar(range(len(bar)),bar)
+            # plt.plot(range(len(bar)),bar,label=m)
             plt.title('Recovered in current growing season Ratio')
-            plt.xticks(range(len(bar))[10::10],lats_ticks[10::10])
+            # plt.xticks(range(len(bar))[10::10],lats_ticks[10::10])
+            plt.xticks(range(len(bar)),lats_ticks)
             plt.legend()
-        plt.show()
+            # plt.boxplot(lats_selected)
+            plt.show()
+
+
+    def ratio_landcover(self):
+        landcover_dir = this_root+'landcover\\per_pix\\'
+        landcover_dic = {}
+        for f in tqdm(os.listdir(landcover_dir),desc='loading landcover'):
+            dic = dict(np.load(landcover_dir+f).item())
+            for pix in dic:
+                val = dic[pix]
+                landcover_dic[pix] = val[0]
+
+
+
 
 
 def kernel_run(param):
@@ -4422,7 +4446,7 @@ def main():
     # Recovery_time_winter()
     # Recovery_time_winter_2()
     # Statistic()
-    # RATIO()
+    RATIO()
 
 
 
