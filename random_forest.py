@@ -1,7 +1,4 @@
 # coding=gbk
-
-
-# import psutil
 import os
 import numpy as np
 from matplotlib import pyplot as plt
@@ -16,5 +13,35 @@ import scipy
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 import math
+import analysis
 
 this_root = 'D:\\project05\\'
+
+def prepare_data():
+
+    # 1 drought periods
+
+
+
+    # 2 per-pix growing season
+    f = this_root+'NDVI\\global_growing_season.npy'
+    global_growing_season_dic = np.load(f)
+
+
+
+
+    mode_dic = analysis.RATIO().load_data()
+
+    for m in mode_dic:
+        dic = mode_dic[m]
+        for pix in dic:
+            print pix,dic[pix]
+
+
+
+def main():
+    prepare_data()
+
+
+if __name__ == '__main__':
+    main()
