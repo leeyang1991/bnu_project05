@@ -39,6 +39,29 @@ plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
 
+landcover_types_dic = {
+1:'ENF',
+2:'EBF',
+3:'DNF',
+4:'DBF',
+5:'MF',
+6:'Close Shrublands',
+7:'Open Shrublands',
+8:'Woody Savannas',
+9:'Savannas',
+10:'Grasslands',
+11:'Wetlands',
+12:'Croplands',
+13:'Urban',
+14:'Natural Vegetation',
+15:'Snow and Ice',
+16:'Barren',
+17:'Water',
+18:'Ocean',
+}
+
+
+
 class Tools:
     '''
     小工具
@@ -3458,7 +3481,11 @@ class Recovery_time_winter_2:
     def run1(self):
         # self.recovery_latitude()
         # self.composite_3_mode_recovery_time()
-        self.gen_composite_recovery_time_tif()
+        # self.gen_composite_recovery_time_tif()
+        # self.recovery_latitude_3mode()
+        # self.recovery_landcover_3mode()
+        # self.recovery_latitude_mix()
+        self.recovery_landcover_mix()
 
 
     def valid_pix(self):
@@ -4154,48 +4181,262 @@ class Recovery_time_winter_2:
         arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
         DIC_and_TIF().arr_to_tif(arr,out_tif)
 
-    def recovery_latitude(self):
+    def recovery_latitude_3mode(self):
         # 统计不同纬度的恢复期
-        pass
-
-    def recovery_landcover(self):
-        # 统计不同植被类型的恢复期
-
-        landcover_dic = dict(np.load(this_root + 'arr\\landcover_dic.npy').item())
-        # mode_dic = self.load_data()
-        fdir = this_root + 'arr\\'
         mode = [
-            # 'pick_non_growing_season_events',
+            'pick_non_growing_season_events',
             'pick_pre_growing_season_events',
             'pick_post_growing_season_events'
         ]
 
+        lats = [-50, -20, 20, 50, 90][::-1]
+        # lats = [0,80,140,]
+        lats_new = []
+        for lat in lats:
+            lat = (90 - lat) * 2
+            lats_new.append(lat)
+        lats = np.array(lats_new, dtype=int)
+        ranges = []
+        for i in range(len(lats)):
+            if i + 1 == len(lats):
+                break
+            range_i = [lats[i], lats[i + 1]]
+            ranges.append(range_i)
+            print range_i
+
+
         for m in mode:
-            arr = dict(np.load(fdir + '{}_composite_recovery_time'.format(m) + '\\composite.npy').item())
-            for i in arr:
-                print i,arr[i]
-            bars = []
-            for landcover_type in tqdm(landcover_dic):
-                landcover_pix = landcover_dic[landcover_type]
-                landcover_selected = []
-                for pix in dic:
-                    if not pix in self.ndvi_valid_pix:
-                        continue
-                    if pix in self.tropical_pix:
-                        continue
-                    if not pix in landcover_pix:
-                        continue
-                    val = dic[pix]
-                    if np.isnan(val):
-                        continue
-                    landcover_selected.append(val)
-                bars.append(np.mean(landcover_selected))
+            tif = this_root+'tif\\recovery_time\\{}_plot_gen_recovery_time\\global.tif'.format(m)
+            arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
+            grid = arr < 0
+            arr[grid] = np.nan
+
+            grid1 = arr > 18
+            arr[grid1] = np.nan
+
+            # plt.imshow(arr,'jet')
+            # plt.colorbar()
+            # plt.show()
+            # exit()
+            lats_selected = []
+            for range_i in ranges:
+                # print range_i
+                selected_i = []
+                for i in range(len(arr)):
+                    if range_i[0] < i <= range_i[1]:
+                        # print i
+                        temp = []
+                        for j in range(len(arr[0])):
+                            pix = '%03d.%03d' % (i, j)
+                            if pix in self.tropical_pix:
+                                continue
+                            val = arr[i][j]
+                            temp.append(val)
+                        selected_i.append(temp)
+
+                selected_pix = []
+                for j in selected_i:
+                    for k in j:
+                        if not np.isnan(k):
+                            selected_pix.append(k)
+
+                lats_selected.append(selected_pix)
+            bar = []
+            for i in lats_selected:
+                if len(i) > 0:
+                    bar.append(np.mean(i))
+                else:
+                    bar.append(np.nan)
+            plt.figure()
+            plt.bar(range(len(bar)), bar)
+            # plt.plot(range(len(bar)),bar,label=m)
+            plt.title('recovery time (months) {}'.format(m))
+            # plt.xticks(range(len(bar))[10::10],lats_ticks[10::10])
+            # plt.xticks(range(len(bar)),lats_ticks)
+            # plt.ylim(20, 80)
+            plt.legend()
+            # plt.boxplot(lats_selected)
+        plt.show()
+
+
+    def kernel_recovery_landcover(self,params):
+        landcover_dic,landcover_type,dic = params
+        landcover_pix = landcover_dic[landcover_type]
+        landcover_selected = []
+        for pix in dic:
+            if not pix in self.ndvi_valid_pix:
+                continue
+            if pix in self.tropical_pix:
+                continue
+            if not pix in landcover_pix:
+                continue
+            val = dic[pix]
+            if np.isnan(val):
+                continue
+            landcover_selected.append(val)
+        mean_landcover_selected = np.mean(landcover_selected)
+        return mean_landcover_selected
+
+
+        pass
+
+    def recovery_landcover_3mode(self):
+        # 统计不同植被类型的恢复期
+
+        landcover_dic = dict(np.load(this_root + 'arr\\landcover_dic.npy').item())
+        # mode_dic = self.load_data()
+        mode = [
+            'pick_non_growing_season_events',
+            'pick_pre_growing_season_events',
+            'pick_post_growing_season_events'
+        ]
+        for m in mode:
+            tif = this_root + 'tif\\recovery_time\\{}_plot_gen_recovery_time\\global.tif'.format(m)
+            arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif)
+
+            grid = arr < 0
+            arr[grid] = np.nan
+
+            grid1 = arr > 18
+            arr[grid1] = np.nan
+
+
+            dic = DIC_and_TIF().spatial_arr_to_dic(arr)
+            params = []
+            for landcover_type in landcover_dic:
+                params.append([landcover_dic,landcover_type,dic])
+
+            bars = MUTIPROCESS(self.kernel_recovery_landcover,params).run()
+
 
             plt.bar(range(len(bars)), bars)
+
+            xticks = []
+            for i in range(len(bars)):
+                label = landcover_types_dic[i+1]
+                xticks.append(label)
+            plt.xticks(range(len(bars)),xticks,rotation=90)
             plt.title(m)
             plt.show()
 
+
+    def recovery_latitude_mix(self):
+        # 统计不同纬度的恢复期
+        lats = [-50, -20, 20, 50, 90][::-1]
+        # lats = [0,80,140,]
+        lats_new = []
+        for lat in lats:
+            lat = (90 - lat) * 2
+            lats_new.append(lat)
+        lats = np.array(lats_new, dtype=int)
+        ranges = []
+        for i in range(len(lats)):
+            if i + 1 == len(lats):
+                break
+            range_i = [lats[i], lats[i + 1]]
+            ranges.append(range_i)
+            print range_i
+
+        tif = this_root + 'tif\\recovery_time\\recovery_time_mix.tif'
+        arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif)
+        grid = arr < 0
+        arr[grid] = np.nan
+
+        grid1 = arr > 18
+        arr[grid1] = np.nan
+
+        # plt.imshow(arr,'jet')
+        # plt.colorbar()
+        # plt.show()
+        # exit()
+        lats_selected = []
+        for range_i in ranges:
+            # print range_i
+            selected_i = []
+            for i in range(len(arr)):
+                if range_i[0] < i <= range_i[1]:
+                    # print i
+
+                    selected_i.append(arr[i])
+
+            selected_pix = []
+            for j in selected_i:
+                for k in j:
+                    if not np.isnan(k):
+                        selected_pix.append(k)
+
+            lats_selected.append(selected_pix)
+        bar = []
+        for i in lats_selected:
+            if len(i) > 0:
+                bar.append(np.mean(i))
+            else:
+                bar.append(np.nan)
+        plt.figure()
+        plt.bar(range(len(bar)), bar)
+        # plt.plot(range(len(bar)),bar,label=m)
+        plt.title('recovery time (months)')
+        # plt.xticks(range(len(bar))[10::10],lats_ticks[10::10])
+        # plt.xticks(range(len(bar)),lats_ticks)
+        # plt.ylim(20, 80)
+        plt.legend()
+        plt.show()
+
+
         pass
+
+
+    def kernel_recovery_landcover_mix(self,params):
+        landcover_dic,landcover_type,dic = params
+        landcover_pix = landcover_dic[landcover_type]
+        landcover_selected = []
+        for pix in dic:
+            if not pix in self.ndvi_valid_pix:
+                continue
+            if not pix in landcover_pix:
+                continue
+            val = dic[pix]
+            if np.isnan(val):
+                continue
+            landcover_selected.append(val)
+        mean_landcover_selected = np.mean(landcover_selected)
+        return mean_landcover_selected
+
+
+    def recovery_landcover_mix(self):
+        # 统计不同植被类型的恢复期
+
+        landcover_dic = dict(np.load(this_root + 'arr\\landcover_dic.npy').item())
+        # mode_dic = self.load_data()
+        tif = this_root + 'tif\\recovery_time\\recovery_time_mix.tif'
+        arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif)
+
+        grid = arr < 0
+        arr[grid] = np.nan
+
+        grid1 = arr > 18
+        arr[grid1] = np.nan
+
+
+        dic = DIC_and_TIF().spatial_arr_to_dic(arr)
+        params = []
+        for landcover_type in landcover_dic:
+            params.append([landcover_dic,landcover_type,dic])
+
+        bars = MUTIPROCESS(self.kernel_recovery_landcover_mix,params).run()
+
+
+        plt.bar(range(len(bars)), bars)
+
+        xticks = []
+        for i in range(len(bars)):
+            label = landcover_types_dic[i+1]
+            xticks.append(label)
+        plt.xticks(range(len(bars)),xticks,rotation=90)
+        plt.show()
+
+
+
 
 
 class Statistic:
@@ -4566,7 +4807,6 @@ class RATIO:
             # plt.xticks(range(len(bar))[10::10],lats_ticks[10::10])
             # plt.xticks(range(len(bar)),lats_ticks)
             plt.ylim(20,80)
-            plt.legend()
             # plt.boxplot(lats_selected)
         plt.show()
 
