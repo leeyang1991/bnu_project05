@@ -515,5 +515,19 @@ def main():
     analysis.MUTIPROCESS(kernel_main,params).run()
     pass
 
+
+def check_monthly():
+
+
+    f = this_root+'CCI\\monthly\\1987\\month_compose_01.npy'
+    arr = np.load(f)
+    grid = arr < -9999
+    arr[grid] = np.nan
+    print np.shape(arr)
+    plt.imshow(arr)
+    plt.colorbar()
+    plt.show()
+
 if __name__ == '__main__':
     main()
+    # check_monthly()
