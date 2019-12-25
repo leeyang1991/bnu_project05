@@ -17,13 +17,16 @@ import analysis
 
 this_root = 'D:\\project05\\'
 
-def prepare_data():
+def prepare_Y():
 
     # 1 drought periods
     f_recovery_time = this_root+'arr\\recovery_time\\composite_3_modes\\composite_3_mode_recovery_time.npy'
     recovery_time = dict(np.load(f_recovery_time).item())
+    Y = {}
     for pix in recovery_time:
         vals = recovery_time[pix]
+        for r_time,mark,date_range in vals:
+            Y[pix+'_'+str(date_range[0])] = ''
 
     # 2 per-pix growing season
     # f = this_root+'NDVI\\global_growing_season.npy'
@@ -42,7 +45,7 @@ def prepare_data():
 
 
 def main():
-    prepare_data()
+    prepare_Y()
 
 
 if __name__ == '__main__':
