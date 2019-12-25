@@ -490,32 +490,6 @@ def extract_cci_from_sta():
 
 
 
-
-
-
-
-
-        # break
-
-
-def kernel_main(params):
-    fdir,out_dir,year = params
-    fdir = fdir + '{}\\'.format(year)
-    out_dir = out_dir + '{}\\'.format(year)
-    compose_month(fdir, out_dir)
-    pass
-
-
-def main():
-    fdir = this_root+'CCI\\COMBINED\\'
-    out_dir = this_root+'CCI\\monthly\\'
-    params = []
-    for year in range(1982,2016):
-        params.append([fdir,out_dir,year])
-    analysis.MUTIPROCESS(kernel_main,params).run()
-    pass
-
-
 def check_monthly():
 
 
@@ -527,6 +501,51 @@ def check_monthly():
     plt.imshow(arr)
     plt.colorbar()
     plt.show()
+
+
+
+def kernel_main(params):
+    fdir,out_dir,year = params
+    fdir = fdir + '{}\\'.format(year)
+    out_dir = out_dir + '{}\\'.format(year)
+    compose_month(fdir, out_dir)
+    pass
+
+
+def npy_to_tif():
+
+
+    fdir = this_root+'CCI\\0.25\\monthly\\'
+    outdir = this_root+'CCI\\0.25\\tif\\'
+    mk_dir(outdir)
+    for year in tqdm(os.listdir(fdir)):
+        for f in os.listdir(fdir+year):
+            mon = f.split('.')[0][-2:]
+            fname = outdir+year+mon+'.tif'
+            arr = np.load(fdir+year+'\\'+f)
+            grid = arr < 0
+            arr[grid] = -999999
+            longitude_start = -179.875
+            latitude_start = 89.875
+            pixelWidth = 0.25
+            pixelHeight = -0.25
+            analysis.to_raster.array2raster_polar(fname,longitude_start, latitude_start, pixelWidth, pixelHeight, arr, -999999)
+def main():
+    # 1 合成月数据
+    # fdir = this_root+'CCI\\COMBINED\\'
+    # out_dir = this_root+'CCI\\monthly\\'
+    # params = []
+    # for year in range(1982,2016):
+    #     params.append([fdir,out_dir,year])
+    # analysis.MUTIPROCESS(kernel_main,params).run()
+
+    # 2 转换为tif
+    npy_to_tif()
+
+
+    pass
+
+
 
 if __name__ == '__main__':
     main()

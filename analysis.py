@@ -1236,15 +1236,15 @@ class KDE_plot:
 
 class Pre_Process:
     def __init__(self):
-        fdir = this_root+'landcover\\tif\\0.5\\'
-        per_pix = this_root+'landcover\\per_pix\\'
+        fdir = this_root+'CCI\\0.5\\tif\\'
+        per_pix = this_root+'CCI\\0.5\\per_pix\\'
         # anomaly = this_root+'NDVI\\per_pix_anomaly\\'
         # # Tools().mk_dir(outdir)
-        # self.data_transform(fdir,per_pix)
+        self.data_transform(fdir,per_pix)
         # self.cal_anomaly(per_pix,anomaly)
 
         # self.check_ndvi_anomaly()
-        self.check_per_pix(per_pix)
+        # self.check_per_pix(per_pix)
 
         pass
 
@@ -3069,7 +3069,7 @@ class Recovery_time_winter:
                 for recovery, mark in events:
                     # if mark == 'in' or mark == 'tropical':
                     # if mark == in_or_out or mark == 'tropical':
-                    if recovery:
+                    if recovery != None:
                         recovery_sum.append(recovery)
                 if len(recovery_sum) > 0:
                     recovery_mean = np.mean(recovery_sum)
@@ -3933,7 +3933,7 @@ class Recovery_time_winter_2:
                 for recovery, mark in events:
                     # if mark == 'in' or mark == 'tropical':
                     # if mark == in_or_out or mark == 'tropical':
-                    if recovery:
+                    if recovery != None:
                         recovery_sum.append(recovery)
                 if len(recovery_sum) > 0:
                     recovery_mean = np.mean(recovery_sum)
@@ -4169,7 +4169,7 @@ class Recovery_time_winter_2:
             flag = 0.
             if len(vals) > 0:
                 for recovery_time,mark,recovery_range in vals:
-                    if recovery_time:  # 当 recovery_time 不为 None 时
+                    if recovery_time != None:  # 当 recovery_time 不为 None 时
                         sum_recovery_time += recovery_time
                         flag += 1.
             if flag != 0:
@@ -4889,10 +4889,10 @@ def run():
 
 def main():
     # run()
-    # Pre_Process()
+    Pre_Process()
     # Pick_Single_events()
     # Recovery_time_winter()
-    Recovery_time_winter_2().run1()
+    # Recovery_time_winter_2().run1()
     # Statistic()
     # RATIO().run()
 
