@@ -530,6 +530,46 @@ def npy_to_tif():
             pixelWidth = 0.25
             pixelHeight = -0.25
             analysis.to_raster.array2raster_polar(fname,longitude_start, latitude_start, pixelWidth, pixelHeight, arr, -999999)
+
+def cal_monthly_mean(fdir,outdir):
+    # outdir = this_root + 'TMP\\mon_mean_tif\\'
+    # fdir = this_root + 'TMP\\tif\\'
+
+    analysis.Tools().mk_dir(outdir)
+
+    for m in tqdm(range(1, 13)):
+        arrs = []
+        for y in range(1982, 2016):
+            date = '{}{}'.format(y, '%02d' % m)
+            tif = fdir + date + '.tif'
+            if not os.path.isfile(tif):
+                continue
+            arr, originX, originY, pixelWidth, pixelHeight = analysis.to_raster.raster2array(tif)
+
+            arrs.append(arr)
+        arrs = np.array(arrs,dtype=float)
+
+        mean_arr = []
+        for i in range(360):
+            temp = []
+            for j in range(720):
+                pix_vals = []
+                for date in range(len(arrs)):
+                    val = arrs[date][i][j]
+                    if val > 0:
+                        pix_vals.append(val)
+                if len(pix_vals) > 0:
+                    mean_val = np.mean(pix_vals)
+                else:
+                    mean_val = np.nan
+                temp.append(mean_val)
+            mean_arr.append(temp)
+        mean_arr = np.array(mean_arr)
+        analysis.DIC_and_TIF().arr_to_tif(mean_arr, outdir + '%02d.tif' % m)
+
+
+
+
 def main():
     # 1 合成月数据
     # fdir = this_root+'CCI\\COMBINED\\'
@@ -540,8 +580,12 @@ def main():
     # analysis.MUTIPROCESS(kernel_main,params).run()
 
     # 2 转换为tif
-    npy_to_tif()
+    # npy_to_tif()
 
+    # 3 cal monthly mean
+    fdir = this_root+'CCI\\0.5\\tif\\'
+    out_dir = this_root+'CCI\\0.5\\monthly_mean\\'
+    cal_monthly_mean(fdir,out_dir)
 
     pass
 
