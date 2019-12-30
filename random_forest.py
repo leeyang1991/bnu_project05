@@ -25,7 +25,6 @@ class Prepare:
 
     def run(self):
         # 1 因变量 Y
-        # X in ['TMP','PRE','CCI','SWE']
         # self.prepare_Y()
         # 2 自变量 X
         # 2.1 计算月平均 tif 1-12 月
@@ -33,7 +32,9 @@ class Prepare:
         # fdir = this_root + 'GLOBSWE\\tif\\SWE_max\\'
         # self.cal_monthly_mean(fdir,outdir)
         # 2.2 根据字典Y 的key 生成 X 字典， key为对应标签
-        # self.prepare_X('SWE')
+        # X in ['TMP','PRE','CCI','SWE']
+        for x in ['TMP','PRE','CCI','SWE']:
+            self.prepare_X(x)
         # self.check_ndvi()
         # 3 检查 X
         # self.check_X('SWE')
@@ -153,12 +154,11 @@ class Prepare:
                     continue
                 juping = val - mon_mean
                 selected_val.append(juping)
-            # if x == 'TMP':
-            #     juping_mean = np.mean(selected_val)
-            # else:
-            #     juping_mean = np.sum(selected_val)
             if len(selected_val) > 0:
-                juping_mean = np.mean(selected_val)
+                if x == 'TMP' or x == 'CCI':
+                    juping_mean = np.mean(selected_val)
+                else:
+                    juping_mean = np.sum(selected_val)
             else:
                 juping_mean = np.nan
             X[key] = juping_mean
@@ -216,8 +216,38 @@ class RF_train:
 
     def __init__(self):
         # self.load_variable()
-        self.random_forest_train()
+        # self.random_forest_train()
+        self.latitude()
         pass
+
+
+    def latitude(self):
+        lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+        lats = [-50, -20, 20, 50, 90]
+
+        for i in range(len(lats)):
+            if i+1 == len(lats):
+                break
+            start_lat = lats[i]
+            end_lat = lats[i+1]
+
+            selected_pix = []
+            for pix in lon_lat_dic:
+                lon,lat = lon_lat_dic[pix]
+                if lat > start_lat and lat < end_lat:
+                    selected_pix.append(pix)
+            print selected_pix
+
+
+
+
+
+        # lats = [0,80,140,]
+        # lats_new = []
+        # for lat in lats:
+        #     lat = (90 - lat) * 2
+        #     lats_new.append(lat)
+
 
     def load_variable(self):
         fdir = this_root+'random_forest\\'
@@ -233,15 +263,19 @@ class RF_train:
 
         keys = []
         for key in Y_dic:
+            split_key = key.split('_')
+            pix = split_key[0]
+            mark = split_key[1]
+            date_range = split_key[2]
             # if 'tropical' in key or 'in' in key:
             #     keys.append(key)
-            if 'in' in key:
-                keys.append(key)
+            # if 'in' in key:
+            #     keys.append(key)
             # if 'out' in key:
             #     keys.append(key)
             # if 'tropical' in key:
-                keys.append(key)
-            # keys.append(key)
+            #     keys.append(key)
+            keys.append(key)
 
         # print len(pre_dic)
         # print len(tmp_dic)
@@ -293,29 +327,32 @@ class RF_train:
         importances = clf.feature_importances_
         print importances
 
-        std = np.std([tree.feature_importances_ for tree in clf.estimators_],
-                     axis=0)
-        indices = np.argsort(importances)[::-1]
-
-        # Print the feature ranking
-        print("Feature ranking:")
-
-        for f in range(4):
-            print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
-
-        # Plot the feature importances of the forest
-        plt.figure()
-        plt.title("Feature importances")
-        plt.bar(range(4), importances[indices],
-                color="r", yerr=std[indices], align="center")
-        plt.xticks(range(4), indices)
-        plt.xlim([-1, 4])
+        plt.bar(range(len(importances)),importances)
+        plt.xticks(range(len(importances)),['P','T','SWE','CCI'])
         plt.show()
+        # std = np.std([tree.feature_importances_ for tree in clf.estimators_],
+        #              axis=0)
+        # indices = np.argsort(importances)[::-1]
+        #
+        # # Print the feature ranking
+        # print("Feature ranking:")
+        #
+        # for f in range(4):
+        #     print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
+        #
+        # # Plot the feature importances of the forest
+        # plt.figure()
+        # plt.title("Feature importances")
+        # plt.bar(range(4), importances[indices],
+        #         color="r", yerr=std[indices], align="center")
+        # plt.xticks(range(4), indices)
+        # plt.xlim([-1, 4])
+        # plt.show()
 
 
 
 
-        exit()
+        # exit()
         # clf.fe
         y_pred = clf.predict(X_test)
         r = scipy.stats.pearsonr(Y_test, y_pred)
@@ -332,6 +369,7 @@ class RF_train:
 
 
 def main():
+    # Prepare().run()
     RF_train()
     pass
 
