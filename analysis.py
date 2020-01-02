@@ -3457,7 +3457,6 @@ class Recovery_time_winter_2:
 
 
     def run(self):
-        # 1 生成recovery time 1-24
 
         mode = ['pick_non_growing_season_events',
                 'pick_pre_growing_season_events',
@@ -3466,7 +3465,7 @@ class Recovery_time_winter_2:
         for m in mode:
             print m
             param = []
-            for interval in range(1,13):
+            for interval in range(1,4):
                 param.append([interval,m])
                 # self.gen_recovery_time([interval,m])
             MUTIPROCESS(self.gen_recovery_time,param).run(6)
@@ -3485,8 +3484,8 @@ class Recovery_time_winter_2:
         # self.recovery_latitude_3mode()
         # self.recovery_landcover_3mode()
         # self.recovery_latitude_mix()
-        self.recovery_landcover_mix()
-
+        # self.recovery_landcover_mix()
+        pass
 
     def valid_pix(self):
         self.ndvi_valid_pix = Tools().filter_NDVI_valid_pix()
@@ -3906,6 +3905,9 @@ class Recovery_time_winter_2:
         out_dir = this_root + 'arr\\recovery_time\\{}_composite_recovery_time\\'.format(mode)
         Tools().mk_dir(out_dir)
         void_dic = DIC_and_TIF().void_spatial_dic()
+        interval_range = []
+        for interval in range(1,4):
+            interval_range.append()
         for folder in os.listdir(fdir):
             for f in os.listdir(fdir + folder):
                 dic = dict(np.load(fdir + folder + '\\' + f).item())
@@ -4889,10 +4891,10 @@ def run():
 
 def main():
     # run()
-    Pre_Process()
+    # Pre_Process()
     # Pick_Single_events()
     # Recovery_time_winter()
-    # Recovery_time_winter_2().run1()
+    Recovery_time_winter_2()
     # Statistic()
     # RATIO().run()
 

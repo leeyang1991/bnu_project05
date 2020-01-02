@@ -216,8 +216,8 @@ class RF_train:
 
     def __init__(self):
         # self.load_variable()
-        # self.random_forest_train()
-        self.latitude()
+        self.random_forest_train()
+        # self.latitude()
         pass
 
 
@@ -273,8 +273,8 @@ class RF_train:
             #     keys.append(key)
             # if 'out' in key:
             #     keys.append(key)
-            # if 'tropical' in key:
-            #     keys.append(key)
+            if 'tropical' in key:
+                keys.append(key)
             keys.append(key)
 
         # print len(pre_dic)
@@ -303,7 +303,8 @@ class RF_train:
                 cci = nan
             if np.isnan(swe):
                 swe = nan
-            X.append([pre,tmp,cci,swe])
+            # X.append([pre,tmp,cci,swe])
+            X.append([pre,tmp,cci])
 
 
         return X,Y
@@ -326,9 +327,12 @@ class RF_train:
 
         importances = clf.feature_importances_
         print importances
-
+        y_min = min(importances)
+        y_max = max(importances)
+        offset = (y_max-y_min)
         plt.bar(range(len(importances)),importances)
-        plt.xticks(range(len(importances)),['P','T','SWE','CCI'])
+        plt.xticks(range(len(importances)),['P','T','CCI','SWE'])
+
         plt.show()
         # std = np.std([tree.feature_importances_ for tree in clf.estimators_],
         #              axis=0)
