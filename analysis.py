@@ -3283,8 +3283,8 @@ class Winter:
         # self.cal_monthly_mean()
         # self.count_num()
         # self.get_grow_season_index()
-        self.composite_growing_season_pix()
-        # self.check_pix()
+        # self.composite_growing_season_pix()
+        self.check_pix()
         pass
 
     def cal_monthly_mean(self):
@@ -3435,7 +3435,7 @@ class Winter:
 
         for pix in growing_season_index:
             pix_dic[pix] = 1
-            print growing_season_index[pix]
+            # print growing_season_index[pix]
 
         arr = DIC_and_TIF().pix_dic_to_spatial_arr(pix_dic)
 
@@ -3462,20 +3462,23 @@ class Recovery_time_winter_2:
                 'pick_pre_growing_season_events',
                 'pick_post_growing_season_events'
                 ]
-        window_start = 1
-        window_end = [3,4,5,6,7,8,9,10,11,12]
-        for we in tqdm(window_end):
-            for m in mode:
-                # print m
-                # param = []
-                # for interval in range(1,4):
-                #     param.append([interval,m])
-                #     # self.gen_recovery_time([interval,m])
-                # MUTIPROCESS(self.gen_recovery_time,param).run(6)
-                # 2 合成 spei 1-24
-                self.composite_recovery_time(m,window_start,we)
-                # 4 出tif图
-                self.plot_composite_recovery_time(m,window_start,we)
+        # window_start = 1
+        # window_end = [3,4,5,6,7,8,9,10,11,12]
+        window_start = [6]
+        window_end = [12]
+        for ws in window_start:
+            for we in tqdm(window_end):
+                for m in mode:
+                    # print m
+                    # param = []
+                    # for interval in range(1,4):
+                    #     param.append([interval,m])
+                    #     # self.gen_recovery_time([interval,m])
+                    # MUTIPROCESS(self.gen_recovery_time,param).run(6)
+                    # 2 合成 spei 1-24
+                    self.composite_recovery_time(m,ws,we)
+                    # 4 出tif图
+                    self.plot_composite_recovery_time(m,ws,we)
         pass
 
 
@@ -4635,8 +4638,8 @@ class RATIO:
 
     def run(self):
         # self.cal_ratio()
-        # self.plot_in_or_out()
-        self.ratio_latitude()
+        self.plot_in_or_out()
+        # self.ratio_latitude()
         # self.load_data()
         # self.gen_landcover_dic()
         # self.ratio_landcover()
@@ -4903,9 +4906,10 @@ def main():
     # Pre_Process()
     # Pick_Single_events()
     # Recovery_time_winter()
-    Recovery_time_winter_2().run()
+    # Recovery_time_winter_2().run()
     # Statistic()
-    # RATIO().run()
+    RATIO().run()
+    # Winter()
 
 
 
