@@ -3462,18 +3462,20 @@ class Recovery_time_winter_2:
                 'pick_pre_growing_season_events',
                 'pick_post_growing_season_events'
                 ]
-        for m in mode:
-            print m
-            param = []
-            for interval in range(1,4):
-                param.append([interval,m])
-                # self.gen_recovery_time([interval,m])
-            MUTIPROCESS(self.gen_recovery_time,param).run(6)
-            # self.gen_recovery_time(interval)
-            # 2 合成 spei 1-24
-            self.composite_recovery_time(m)
-            # 4 出tif图
-            # self.plot_composite_recovery_time(m)
+        window_start = 1
+        window_end = [3,4,5,6,7,8,9,10,11,12]
+        for we in tqdm(window_end):
+            for m in mode:
+                # print m
+                # param = []
+                # for interval in range(1,4):
+                #     param.append([interval,m])
+                #     # self.gen_recovery_time([interval,m])
+                # MUTIPROCESS(self.gen_recovery_time,param).run(6)
+                # 2 合成 spei 1-24
+                self.composite_recovery_time(m,window_start,we)
+                # 4 出tif图
+                self.plot_composite_recovery_time(m,window_start,we)
         pass
 
 
@@ -3896,19 +3898,23 @@ class Recovery_time_winter_2:
         # plt.show()
         pass
 
-    def composite_recovery_time(self,mode):
+    def composite_recovery_time(self,mode,window_start,window_end):
         '''
         合成SPEI 1 - 24 的recovery time
         :return:
         '''
         fdir = this_root + 'arr\\recovery_time\\{}\\'.format(mode)
-        out_dir = this_root + 'arr\\recovery_time\\{}_composite_recovery_time\\'.format(mode)
+        # out_dir = this_root + 'arr\\recovery_time\\{}_composite_recovery_time\\'.format(mode)
+        out_dir = this_root + 'arr\\recovery_time\\{}_composite_recovery_time_{}_{}\\'.format(mode,window_start,window_end)
         Tools().mk_dir(out_dir)
         void_dic = DIC_and_TIF().void_spatial_dic()
         interval_range = []
-        for interval in range(1,4):
-            interval_range.append()
+        for interval in range(window_start,window_end+1):
+            interval_range.append('%02d'%interval)
         for folder in os.listdir(fdir):
+            interval_ = folder.split('_')[1]
+            if not interval_ in interval_range:
+                continue
             for f in os.listdir(fdir + folder):
                 dic = dict(np.load(fdir + folder + '\\' + f).item())
                 for pix in dic:
@@ -3920,19 +3926,22 @@ class Recovery_time_winter_2:
         # exit()
         pass
 
-    def plot_composite_recovery_time(self,mode):
+    def plot_composite_recovery_time(self,mode,window_start,window_end):
         # in_or_out = 'in', or 'out'
-        composite_recovery = dict(np.load(this_root + 'arr\\{}_composite_recovery_time\\composite.npy'.format(mode)).item())
-        out_tif_dir = this_root + 'tif\\{}_plot_gen_recovery_time\\'.format(mode)
+        composite_recovery = dict(np.load(this_root + 'arr\\recovery_time\\{}_composite_recovery_time_{}_{}\\composite.npy'.format(mode,window_start,window_end)).item())
+        out_tif_dir = this_root + 'tif\\recovery_time\\{}_plot_gen_recovery_time_{}_{}\\'.format(mode,window_start,window_end)
         Tools().mk_dir(out_tif_dir)
-        out_tif = out_tif_dir + 'global.tif'
+        out_tif = out_tif_dir + '{}.tif'.format(mode)
         global_recovery = {}
-        for pix in composite_recovery:
+        for pix in tqdm(composite_recovery):
+            if not pix in self.ndvi_valid_pix:
+                continue
             # val = composite_recovery[key]
             events = composite_recovery[pix]
             if len(events) > 0:
                 recovery_sum = []
-                for recovery, mark in events:
+                # print events
+                for recovery, mark, drought_range in events:
                     # if mark == 'in' or mark == 'tropical':
                     # if mark == in_or_out or mark == 'tropical':
                     if recovery != None:
@@ -4894,7 +4903,7 @@ def main():
     # Pre_Process()
     # Pick_Single_events()
     # Recovery_time_winter()
-    Recovery_time_winter_2()
+    Recovery_time_winter_2().run()
     # Statistic()
     # RATIO().run()
 

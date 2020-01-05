@@ -52,12 +52,51 @@ def re_projection_swe():
     pass
 
 
+
+
+def mapping(current_dir,tif,outjpeg,title,mxd_file):
+
+    mxd = arcpy.mapping.MapDocument(mxd_file)
+    df0 = arcpy.mapping.ListDataFrames(mxd)[0]
+
+    workplace = "RASTER_WORKSPACE"
+
+    lyr = arcpy.mapping.ListLayers(mxd, 'tif', df0)[0]
+    lyr.replaceDataSource(current_dir,workplace,tif)
+
+    for textElement in arcpy.mapping.ListLayoutElements(mxd, "TEXT_ELEMENT"):
+        if textElement.name == 'title':
+            textElement.text = (title)
+
+    arcpy.mapping.ExportToJPEG(mxd,outjpeg,data_frame='PAGE_LAYOUT',df_export_width=mxd.pageSize.width,df_export_height=mxd.pageSize.height,color_mode='24-BIT_TRUE_COLOR',resolution=300,jpeg_quality=100)
+
+
+
+
+
+
 def main():
 
     # define_swe_projection()
     # re_projection_swe()
-    resample30m()
+    # resample30m()
 
+    mode = {'pick_non_growing_season_events':'None Growing Season',
+            'pick_pre_growing_season_events':'Early Growing Season',
+            'pick_post_growing_season_events':'Late Growing Season'
+    }
+    window_start = 1
+    window_end = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    for we in window_end:
+        for m in mode:
+            current_dir = r'D:\project05\tif\recovery_time\{}_plot_gen_recovery_time_{}_{}\\'.format(m,window_start,we)
+            tif = '{}.tif'.format(m)
+            title = mode[m]+' {}-{}'.format(window_start,we)
+            outjpeg = r'D:\project05\png\recovery_time\composite\\{}.jpg'.format(title)
+
+            mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
+            print title
+            mapping(current_dir,tif,outjpeg,title,mxd_file)
 
     pass
 if __name__ == '__main__':
