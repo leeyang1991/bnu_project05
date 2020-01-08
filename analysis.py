@@ -323,8 +323,8 @@ class Tools:
         y = a*x + b
         #
         # plt.subplot(2,2,i)
-        plt.scatter(X,Y,marker='o',s=5,c = 'grey')
-        plt.plot(X,Y)
+        # plt.scatter(X,Y,marker='o',s=5,c = 'grey')
+        # plt.plot(X,Y)
         plt.plot(x,y,linestyle='dashed',c='black',linewidth=1,alpha=0.7)
         plt.title(title)
 
@@ -337,16 +337,28 @@ class Tools:
 
         flag = 0.
         sum_ = 0.
+        x = []
         for i in arr:
             if np.isnan(i):
                 continue
             sum_ += i
             flag += 1
+            x.append(i)
         if flag == 0:
             return 0
         else:
             mean = sum_/flag
-            return mean
+            # xerr = mean/np.std(x,ddof=1)
+            xerr = np.std(x)
+            # print mean,xerr
+            # if xerr > 10:
+            #     print x
+            #     print xerr
+            #     print '........'
+            #     plt.hist(x,bins=10)
+            #     plt.show()
+            #     exit()
+            return mean,xerr
 
 
     def arr_mean_greater(self, arr, threshold):
@@ -5150,7 +5162,7 @@ class Water_balance:
         markers_dic = {'EBF':"X",
                        'Shrublands':"*",
                       'MF':"s",
-                      'DBF':"o",
+                      'DNF':"o",
                        'ENF':"^",
                       'Savannas':"D",
                       'DBF':"P",
@@ -5185,112 +5197,47 @@ class Water_balance:
                     # 挑x轴
                     HI_picked_val = Tools().pick_vals_from_2darray(HI_arr,intersect_int)
                     HI_picked_val[HI_picked_val<0] = np.nan
-                    HI_mean = Tools().arr_mean_nan(HI_picked_val)
+                    HI_picked_val[HI_picked_val>2] = np.nan
+                    HI_mean,xerr = Tools().arr_mean_nan(HI_picked_val)
+                    # print 'HI_mean,xerr',HI_mean,xerr
+                    # print xerr
                     # x.append(HI_mean)
                     # 挑y轴
                     recovery_picked_val = Tools().pick_vals_from_2darray(recovery_time_arr,intersect_int)
                     recovery_picked_val[recovery_picked_val<0] = np.nan
-                    recovery_mean = Tools().arr_mean_nan(recovery_picked_val)
+                    recovery_picked_val[recovery_picked_val>18] = np.nan
+                    recovery_mean,yerr = Tools().arr_mean_nan(recovery_picked_val)
+                    # print 'recovery_mean,yerr',recovery_mean,yerr
                     # y.append(recovery_mean)
-                    scatter_dic[key] = [HI_mean,recovery_mean]
+                    scatter_dic[key] = [HI_mean,recovery_mean,xerr,yerr]
             # print scatter_labels
             # marker = markers[markers_flag]
             # plt.scatter(x,y,c=color_dic[],marker=marker)
             # markers_flag += 1
+        X = []
+        Y = []
+        sns.set(color_codes=True)
         for key in scatter_dic:
             lc,lat = key.split('.')
             lat = int(lat)
             # print lc,lat
             marker = markers_dic[lc]
             color = color_dic[lat]
-            x,y = scatter_dic[key]
-            plt.scatter(x,y,s=100,c=color,marker=marker,edgecolors='black',linewidths=1)
+            x,y,xerr,yerr = scatter_dic[key]
+            # zorder : 图层顺序
+            plt.scatter(x,y,s=50,c=color,marker=marker,edgecolors='black',linewidths=1,zorder=99,label=lc)
+            # print x,y,xerr,yerr
+            plt.errorbar(x,y,xerr=xerr/4.,yerr=yerr/4.,c='gray',zorder=0,alpha=0.5)
+            X.append(x)
+            Y.append(y)
+        # plt.legend()
+        sns.regplot(X,Y,scatter=False)
+        a,b,r = Tools().linefit(X,Y)
+        print 'r',r
+        # Tools().plot_fit_line(a,b,r,X,Y)
+        plt.figure()
+        sns.palplot(cmap)
         plt.show()
-        exit()
-
-
-
-
-
-
-
-
-
-
-        # intersect_available = {}
-
-        #     # print landuse_index
-        #     for WB in WB_class_dic:
-        #         WB_index = WB_class_dic[WB]
-        #         # print WB_index
-        #         intersect = list(set(landuse_index)&set(WB_index))
-        #         print WB,labels[landuse]
-        #         print len(intersect)
-        #         if len(intersect) > 50:
-        #             intersect_available[labels[landuse]] = intersect
-        exit()
-        x = []
-        y = []
-        xerr = []
-        yerr = []
-        # print len(intersect_available)
-        # exit()
-        labels_new = []
-
-        # for i in intersect_available:
-        #     print i
-        #     print len(intersect_available[i])
-        # exit()
-
-        for k in intersect_available:
-            # print k,len(intersect_available[k])
-            vertical_val = []
-            horizontal_val = []
-            for i,j in intersect_available[k]:
-                vertical_val.append(recovery_time_arr[i][j])
-                horizontal_val.append(HI_arr[i][j])
-            # print vertical_val
-            # print horizontal_val
-
-            # 清洗数据
-            # vertical_val = Calculate().filter_np_nan(vertical_val)
-            # horizontal_val = Calculate().filter_np_nan(horizontal_val)
-            # vertical_val = Calculate().filter_null_val(vertical_val)
-            # horizontal_val = Calculate().filter_null_val(horizontal_val)
-            # 计算std和均值
-            vertical_std = np.std(vertical_val)
-            horizontal_std = np.std(horizontal_val)
-            vertical_mean = np.mean(vertical_val)
-            horizontal_mean = np.mean(horizontal_val)
-            x.append(horizontal_mean)
-            y.append(vertical_mean)
-            labels_new.append(k)
-            xerr.append(horizontal_std)
-            yerr.append(vertical_std)
-
-
-        colors = ["b","g","c","m","y","k","r","g"]
-
-        # plt.errorbar(x,y,xerr=xerr,yerr=yerr,fmt=None)
-        # plt.figure(figsize=(10,8),dpi=600)
-        plt.scatter(x,y,s=50,c=colors)
-        for i in range(len(x)):
-            plt.text(x[i]+0.002,y[i],labels_new[i])
-
-        print x
-        print y
-        plt.show()
-        a,b,rr = Tools().linefit(x,y)
-        Tools().plot_fit_line(a,b,rr,x,y,title='r = '+str(rr))
-        # plt.xlim(0,0.6)
-        # plt.ylim(0,0.5)
-        # plt.savefig('cross_landuse_WB_recovery_time')
-        plt.show()
-
-
-
-
-    # def water
 
 
 def kernel_run(param):
