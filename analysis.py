@@ -286,11 +286,68 @@ class Tools:
     #
     #     pass
 
+    def linefit(self,x , y):
+        '''
+        最小二乘法拟合直线
+        :param x:
+        :param y:
+        :return:
+        '''
+        N = float(len(x))
+        sx,sy,sxx,syy,sxy=0,0,0,0,0
+        for i in range(0,int(N)):
+            sx  += x[i]
+            sy  += y[i]
+            sxx += x[i]*x[i]
+            syy += y[i]*y[i]
+            sxy += x[i]*y[i]
+        a = (sy*sx/N -sxy)/( sx*sx/N -sxx)
+        b = (sy - a*sx)/N
+        r = abs(sy*sx/N-sxy)/math.sqrt((sxx-sx*sx/N)*(syy-sy*sy/N))
+        return a,b,r
+
+
+    def plot_fit_line(self,a,b,r,X,Y,title=''):
+        '''
+        画拟合直线 y=ax+b
+        画散点图 X,Y
+        :param a:
+        :param b:
+        :param X:
+        :param Y:
+        :param i:
+        :param title:
+        :return:
+        '''
+        x = np.linspace(min(X),max(X),10)
+        y = a*x + b
+        #
+        # plt.subplot(2,2,i)
+        plt.scatter(X,Y,marker='o',s=5,c = 'grey')
+        plt.plot(X,Y)
+        plt.plot(x,y,linestyle='dashed',c='black',linewidth=1,alpha=0.7)
+        plt.title(title)
 
     def arr_mean(self, arr, threshold):
         grid = arr > threshold
         arr_mean = np.mean(arr[np.logical_not(grid)])
         return arr_mean
+
+    def arr_mean_nan(self,arr):
+
+        flag = 0.
+        sum_ = 0.
+        for i in arr:
+            if np.isnan(i):
+                continue
+            sum_ += i
+            flag += 1
+        if flag == 0:
+            return 0
+        else:
+            mean = sum_/flag
+            return mean
+
 
     def arr_mean_greater(self, arr, threshold):
         # mask greater
@@ -4885,6 +4942,357 @@ class RATIO:
 
 
 
+class HI:
+    # hi = p/pet
+    def __init__(self):
+        self.HI_index()
+        pass
+
+    def HI_index(self):
+        pet_dir = this_root + 'PET\\tif_resample_0.5\\'
+        p_dir = this_root + 'PRE\\tif\\'
+        HI_tif = this_root+'tif\\HI\\HI.tif'
+
+        arrs_sum = 0.
+        flag = 0.
+        for f in tqdm(os.listdir(p_dir)):
+            if not f.endswith('.tif'):
+                continue
+            array, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(p_dir + f)
+            arrs_sum += array
+            flag += 1.
+
+        p_mean = arrs_sum / flag
+
+        arrs_sum = 0.
+        flag = 0.
+        for f in tqdm(os.listdir(pet_dir)):
+            if not f.endswith('.tif'):
+                continue
+            array, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(pet_dir + f)
+            arrs_sum += array
+            flag += 1.
+
+        pet_mean = arrs_sum / flag
+
+        p_mean = np.array(p_mean)
+        pet_mean = np.array(pet_mean)
+        grid1 = p_mean < -999
+        grid2 = pet_mean < -999
+
+        p_mean[grid1] = np.nan
+        pet_mean[grid2] = np.nan
+
+        HI = p_mean / pet_mean
+
+        grid3 = HI > 10
+        grid4 = HI < 0
+
+        HI[grid3] = 10
+        HI[grid4] = 0
+        # plt.imshow(HI,'jet_r',vmin=0,vmax=2)
+        # plt.imshow(HI,'jet')
+        # plt.colorbar()
+        # plt.show()
+
+        DIC_and_TIF().arr_to_tif(HI,HI_tif)
+
+        pass
+
+
+
+
+class Water_balance:
+
+    def __init__(self):
+        self.cross_landuse_WB_recovery_time()
+        # self.gen_latitude_zone_arr()
+        pass
+
+    def gen_latitude_zone_arr(self):
+        tif_template = this_root + 'conf\\tif_template.tif'
+        arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+
+        latitude_range = np.linspace(0,360,7)
+
+        # print latitude_range
+        # exit()
+        latitude_zone = []
+        for latitude_i in range(len(latitude_range)):
+            if latitude_i+1 == len(latitude_range):
+                break
+            start = latitude_range[latitude_i]
+            end = latitude_range[latitude_i+1]
+            for i in range(len(arr)):
+                if start < i < end:
+                    temp = []
+                    for j in range(len(arr[0])):
+                        temp.append(latitude_i)
+                    latitude_zone.append(temp)
+        latitude_zone = np.array(latitude_zone)
+        # plt.imshow(latitude_zone)
+        # plt.show()
+        latitude_zone_dic = {}
+        for latitude_i in range(len(latitude_range)-1):
+            latitude_zone_dic[latitude_i] = []
+
+        for i in range(len(latitude_zone)):
+            for j in range(len(latitude_zone)):
+                val = latitude_zone[i][j]
+                key = '%03d.%03d'%(i,j)
+                latitude_zone_dic[val].append(key)
+
+        # for lzd in latitude_zone_dic:
+        #     print lzd
+        #     print latitude_zone_dic[lzd]
+
+        return latitude_zone_dic
+
+
+    def gen_landuse_zonal_index(self):
+        # [8,10,11,16]
+        # grassland shrubland RainfedCropland SparseVegetation
+        # landuse = this_root+'/landuse/3.tif'
+        index_landuse_dic = this_root+'arr\\landcover_dic.npy'
+
+        dic = dict(np.load(index_landuse_dic).item())
+        return dic
+        # if not os.path.isfile('index_landuse_dic'):
+        #     arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(landuse_tif)
+        #     arr = np.array(arr)
+        #     print 'landuse',np.shape(arr)
+        #
+        #     index_landuse_dic = {}
+        #     for c in range(1,18):
+        #         print 'building landuse zonal index',c
+        #         index_landuse = []
+        #         for i in range(len(arr)):
+        #             for j in range(len(arr[i])):
+        #                 if arr[i,j] == c:
+        #                     index_landuse.append((i,j))
+        #         index_landuse_dic[c] = index_landuse
+        #     fw = open('index_landuse_dic','w')
+        #     fw.write(str(index_landuse_dic))
+        #     fw.close()
+        #     return index_landuse_dic
+        # else:
+        #     f = open('index_landuse_dic','r')
+        #     index_landuse_dic = f.read()
+        #     f.close()
+        #     index_landuse_dic = eval(index_landuse_dic)
+        #     return index_landuse_dic
+
+
+    def gen_WB_zonal_index(self,wb,classes):
+        max_val = 3
+        min_val = 0
+        # range_class = [vals]
+        # classes=2
+        range_class = np.linspace(min_val,max_val,classes)
+        index_WB_dic = {}
+        for c in tqdm(range(len(range_class)),desc='building WB zonal index'):
+            if c == range(len(range_class))[-1]:
+                break
+            class_index = []
+            for i in range(len(wb)):
+                for j in range(len(wb[i])):
+                    if range_class[c]<wb[i][j]<range_class[c+1]:
+                        class_index.append('%03d.%03d'%(i,j))
+            index_WB_dic[c] = class_index
+        return index_WB_dic, range_class
+
+    def intersection(self,lst1, lst2):
+        return list(set(lst1) & set(lst2))
+
+    def cross_landuse_WB_recovery_time(self):
+        # 花点图
+
+        # 1、加载恢复期
+        recovery_time_tif = this_root + 'tif\\recovery_time\\recovery_time_mix.tif'
+        recovery_time_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(recovery_time_tif)
+
+        # 2、生成 HI 分级别 dic
+        HI_tif = this_root+'tif\\HI\\HI.tif'
+        HI_arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(HI_tif)
+        # HI_class_dic, range_class = self.gen_WB_zonal_index(HI_arr, 12)
+
+        # 3、landuse 字典
+        # 组合
+        landuse_types = [1,2,3,4,5,[6,7],[8,9],10,12]
+        labels = ['ENF','EBF','DNF','DBF','MF','Shrublands',
+                  'Savannas','Grasslands','Croplands']
+        landuse_class_dic = self.gen_landuse_zonal_index()
+
+        landuse_dic = {}
+        for landuse in range(len(landuse_types)):
+        #     # print 'landuse',landuse
+            lc_label = labels[landuse]
+            if type(landuse_types[landuse]) == int:
+                landuse_index = landuse_class_dic[landuse_types[landuse]]
+            elif type(landuse_types[landuse]) == list:
+                landuse_index = []
+                for lt in landuse_types[landuse]:
+                    for ll in landuse_class_dic[lt]:
+                        landuse_index.append(ll)
+            else:
+                landuse_index = None
+                raise IOError('landuse type error')
+            landuse_dic[lc_label] = landuse_index
+
+        # 4、生成纬度 dic
+        latitude_dic = self.gen_latitude_zone_arr()
+
+        # 5、交叉像素
+
+        intersect_dic = {}
+        flag = 0
+
+        markers_dic = {'EBF':"X",
+                       'Shrublands':"*",
+                      'MF':"s",
+                      'DBF':"o",
+                       'ENF':"^",
+                      'Savannas':"D",
+                      'DBF':"P",
+                      'Croplands':"v",
+                       'Grasslands':"p"
+                       }
+        # cmap = sns.color_palette('RdBu_r', len(latitude_dic))
+        # flatui = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"]
+        # cmap = sns.color_palette(flatui)
+        cmap = sns.diverging_palette(236,0,s=99,l=50,n=len(latitude_dic), center="light")
+
+        color_dic = {}
+        for cm in range(len(cmap)):
+            color_dic[cm] = cmap[cm]
+        markers_flag = 0
+        scatter_dic = {}
+        for lc_i in landuse_dic:
+            scatter_labels = []
+            for lat_i in latitude_dic:
+                lc_pixs = landuse_dic[lc_i]
+                lat_pixs = latitude_dic[lat_i]
+                intersect = self.intersection(lc_pixs,lat_pixs)
+                if len(intersect) > 0:
+                    key = lc_i + '.' + str(lat_i)
+                    scatter_labels.append(key)
+                    intersect_int = []
+                    for str_pix in intersect:
+                        r,c = str_pix.split('.')
+                        r = int(r)
+                        c = int(c)
+                        intersect_int.append([r,c])
+                    # 挑x轴
+                    HI_picked_val = Tools().pick_vals_from_2darray(HI_arr,intersect_int)
+                    HI_picked_val[HI_picked_val<0] = np.nan
+                    HI_mean = Tools().arr_mean_nan(HI_picked_val)
+                    # x.append(HI_mean)
+                    # 挑y轴
+                    recovery_picked_val = Tools().pick_vals_from_2darray(recovery_time_arr,intersect_int)
+                    recovery_picked_val[recovery_picked_val<0] = np.nan
+                    recovery_mean = Tools().arr_mean_nan(recovery_picked_val)
+                    # y.append(recovery_mean)
+                    scatter_dic[key] = [HI_mean,recovery_mean]
+            # print scatter_labels
+            # marker = markers[markers_flag]
+            # plt.scatter(x,y,c=color_dic[],marker=marker)
+            # markers_flag += 1
+        for key in scatter_dic:
+            lc,lat = key.split('.')
+            lat = int(lat)
+            # print lc,lat
+            marker = markers_dic[lc]
+            color = color_dic[lat]
+            x,y = scatter_dic[key]
+            plt.scatter(x,y,s=100,c=color,marker=marker,edgecolors='black',linewidths=1)
+        plt.show()
+        exit()
+
+
+
+
+
+
+
+
+
+
+        # intersect_available = {}
+
+        #     # print landuse_index
+        #     for WB in WB_class_dic:
+        #         WB_index = WB_class_dic[WB]
+        #         # print WB_index
+        #         intersect = list(set(landuse_index)&set(WB_index))
+        #         print WB,labels[landuse]
+        #         print len(intersect)
+        #         if len(intersect) > 50:
+        #             intersect_available[labels[landuse]] = intersect
+        exit()
+        x = []
+        y = []
+        xerr = []
+        yerr = []
+        # print len(intersect_available)
+        # exit()
+        labels_new = []
+
+        # for i in intersect_available:
+        #     print i
+        #     print len(intersect_available[i])
+        # exit()
+
+        for k in intersect_available:
+            # print k,len(intersect_available[k])
+            vertical_val = []
+            horizontal_val = []
+            for i,j in intersect_available[k]:
+                vertical_val.append(recovery_time_arr[i][j])
+                horizontal_val.append(HI_arr[i][j])
+            # print vertical_val
+            # print horizontal_val
+
+            # 清洗数据
+            # vertical_val = Calculate().filter_np_nan(vertical_val)
+            # horizontal_val = Calculate().filter_np_nan(horizontal_val)
+            # vertical_val = Calculate().filter_null_val(vertical_val)
+            # horizontal_val = Calculate().filter_null_val(horizontal_val)
+            # 计算std和均值
+            vertical_std = np.std(vertical_val)
+            horizontal_std = np.std(horizontal_val)
+            vertical_mean = np.mean(vertical_val)
+            horizontal_mean = np.mean(horizontal_val)
+            x.append(horizontal_mean)
+            y.append(vertical_mean)
+            labels_new.append(k)
+            xerr.append(horizontal_std)
+            yerr.append(vertical_std)
+
+
+        colors = ["b","g","c","m","y","k","r","g"]
+
+        # plt.errorbar(x,y,xerr=xerr,yerr=yerr,fmt=None)
+        # plt.figure(figsize=(10,8),dpi=600)
+        plt.scatter(x,y,s=50,c=colors)
+        for i in range(len(x)):
+            plt.text(x[i]+0.002,y[i],labels_new[i])
+
+        print x
+        print y
+        plt.show()
+        a,b,rr = Tools().linefit(x,y)
+        Tools().plot_fit_line(a,b,rr,x,y,title='r = '+str(rr))
+        # plt.xlim(0,0.6)
+        # plt.ylim(0,0.5)
+        # plt.savefig('cross_landuse_WB_recovery_time')
+        plt.show()
+
+
+
+
+    # def water
+
+
 def kernel_run(param):
     interval = param
     # PRE_POST_NON_Recovery_time().run(interval, 'non-growing')
@@ -4908,9 +5316,10 @@ def main():
     # Recovery_time_winter()
     # Recovery_time_winter_2().run()
     # Statistic()
-    RATIO().run()
+    # RATIO().run()
     # Winter()
-
+    # HI()
+    Water_balance()
 
 
 

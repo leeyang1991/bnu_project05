@@ -16,14 +16,14 @@ def mk_dir( dir, force=False):
             os.mkdir(dir)
 
 
-def resample30m():
-    ndvi_8km_dir = this_root+'CCI\\0.25\\tif\\'
-    ndvi_0_5_dir = this_root+'CCI\\0.5\\tif\\'
-    mk_dir(ndvi_0_5_dir)
-    for f in os.listdir(ndvi_8km_dir):
+def resample(in_dir,out_dir):
+    # ndvi_8km_dir = this_root+'CCI\\0.25\\tif\\'
+    # ndvi_0_5_dir = this_root+'CCI\\0.5\\tif\\'
+    mk_dir(out_dir)
+    for f in os.listdir(in_dir):
         if f.endswith('.tif'):
             print(f)
-            arcpy.Resample_management(ndvi_8km_dir+f,ndvi_0_5_dir+f,"0.5","NEAREST")
+            arcpy.Resample_management(in_dir+f,out_dir+f,"0.5","NEAREST")
 
 
 
@@ -52,8 +52,6 @@ def re_projection_swe():
     pass
 
 
-
-
 def mapping(current_dir,tif,outjpeg,title,mxd_file):
 
     mxd = arcpy.mapping.MapDocument(mxd_file)
@@ -71,15 +69,8 @@ def mapping(current_dir,tif,outjpeg,title,mxd_file):
     arcpy.mapping.ExportToJPEG(mxd,outjpeg,data_frame='PAGE_LAYOUT',df_export_width=mxd.pageSize.width,df_export_height=mxd.pageSize.height,color_mode='24-BIT_TRUE_COLOR',resolution=300,jpeg_quality=100)
 
 
+def do_mapping_recovery_time():
 
-
-
-
-def main():
-
-    # define_swe_projection()
-    # re_projection_swe()
-    # resample30m()
 
     mode = {'pick_non_growing_season_events':'None Growing Season',
             'pick_pre_growing_season_events':'Early Growing Season',
@@ -99,6 +90,16 @@ def main():
                 mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
                 print title
                 mapping(current_dir,tif,outjpeg,title,mxd_file)
+
+    pass
+
+
+
+def main():
+
+    indir = r'D:\project05\PET\tif\\'
+    outdir = r'D:\project05\PET\tif_resample_0.5\\'
+    resample(indir,outdir)
 
     pass
 if __name__ == '__main__':

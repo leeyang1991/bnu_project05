@@ -129,7 +129,7 @@ def nc_to_tif(nc,outdir):
     # for i in time:
     #     print(i)
     # exit()
-    for i in tqdm(range(len(time))):
+    for i in range(len(time)):
 
         flag += 1
         # print(time[i])
@@ -142,12 +142,20 @@ def nc_to_tif(nc,outdir):
         #     continue
         # print(date_str)
         # exit()
-        arr = ncin.variables['PDSI'][i]
+        ndv = np.nan
+        arr = ncin.variables['pet'][i]
+        for name,variable in ncin.variables.items():
+            for var in variable.ncattrs():
+                if var == 'missing_value':
+                    ndv = variable.getncattr(var)
+        if np.isnan(ndv):
+            raise IOError('no key missing_value')
         arr = np.array(arr)
-
-        grid = arr < 100
-        arr[np.logical_not(grid)] = -999999
-        # arr[np.logical_not(grid)] = np.nan
+        #### mask ####
+        grid = arr == 32768
+        # print ndv
+        arr[grid] = -999999
+        # arr[grid] = np.nan
         # plt.imshow(arr)
         # plt.colorbar()
         # plt.show()
@@ -165,8 +173,8 @@ def main():
     # n='%02d'%n
 
     for year in tqdm(range(1982,2016)):
-        nc = this_root + 'PDSI\\download\\PDSI_{}.nc'.format(year)
-        out_dir = this_root+'PDSI\\tif\\'
+        nc = this_root + 'PET\\download\\pet_{}.nc'.format(year)
+        out_dir = this_root+'PET\\tif\\'
         nc_to_tif(nc,out_dir)
 
 if __name__ == '__main__':
