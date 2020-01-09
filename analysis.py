@@ -345,7 +345,7 @@ class Tools:
             flag += 1
             x.append(i)
         if flag == 0:
-            return 0
+            return None,None
         else:
             mean = sum_/flag
             # xerr = mean/np.std(x,ddof=1)
@@ -789,8 +789,16 @@ class Tools:
         return valid_pix
         pass
 
-    def filter_tropical_valid_pix(self,arr):
+    def mask_arr_with_NDVI(self,arr):
+        mask_ndvi_arr = np.load(this_root + 'NDVI\\NDVI_growing_season_mean.npy')
+        grid = np.isnan(mask_ndvi_arr)
+        arr[grid] = np.nan
+        # plt.imshow(arr)
+        # plt.show()
+
+        return arr
         pass
+
 
 class SMOOTH:
     '''
@@ -4706,8 +4714,9 @@ class RATIO:
         pass
 
     def run(self):
-        # self.cal_ratio()
-        self.plot_in_or_out()
+        self.cal_ratio()
+        # self.plot_in_or_out()
+
         # self.ratio_latitude()
         # self.load_data()
         # self.gen_landcover_dic()
@@ -4754,7 +4763,7 @@ class RATIO:
         tropical_pix = np.load(this_root+'NDVI\\tropical_pix.npy')
 
         for m in mode:
-            f = this_root + 'arr\\{}_composite_recovery_time\\composite.npy'.format(m)
+            f = this_root + 'arr\\recovery_time\\{}_composite_recovery_time\\composite.npy'.format(m)
             dic = dict(np.load(f).item())
             ratio_dic = {}
             for pix in tqdm(dic):
@@ -4767,7 +4776,7 @@ class RATIO:
                     continue
 
                 in_flag = 0.
-                for recovery,in_or_out in vals:
+                for recovery,in_or_out,date_range in vals:
                     # print recovery,in_or_out
                     if in_or_out == 'out':
                         in_flag += 1
@@ -4775,24 +4784,26 @@ class RATIO:
                 ratio = in_flag/len(vals)
                 ratio_dic[pix] = int(ratio*100)
             arr = DIC_and_TIF().pix_dic_to_spatial_arr(ratio_dic)
-            np.save(out_dir+m,arr)
-            plt.figure()
-            plt.imshow(arr,'jet')
-            plt.colorbar()
-            plt.title(m)
-        plt.show()
+            DIC_and_TIF().arr_to_tif(arr,this_root+'tif\\Ratio\\{}.tif'.format(m))
+            # np.save(out_dir+m,arr)
+            # plt.figure()
+            # plt.imshow(arr,'jet')
+            # plt.colorbar()
+            # plt.title(m)
+        # plt.show()
 
         pass
 
     def plot_in_or_out(self):
         mode = [
-            # 'pick_non_growing_season_events',
+            'pick_non_growing_season_events',
             'pick_pre_growing_season_events',
             'pick_post_growing_season_events'
                 ]
         ndvi_valid_arr = Tools().filter_NDVI_valid_pix()
         for m in mode:
-            f = this_root + 'arr\\{}_composite_recovery_time\\composite.npy'.format(m)
+            print m
+            f = this_root + 'arr\\recovery_time\\{}_composite_recovery_time\\composite.npy'.format(m)
             dic = dict(np.load(f).item())
             in_dic = {}
             out_dic = {}
@@ -4800,11 +4811,14 @@ class RATIO:
                 if not pix in ndvi_valid_arr:
                     continue
                 vals = dic[pix]
+
                 if len(vals) == 0:
                     continue
+                # print vals
+                # exit()
                 in_list = []
                 out_list = []
-                for recovery, in_or_out in vals:
+                for recovery, in_or_out, date_range in vals:
                     # print recovery,in_or_out
                     if in_or_out == 'in':
                         in_list.append(recovery)
@@ -4816,16 +4830,22 @@ class RATIO:
                 out_dic[pix] = mean_outlist
             arr_in = DIC_and_TIF().pix_dic_to_spatial_arr(in_dic)
             arr_out = DIC_and_TIF().pix_dic_to_spatial_arr(out_dic)
-            plt.figure()
-            plt.imshow(arr_in, 'jet',vmin=0,vmax=4)
-            plt.colorbar()
-            plt.title(m+'_IN')
+            # plt.figure()
+            # plt.imshow(arr_in, 'jet',vmin=0,vmax=4)
+            # plt.colorbar()
+            # plt.title(m+'_IN')
+            #
+            # plt.figure()
+            # plt.imshow(arr_out, 'jet',vmin=7,vmax=17)
+            # plt.colorbar()
+            # plt.title(m+'_OUT')
+            # plt.show()
+            arr_in_f = this_root+'tif\\recovery_time\\in_or_out\\{}_in.tif'.format(m)
+            DIC_and_TIF().arr_to_tif(arr_in,arr_in_f)
 
-            plt.figure()
-            plt.imshow(arr_out, 'jet',vmin=7,vmax=17)
-            plt.colorbar()
-            plt.title(m+'_OUT')
-            plt.show()
+            arr_out_f = this_root + 'tif\\recovery_time\\in_or_out\\{}_out.tif'.format(m)
+            DIC_and_TIF().arr_to_tif(arr_out, arr_out_f)
+
 
     def ratio_latitude(self):
         fdir = this_root + 'arr\\ratio\\'
@@ -5119,10 +5139,59 @@ class Water_balance:
     def cross_landuse_WB_recovery_time(self):
         # 花点图
 
-        # 1、加载恢复期
-        recovery_time_tif = this_root + 'tif\\recovery_time\\recovery_time_mix.tif'
-        recovery_time_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(recovery_time_tif)
+        # 1、加载恢复期 (底图)
+        ############################  Recovery Time  ############################
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\recovery_time_mix.tif'
+        # title = 'Mix'
 
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\pick_non_growing_season_events_plot_gen_recovery_time\\global.tif'
+        # title = 'None Growing Season'
+
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\pick_post_growing_season_events_plot_gen_recovery_time\\global.tif'
+        # title = 'Late Growing Season'
+
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\pick_pre_growing_season_events_plot_gen_recovery_time\\global.tif'
+        # title = 'Early Growing Season'
+        ############################  Recovery Time  ############################
+
+        ############################  in out  ############################
+        # Early
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_pre_growing_season_events_in.tif'
+        # title = 'Drought in Early Growing Season and Recovered IN Current Growing Season'
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_pre_growing_season_events_out.tif'
+        # title = 'Drought in Early Growing Season and Recovered OUT Current Growing Season'
+        # # Late
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_post_growing_season_events_in.tif'
+        # title = 'Drought in Late Growing Season and Recovered IN Current Growing Season'
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_post_growing_season_events_out.tif'
+        # title = 'Drought in Late Growing Season and Recovered OUT Current Growing Season'
+        # # None
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_non_growing_season_events_in.tif'
+        # title = 'Drought in None Growing Season and Recovered IN Current Growing Season'
+        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_non_growing_season_events_out.tif'
+        # title = 'Drought in None Growing Season and Recovered OUT Current Growing Season'
+        ############################  in out  ############################
+
+        ############################  Ratio  ############################
+        # recovery_time_tif = this_root + 'tif\\Ratio\\pick_pre_growing_season_events.tif'
+        # title = 'Ratio of Overwinter in Early Growing Season'
+
+        recovery_time_tif = this_root + 'tif\\Ratio\\pick_post_growing_season_events.tif'
+        title = 'Ratio of Overwinter in Late Growing Season'
+
+        # recovery_time_tif = this_root + 'tif\\Ratio\\pick_non_growing_season_events.tif'
+        # title = 'Drought in None Growing Season and Recovered IN Current Growing Season'
+
+
+
+        ############################  Ratio  ############################
+
+        recovery_time_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(recovery_time_tif)
+        # mask NDVI
+        recovery_time_arr = Tools().mask_arr_with_NDVI(recovery_time_arr)
+        # recovery_time_arr = ''
+        # plt.imshow(recovery_time_arr)
+        # plt.show()
         # 2、生成 HI 分级别 dic
         HI_tif = this_root+'tif\\HI\\HI.tif'
         HI_arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(HI_tif)
@@ -5197,7 +5266,7 @@ class Water_balance:
                     # 挑x轴
                     HI_picked_val = Tools().pick_vals_from_2darray(HI_arr,intersect_int)
                     HI_picked_val[HI_picked_val<0] = np.nan
-                    HI_picked_val[HI_picked_val>2] = np.nan
+                    # HI_picked_val[HI_picked_val>2] = np.nan
                     HI_mean,xerr = Tools().arr_mean_nan(HI_picked_val)
                     # print 'HI_mean,xerr',HI_mean,xerr
                     # print xerr
@@ -5205,10 +5274,16 @@ class Water_balance:
                     # 挑y轴
                     recovery_picked_val = Tools().pick_vals_from_2darray(recovery_time_arr,intersect_int)
                     recovery_picked_val[recovery_picked_val<0] = np.nan
-                    recovery_picked_val[recovery_picked_val>18] = np.nan
+                    # recovery_picked_val[recovery_picked_val>18] = np.nan
+                    # print recovery_picked_val
+                    # exit()
+                    # plt.imshow(recovery_picked_val)
+                    # plt.show()
                     recovery_mean,yerr = Tools().arr_mean_nan(recovery_picked_val)
                     # print 'recovery_mean,yerr',recovery_mean,yerr
                     # y.append(recovery_mean)
+                    if recovery_mean == None:
+                        continue
                     scatter_dic[key] = [HI_mean,recovery_mean,xerr,yerr]
             # print scatter_labels
             # marker = markers[markers_flag]
@@ -5216,7 +5291,8 @@ class Water_balance:
             # markers_flag += 1
         X = []
         Y = []
-        sns.set(color_codes=True)
+        # sns.set(color_codes=True) # 背景
+        plt.figure(figsize=(8,7))
         for key in scatter_dic:
             lc,lat = key.split('.')
             lat = int(lat)
@@ -5225,20 +5301,25 @@ class Water_balance:
             color = color_dic[lat]
             x,y,xerr,yerr = scatter_dic[key]
             # zorder : 图层顺序
-            plt.scatter(x,y,s=50,c=color,marker=marker,edgecolors='black',linewidths=1,zorder=99,label=lc)
+            plt.scatter(x,y,s=80,c=color,marker=marker,edgecolors='black',linewidths=1,zorder=99,label=lc)
             # print x,y,xerr,yerr
             plt.errorbar(x,y,xerr=xerr/4.,yerr=yerr/4.,c='gray',zorder=0,alpha=0.5)
             X.append(x)
             Y.append(y)
         # plt.legend()
+        plt.title(title)
         sns.regplot(X,Y,scatter=False)
         a,b,r = Tools().linefit(X,Y)
         print 'r',r
         # Tools().plot_fit_line(a,b,r,X,Y)
-        plt.figure()
-        sns.palplot(cmap)
-        plt.show()
-
+        # plot cmap
+        # sns.palplot(cmap)
+        # plt.xlim(0,1.6)
+        # plt.ylim(7,13)
+        # plt.ylim(0.5,2.3)
+        plt.ylim(-5,100)
+        # plt.show()
+        plt.savefig(this_root+'AI\\Ratio\\'+title+'.pdf')
 
 def kernel_run(param):
     interval = param
@@ -5267,6 +5348,12 @@ def main():
     # Winter()
     # HI()
     Water_balance()
+
+
+
+
+
+
 
 
 
