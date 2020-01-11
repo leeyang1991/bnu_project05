@@ -95,12 +95,61 @@ def do_mapping_recovery_time():
 
 
 
+def do_mapping_recovery_time1():
+
+
+    mode = {'pick_non_growing_season_events':'None Growing Season',
+            'pick_pre_growing_season_events':'Early Growing Season',
+            'pick_post_growing_season_events':'Late Growing Season'
+    }
+    for m in mode:
+        current_dir = r'D:\project05\tif\recovery_time\{}_plot_gen_recovery_time\\'.format(m)
+        tif = 'global_mask.tif'
+        title = mode[m]
+        outjpeg = r'D:\project05\png\recovery_time\recovery\{}.jpg'.format(title)
+        mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
+        print title
+        mapping(current_dir,tif,outjpeg,title,mxd_file)
+
+    current_dir = r'D:\project05\tif\recovery_time\\'
+    tif = 'recovery_time_mix.tif'
+    outjpeg = r'D:\project05\png\recovery_time\recovery\Mix_Recovery_time.jpg'
+    title = 'Mix Recovery time'
+    mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
+    print title
+    mapping(current_dir, tif, outjpeg, title, mxd_file)
+    pass
+
+
+def do_mapping_recovery_time2():
+
+
+    mode = {'pick_non_growing_season_events':'None Growing Season',
+            'pick_pre_growing_season_events':'Early Growing Season',
+            'pick_post_growing_season_events':'Late Growing Season'
+    }
+    for mark in ['in','out']:
+        for m in mode:
+            current_dir = r'D:\project05\tif\recovery_time\in_or_out\\'
+            tif = '{}_{}'.format(m,mark)
+            if mark == 'in':
+                title = 'Drought in '+mode[m]+' and Recovered IN Current Growing Season'
+            elif mark == 'out':
+                title = 'Drought in '+mode[m]+' and Recovered not IN Current Growing Season'
+            else:
+                raise IOError()
+            outjpeg = r'D:\project05\png\recovery_time\in_out\{}.jpg'.format(title)
+            mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
+            print title
+            mapping(current_dir,tif,outjpeg,title,mxd_file)
+
+
 def main():
 
-    indir = r'D:\project05\PET\tif\\'
-    outdir = r'D:\project05\PET\tif_resample_0.5\\'
-    resample(indir,outdir)
-
+    # indir = r'D:\project05\PET\tif\\'
+    # outdir = r'D:\project05\PET\tif_resample_0.5\\'
+    # resample(indir,outdir)
+    do_mapping_recovery_time2()
     pass
 if __name__ == '__main__':
     main()

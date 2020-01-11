@@ -691,6 +691,19 @@ class Tools:
         # print(pix,lon,lat)
         # print(add)
 
+
+
+class NDVI:
+
+    def __init__(self):
+
+        pass
+
+    def run(self):
+        tif = this_root+r'tif\recovery_time\pick_post_growing_season_events_plot_gen_recovery_time\global.tif'
+        out_tif = this_root+r'tif\recovery_time\pick_post_growing_season_events_plot_gen_recovery_time\global_mask.tif'
+        self.mask_tif_with_NDVI(tif,out_tif)
+
     def _cal_mean_false(self, array):
         # print array
         grid = array > 2000.
@@ -714,6 +727,7 @@ class Tools:
             if mon in growing_season:
                 picked_vals.append(arr[i])
         return np.array(picked_vals)
+
 
     def mask_ndvi_arr(self):
         # 1 cal NDVI mean
@@ -789,6 +803,7 @@ class Tools:
         return valid_pix
         pass
 
+
     def mask_arr_with_NDVI(self,arr):
         mask_ndvi_arr = np.load(this_root + 'NDVI\\NDVI_growing_season_mean.npy')
         grid = np.isnan(mask_ndvi_arr)
@@ -797,6 +812,16 @@ class Tools:
         # plt.show()
 
         return arr
+        pass
+
+
+    def mask_tif_with_NDVI(self,tif,out_tif):
+        arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
+        mask_ndvi_arr = np.load(this_root + 'NDVI\\NDVI_growing_season_mean.npy')
+        grid = np.isnan(mask_ndvi_arr)
+        arr[grid] = np.nan
+        DIC_and_TIF().arr_to_tif(arr,out_tif)
+
         pass
 
 
@@ -5188,7 +5213,7 @@ class Water_balance:
 
         recovery_time_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(recovery_time_tif)
         # mask NDVI
-        recovery_time_arr = Tools().mask_arr_with_NDVI(recovery_time_arr)
+        recovery_time_arr = NDVI().mask_arr_with_NDVI(recovery_time_arr)
         # recovery_time_arr = ''
         # plt.imshow(recovery_time_arr)
         # plt.show()
@@ -5339,6 +5364,7 @@ def run():
 
 def main():
     # run()
+    NDVI().run()
     # Pre_Process()
     # Pick_Single_events()
     # Recovery_time_winter()
@@ -5347,7 +5373,7 @@ def main():
     # RATIO().run()
     # Winter()
     # HI()
-    Water_balance()
+    # Water_balance()
 
 
 
