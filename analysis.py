@@ -3564,29 +3564,46 @@ class Recovery_time_winter_2:
                 'pick_pre_growing_season_events',
                 'pick_post_growing_season_events'
                 ]
+
+        for m in mode:
+            print m
+            param = []
+            for interval in range(1,13):
+                param.append([interval,m])
+                # self.gen_recovery_time([interval,m])
+            MUTIPROCESS(self.gen_recovery_time,param).run(6)
+            # self.gen_recovery_time(interval)
+            # 2 合成 spei 1-24
+            self.composite_recovery_time(m)
+            # 4 出tif图
+            # self.plot_composite_recovery_time(m)
+        self.composite_3_mode_recovery_time()
+        pass
+
+        #### 合成不同 window ####
         # window_start = 1
         # window_end = [3,4,5,6,7,8,9,10,11,12]
-        window_start = [6]
-        window_end = [12]
-        for ws in window_start:
-            for we in tqdm(window_end):
-                for m in mode:
-                    # print m
-                    # param = []
-                    # for interval in range(1,4):
-                    #     param.append([interval,m])
-                    #     # self.gen_recovery_time([interval,m])
-                    # MUTIPROCESS(self.gen_recovery_time,param).run(6)
-                    # 2 合成 spei 1-24
-                    self.composite_recovery_time(m,ws,we)
-                    # 4 出tif图
-                    self.plot_composite_recovery_time(m,ws,we)
+        # window_start = [1]
+        # window_end = [13]
+        # for ws in window_start:
+        #     for we in tqdm(window_end):
+        #         for m in mode:
+        #             # print m
+        #             # param = []
+        #             for interval in range(1,13):
+        #                 # param.append([interval,m])
+        #                 self.gen_recovery_time([interval,m])
+        #             # MUTIPROCESS(self.gen_recovery_time,param).run(6)
+        #             # 2 合成 spei 1-24
+        #             self.composite_recovery_time_different_window(m,ws,we)
+        #             # 4 出tif图
+        #             self.plot_composite_recovery_time(m,ws,we)
         pass
 
 
     def run1(self):
         # self.recovery_latitude()
-        # self.composite_3_mode_recovery_time()
+        self.composite_3_mode_recovery_time()
         # self.gen_composite_recovery_time_tif()
         # self.recovery_latitude_3mode()
         # self.recovery_landcover_3mode()
@@ -3595,7 +3612,7 @@ class Recovery_time_winter_2:
         pass
 
     def valid_pix(self):
-        self.ndvi_valid_pix = Tools().filter_NDVI_valid_pix()
+        self.ndvi_valid_pix = NDVI().filter_NDVI_valid_pix()
         self.tropical_pix = np.load(this_root + 'NDVI\\tropical_pix.npy')
 
 
@@ -3842,7 +3859,7 @@ class Recovery_time_winter_2:
                         # 4.2 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
                         recovery_time, mark, recovery_date_range = self.search(ndvi, min_ndvi_indx, growing_date_range)
                         # recovery_time, mark = self.search_non_growing_season(ndvi, min_ndvi_indx)
-                        recovery_time_result.append([recovery_time, mark, recovery_date_range])
+                        recovery_time_result.append([recovery_time, mark, recovery_date_range,date_range])
 
 
                         ################# plot ##################
@@ -4003,7 +4020,30 @@ class Recovery_time_winter_2:
         # plt.show()
         pass
 
-    def composite_recovery_time(self,mode,window_start,window_end):
+
+
+    def composite_recovery_time(self,mode):
+        '''
+        合成SPEI 1 - 24 的recovery time
+        :return:
+        '''
+        fdir = this_root + 'arr\\recovery_time\\{}\\'.format(mode)
+        out_dir = this_root + 'arr\\recovery_time\\{}_composite_recovery_time\\'.format(mode)
+        Tools().mk_dir(out_dir)
+        void_dic = DIC_and_TIF().void_spatial_dic()
+        for folder in os.listdir(fdir):
+            for f in os.listdir(fdir + folder):
+                dic = dict(np.load(fdir + folder + '\\' + f).item())
+                for pix in dic:
+                    recovery_events = dic[pix]
+                    for event in recovery_events:
+                        void_dic[pix].append(event)
+        # print '\nsaving...'
+        np.save(out_dir + 'composite', void_dic)
+        # exit()
+        pass
+
+    def composite_recovery_time_different_window(self,mode,window_start,window_end):
         '''
         合成SPEI 1 - 24 的recovery time
         :return:
@@ -5364,11 +5404,11 @@ def run():
 
 def main():
     # run()
-    NDVI().run()
+    # NDVI().run()
     # Pre_Process()
     # Pick_Single_events()
     # Recovery_time_winter()
-    # Recovery_time_winter_2().run()
+    Recovery_time_winter_2().run()
     # Statistic()
     # RATIO().run()
     # Winter()

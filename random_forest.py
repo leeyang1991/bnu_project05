@@ -11,6 +11,7 @@ import pandas as pd
 import sklearn
 import scipy
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 import math
 import analysis
@@ -25,7 +26,7 @@ class Prepare:
 
     def run(self):
         # 1 因变量 Y
-        # self.prepare_Y()
+        self.prepare_Y()
         # 2 自变量 X
         # 2.1 计算月平均 tif 1-12 月
         # outdir = this_root + 'GLOBSWE\\monthly_SWE_max\\'
@@ -33,8 +34,8 @@ class Prepare:
         # self.cal_monthly_mean(fdir,outdir)
         # 2.2 根据字典Y 的key 生成 X 字典， key为对应标签
         # X in ['TMP','PRE','CCI','SWE']
-        for x in ['TMP','PRE','CCI','SWE']:
-            self.prepare_X(x)
+        # for x in ['TMP','PRE','CCI','SWE']:
+        #     self.prepare_X(x)
         # self.check_ndvi()
         # 3 检查 X
         # self.check_X('SWE')
@@ -54,6 +55,7 @@ class Prepare:
         flag = 0
         for pix in tqdm(recovery_time):
             vals = recovery_time[pix]
+            print vals
             for r_time,mark,date_range in vals:
                 if r_time == None:  #r_time 为 TRUE
                     continue
@@ -66,7 +68,7 @@ class Prepare:
         print flag
         # flag=1192218
         # flag=198075
-        np.save(out_dir+'Y',Y)
+        # np.save(out_dir+'Y',Y)
 
 
     def cal_monthly_mean(self,fdir,outdir):
@@ -269,13 +271,13 @@ class RF_train:
             date_range = split_key[2]
             # if 'tropical' in key or 'in' in key:
             #     keys.append(key)
-            # if 'in' in key:
-            #     keys.append(key)
+            if 'in' in key:
+                keys.append(key)
             # if 'out' in key:
             #     keys.append(key)
-            if 'tropical' in key:
-                keys.append(key)
-            keys.append(key)
+            # if 'tropical' in key:
+            #     keys.append(key)
+            # keys.append(key)
 
         # print len(pre_dic)
         # print len(tmp_dic)
@@ -322,7 +324,8 @@ class RF_train:
         # clf = sklearn.ensemble.RandomForestRegressor(n_estimators=10, max_depth=None,min_samples_split = 2, random_state = 0)
         # clf = RandomForestRegressor(n_estimators=2000,min_samples_split=1000)
         # clf = RandomForestRegressor(n_estimators=100, max_depth=6, n_jobs=1, verbose=2)
-        clf = RandomForestRegressor()
+        # clf = RandomForestRegressor()
+        clf = RandomForestClassifier()
         clf.fit(X_train, Y_train)
 
         importances = clf.feature_importances_
@@ -330,7 +333,12 @@ class RF_train:
         y_min = min(importances)
         y_max = max(importances)
         offset = (y_max-y_min)
-        plt.bar(range(len(importances)),importances)
+
+        y_min = y_min-offset*0.3
+        y_max = y_max+offset*0.3
+
+        plt.ylim(y_min,y_max)
+        plt.bar(range(len(importances)),importances,width=0.3)
         plt.xticks(range(len(importances)),['P','T','CCI','SWE'])
 
         plt.show()
@@ -373,8 +381,8 @@ class RF_train:
 
 
 def main():
-    # Prepare().run()
-    RF_train()
+    Prepare().run()
+    # RF_train()
     pass
 
 if __name__ == '__main__':
