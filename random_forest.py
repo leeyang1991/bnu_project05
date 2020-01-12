@@ -25,50 +25,64 @@ class Prepare:
         pass
 
     def run(self):
-        # 1 因变量 Y
-        self.prepare_Y()
-        # 2 自变量 X
-        # 2.1 计算月平均 tif 1-12 月
-        # outdir = this_root + 'GLOBSWE\\monthly_SWE_max\\'
-        # fdir = this_root + 'GLOBSWE\\tif\\SWE_max\\'
-        # self.cal_monthly_mean(fdir,outdir)
-        # 2.2 根据字典Y 的key 生成 X 字典， key为对应标签
-        # X in ['TMP','PRE','CCI','SWE']
-        # for x in ['TMP','PRE','CCI','SWE']:
-        #     self.prepare_X(x)
-        # self.check_ndvi()
-        # 3 检查 X
-        # self.check_X('SWE')
-
+        mode = [
+            # 'pick_non_growing_season_events',
+            # 'pick_pre_growing_season_events',
+            # 'pick_post_growing_season_events',
+            'mix'
+        ]
+        for m in mode:
+            # 1 因变量 Y
+            print m
+            self.prepare_Y(m)
+            # 2 自变量 X
+            # 2.1 计算月平均 tif 1-12 月
+            # outdir = this_root + 'GLOBSWE\\monthly_SWE_max\\'
+            # fdir = this_root + 'GLOBSWE\\tif\\SWE_max\\'
+            # self.cal_monthly_mean(fdir,outdir)
+            # 2.2 根据字典Y 的key 生成 X 字典， key为对应标签
+            # X in ['TMP','PRE','CCI','SWE']
+            for x in ['TMP','PRE','CCI','SWE']:
+                print x
+                self.prepare_X(x,m)
+            # self.check_ndvi()
+            # 3 检查 X
+            # self.check_X('SWE')
         pass
 
-    def prepare_Y(self):
+    def prepare_Y(self,mode):
 
         # 1 drought periods
-        out_dir = this_root+'random_forest\\'
-        analysis.Tools().mk_dir(out_dir)
-        print 'loading f_recovery_time...'
-        f_recovery_time = this_root+'arr\\recovery_time\\composite_3_modes\\composite_3_mode_recovery_time.npy'
+        if mode != 'mix':
+            out_dir = this_root+'random_forest\\{}\\'.format(mode)
+            analysis.Tools().mk_dir(out_dir)
+            print 'loading f_recovery_time...'
+            f_recovery_time = this_root+'arr\\recovery_time\\{}_composite_recovery_time\\composite.npy'.format(mode)
+        else:
+            out_dir = this_root + 'random_forest\\{}\\'.format(mode)
+            analysis.Tools().mk_dir(out_dir)
+            print 'loading f_recovery_time...'
+            f_recovery_time = this_root + 'arr\\recovery_time\\composite_3_modes\\composite_3_mode_recovery_time.npy'
         recovery_time = dict(np.load(f_recovery_time).item())
         print 'done'
         Y = {}
         flag = 0
         for pix in tqdm(recovery_time):
             vals = recovery_time[pix]
-            print vals
-            for r_time,mark,date_range in vals:
+            # print vals
+            for r_time,mark,date_range,drought_range in vals:
                 if r_time == None:  #r_time 为 TRUE
                     continue
                 flag += 1
                 start = date_range[0]
                 end = start + r_time
                 key = pix+'_'+mark+'_'+'{}.{}'.format(start,end)
-                print key
+                # print key
                 Y[key] = r_time
-        print flag
+        # print flag
         # flag=1192218
         # flag=198075
-        # np.save(out_dir+'Y',Y)
+        np.save(out_dir+'Y',Y)
 
 
     def cal_monthly_mean(self,fdir,outdir):
@@ -96,8 +110,8 @@ class Prepare:
 
 
 
-    def prepare_X(self,x):
-        Y_dic = dict(np.load(this_root+'random_forest\\Y.npy').item())
+    def prepare_X(self,x,mode):
+        Y_dic = dict(np.load(this_root+'random_forest\\{}\\Y.npy'.format(mode)).item())
         if x in ['TMP','PRE']:
             per_pix_dir = this_root+'{}\\per_pix\\'.format(x)
             mean_dir = this_root+'{}\\mon_mean_tif\\'.format(x)
@@ -165,7 +179,7 @@ class Prepare:
                 juping_mean = np.nan
             X[key] = juping_mean
 
-        np.save(this_root+'random_forest\\{}'.format(x),X)
+        np.save(this_root+'random_forest\\{}\\{}'.format(mode,x),X)
 
 
     def check_ndvi(self):
@@ -217,8 +231,15 @@ class Prepare:
 class RF_train:
 
     def __init__(self):
-        # self.load_variable()
-        self.random_forest_train()
+        mode = [
+            # 'pick_non_growing_season_events',
+            # 'pick_pre_growing_season_events',
+            # 'pick_post_growing_season_events'
+            'mix'
+        ]
+
+        for m in mode:
+            self.random_forest_train(m)
         # self.latitude()
         pass
 
@@ -251,9 +272,10 @@ class RF_train:
         #     lats_new.append(lat)
 
 
-    def load_variable(self):
-        fdir = this_root+'random_forest\\'
+    def load_variable(self,mode,args):
 
+        print args
+        fdir = this_root+'random_forest\\{}\\'.format(mode)
         print 'loading variables ...'
         Y_dic = dict(np.load(fdir+'Y.npy').item())
         pre_dic = dict(np.load(fdir+'PRE.npy').item())
@@ -267,23 +289,11 @@ class RF_train:
         for key in Y_dic:
             split_key = key.split('_')
             pix = split_key[0]
-            mark = split_key[1]
+            mark_ = split_key[1]
             date_range = split_key[2]
-            # if 'tropical' in key or 'in' in key:
-            #     keys.append(key)
-            if 'in' in key:
-                keys.append(key)
-            # if 'out' in key:
-            #     keys.append(key)
-            # if 'tropical' in key:
-            #     keys.append(key)
-            # keys.append(key)
-
-        # print len(pre_dic)
-        # print len(tmp_dic)
-        # print len(swe_dic)
-        # print len(cci_dic)
-        # print len(Y_dic)
+            if mark_ in args:
+                key_ = pix+'_'+mark_+'_'+date_range
+                keys.append(key_)
         nan = False
         Y = []
         X = []
@@ -291,8 +301,6 @@ class RF_train:
             y = Y_dic[key]
             if y > 18 or y == 0:
                 continue
-            Y.append(y)
-
             pre = pre_dic[key]
             tmp = tmp_dic[key]
             cci = cci_dic[key]
@@ -305,17 +313,39 @@ class RF_train:
                 cci = nan
             if np.isnan(swe):
                 swe = nan
-            # X.append([pre,tmp,cci,swe])
-            X.append([pre,tmp,cci])
 
+            if 'in' in args:
+                Y.append(y)
+                X.append([pre,tmp,cci])
+            elif 'out' in args:
+                Y.append(y)
+                X.append([pre, tmp, cci, swe])
+            else:
+                Y.append(y)
+                X.append([pre, tmp, cci])
 
         return X,Y
 
         pass
 
-    def random_forest_train(self):
+    def random_forest_train(self,mode):
+        outdir = this_root+'AI\\RF\\'
+        mode_dic = {
+            'pick_non_growing_season_events': 'None Growing Season',
+                'pick_pre_growing_season_events': 'Early Growing Season',
+                'pick_post_growing_season_events': 'Late Growing Season',
+                'mix': 'Mix'
+                }
+        # arg = ['in']
+        # arg = ['in','tropical']
+        # arg = ['out']
+        arg = ['in','tropical','out']
+        title = '{} {}'.format(mode_dic[mode],' and '.join(arg))
+        print title
+        out_pdf = outdir+title+'.pdf'
 
-        X, Y = self.load_variable()
+        # exit()
+        X, Y = self.load_variable(mode,arg)
         # X = pd.DataFrame(X)
 
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1)
@@ -340,8 +370,10 @@ class RF_train:
         plt.ylim(y_min,y_max)
         plt.bar(range(len(importances)),importances,width=0.3)
         plt.xticks(range(len(importances)),['P','T','CCI','SWE'])
-
-        plt.show()
+        plt.title(title)
+        # plt.show()
+        plt.savefig(out_pdf)
+        plt.close()
         # std = np.std([tree.feature_importances_ for tree in clf.estimators_],
         #              axis=0)
         # indices = np.argsort(importances)[::-1]
@@ -366,23 +398,23 @@ class RF_train:
 
         # exit()
         # clf.fe
-        y_pred = clf.predict(X_test)
-        r = scipy.stats.pearsonr(Y_test, y_pred)
-        r2 = sklearn.metrics.r2_score(Y_test, y_pred)
-        mse = sklearn.metrics.mean_squared_error(Y_test, y_pred)
-        print('r2:%s\nmse:%s\nr:%s' % (r2, mse, r))
-        analysis.KDE_plot().plot_scatter(Y_test, y_pred,s=40)
-        plt.figure()
-        plt.scatter(Y_test, y_pred)
-        # plt.xlim(-3,3)
-        # plt.ylim(-3,3)
-        plt.show()
+        # y_pred = clf.predict(X_test)
+        # r = scipy.stats.pearsonr(Y_test, y_pred)
+        # r2 = sklearn.metrics.r2_score(Y_test, y_pred)
+        # mse = sklearn.metrics.mean_squared_error(Y_test, y_pred)
+        # print('r2:%s\nmse:%s\nr:%s' % (r2, mse, r))
+        # analysis.KDE_plot().plot_scatter(Y_test, y_pred,s=40)
+        # plt.figure()
+        # plt.scatter(Y_test, y_pred)
+        # # plt.xlim(-3,3)
+        # # plt.ylim(-3,3)
+        # plt.show()
         pass
 
 
 def main():
-    Prepare().run()
-    # RF_train()
+    # Prepare().run()
+    RF_train()
     pass
 
 if __name__ == '__main__':
