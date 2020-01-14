@@ -146,10 +146,10 @@ def do_mapping_recovery_time2():
 
 def main():
 
-    # indir = r'D:\project05\PET\tif\\'
-    # outdir = r'D:\project05\PET\tif_resample_0.5\\'
-    # resample(indir,outdir)
-    do_mapping_recovery_time2()
+    indir = r'D:\project05\GPP\pre-prosess\unzip\\'
+    outdir = r'D:\project05\GPP\pre-prosess\resample\\'
+    resample(indir,outdir)
+    # do_mapping_recovery_time2()
     pass
 if __name__ == '__main__':
     main()

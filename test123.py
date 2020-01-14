@@ -48,12 +48,7 @@ def foo_():
             raise IOError('error')
         print pre
 def func():
-    f = r'D:\project05\SPEI\pick_post_growing_season_events\SPEI_09\global.npy'
-    arr = dict(np.load(f).item())
-
-    for key in arr:
-        print key,arr[key]
-
+    print '123'
     pass
 
 
@@ -72,9 +67,15 @@ class abc:
         print self.a
 
 def main():
-    # foo_()
-    func()
+    foo_()
+    # func()
 
-    pass
+
+# main()
+    # pass
 if __name__ == '__main__':
+#     # import this
+#     a = 123
+#     s1 = '\'hello, world!\''
+#     print s1
     main()

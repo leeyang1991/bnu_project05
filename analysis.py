@@ -1015,6 +1015,20 @@ class DIC_and_TIF:
 
         pass
 
+
+    def run(self):
+        fdir = this_root+'GPP\\per_pix_anomaly\\'
+        dic = {}
+        for f in os.listdir(fdir):
+            if not '005' in f:
+                continue
+            arr = dict(np.load(fdir+f).item())
+            for key in arr:
+                print key,arr[key]
+            exit()
+
+        pass
+
     def per_pix_dic_to_spatial_tif(self, mode, folder):
 
         outfolder = this_root + mode + '\\' + folder + '_tif\\'
@@ -1338,12 +1352,12 @@ class KDE_plot:
 
 class Pre_Process:
     def __init__(self):
-        fdir = this_root+'CCI\\0.5\\tif\\'
-        per_pix = this_root+'CCI\\0.5\\per_pix\\'
-        # anomaly = this_root+'NDVI\\per_pix_anomaly\\'
+        fdir = this_root+'GPP\\tif\\'
+        per_pix = this_root+'GPP\\per_pix\\'
+        anomaly = this_root+'GPP\\per_pix_anomaly\\'
         # # Tools().mk_dir(outdir)
-        self.data_transform(fdir,per_pix)
-        # self.cal_anomaly(per_pix,anomaly)
+        # self.data_transform(fdir,per_pix)
+        self.cal_anomaly(per_pix,anomaly)
 
         # self.check_ndvi_anomaly()
         # self.check_per_pix(per_pix)
@@ -1469,7 +1483,7 @@ class Pre_Process:
                 std_ = climatology_std[mon]
                 mean_ = climatology_means[mon]
                 if std_ == 0:
-                    anomaly = np.nan
+                    anomaly = 0 ##### 修改gpp
                 else:
                     anomaly = (vals[i] - mean_) / std_
 
@@ -5404,11 +5418,12 @@ def run():
 
 def main():
     # run()
+    # DIC_and_TIF().run()
     # NDVI().run()
-    # Pre_Process()
+    Pre_Process()
     # Pick_Single_events()
     # Recovery_time_winter()
-    Recovery_time_winter_2().run()
+    # Recovery_time_winter_2().run()
     # Statistic()
     # RATIO().run()
     # Winter()

@@ -6,6 +6,11 @@ import os
 import requests
 import sys
 import log_process
+import zipfile
+import os
+import shutil
+import sys
+from analysis import *
 
 this_root = 'd:\\project05\\'
 log = log_process.Logger('log2001.log', level='info')
@@ -239,24 +244,8 @@ def download_data(url,file_name):
     #             f.flush()
 
 
-def main():
-    # f = open(this_root+'url\\LC08_2013-05-01_2013-06-01_08.txt','r')
-    # url=f.read()
-    # print(url)
-    # file_name = 'LC08_2013-05-01_2013-06-01_08.zip'
-    # print('downloading..')
-    # download_data(url,file_name)
-
-    # url_dir = this_root+'url\\'
-    # url_list = os.listdir(url_dir)
-    # for fi in url_list:
-    #     if 'LC08_2013-05-01_2013-06-01' in fi:
-    #         f = open(url_dir+fi,'r')
-    #         url = f.read()
-    #         file_name = fi.split('.')[0]+'.zip'
-    #         download_data(url, file_name)
+def do_download():
     attempts = 0
-
     while 1:
         a = gen_urls()
         try:
@@ -272,8 +261,149 @@ def main():
             log.logger.info(e)
             log.logger.info('try '+str(attempts))
 
-if __name__ == '__main__':
-    # import zipfile
 
-    # log.logger.info(123123)
+def unzip(zip,move_dst_folder):
+    mk_dir(move_dst_folder)
+    path_to_zip_file = zip
+    tif_name = zip.split('\\')[-1].split('.')[0]
+    # print(tif_name)
+    # exit()
+    # move_dst_folder = this_root+'tif\\'
+    if not os.path.isfile(move_dst_folder+tif_name+'.tif'):
+        directory_to_extract_to = this_root+'temp\\'
+        zip_ref = zipfile.ZipFile(path_to_zip_file, 'r')
+        zip_ref.extractall(directory_to_extract_to)
+        zip_ref.close()
+
+        file_list = os.listdir(directory_to_extract_to)
+        for i in file_list:
+            if i.endswith('.tif'):
+                shutil.move(directory_to_extract_to+'\\'+i,move_dst_folder+tif_name+'.tif')
+    else:
+        print(move_dst_folder+tif_name+'.tif is existed')
+
+
+def check_zip(path):
+    ZipFile = zipfile.ZipFile
+    BadZipfile = zipfile.BadZipfile
+    try:
+        with ZipFile(path) as zf:
+            pass
+
+    except BadZipfile:
+        print path + " Does not work"
+        os.remove(path)
+    pass
+
+def do_unzpi(year):
+    year = str(year)
+    import time
+    fdir = this_root+'30m_fvc_annual\\'+year+'\\'
+    flist = os.listdir(fdir)
+    P = log_process.process_bar
+    dest_folder = this_root+'30m_fvc_annual_unzip\\'+year+'\\'
+    mk_dir(dest_folder)
+    time_init = time.time()
+    for f in range(len(flist)):
+        start = time.time()
+        fzip = fdir+flist[f]
+        # print(fzip)
+        unzip(fzip,dest_folder)
+        end = time.time()
+        P(f,len(flist),time_init,start,end,year)
+
+
+def do_unzpi1():
+    import time
+    fdir = 'E:\\before2000\\zip\\'
+    flist = os.listdir(fdir)
+    P = log_process.process_bar
+    dest_folder = 'E:\\before2000\\unzip\\'
+    mk_dir(dest_folder)
+    time_init = time.time()
+    for f in range(len(flist)):
+        start = time.time()
+        fzip = fdir+flist[f]
+        # print(fzip)
+        if os.path.isfile(dest_folder+fzip.split('\\')[-1].split('.')[0]):
+            print(fzip+'is existed')
+            continue
+        try:
+            unzip(fzip,dest_folder)
+        except Exception as e:
+            print e
+        #check_zip(fzip)
+        end = time.time()
+        P(f,len(flist),time_init,start,end)
+
+
+def do_unzip2():
+    import time
+    fdir = this_root+'download_data\\'
+    # fdir = 'E:\\before2000\\zip\\'
+    flist = os.listdir(fdir)
+    P = log_process.process_bar
+    dest_folder = 'E:\\GPP\\unzip\\'
+    mk_dir(dest_folder)
+    time_init = time.time()
+    for f in range(len(flist)):
+        start = time.time()
+        fzip = fdir + flist[f]
+        # print(fzip)
+        if os.path.isfile(dest_folder + fzip.split('\\')[-1].split('.')[0]):
+            print(fzip + 'is existed')
+            continue
+        try:
+            unzip(fzip, dest_folder)
+        except Exception as e:
+            print e
+        # check_zip(fzip)
+        end = time.time()
+        P(f, len(flist), time_init, start, end)
+    pass
+
+
+def rename():
+    fdir = this_root+'GPP\\pre-prosess\\resample\\'
+
+    outdir = this_root+'GPP\\tif\\'
+    mk_dir(outdir)
+    for f in os.listdir(fdir):
+        if f.endswith('.tif'):
+            fsplit = f.split('_')
+            start = fsplit[2]
+            year,mon,day = start.split('-')
+            # print f
+            print year,mon,day
+            fname = year+mon+'.tif'
+            shutil.copy(fdir+f,outdir+fname)
+    pass
+
+
+def move_one_pix():
+    # import analysis
+    # ÒÆ¶¯1¸öÏñËØ
+    fdir = this_root+'GPP\\pre-prosess\\tif\\'
+    outdir = this_root+'GPP\\tif\\'
+    mk_dir(outdir)
+    for f in tqdm(os.listdir(fdir)):
+        if f.endswith('.tif'):
+            array,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(fdir+f)
+            arr = array[:360]
+            # arr[arr==0] = np.nan
+            DIC_and_TIF().arr_to_tif(arr,outdir+f)
+            # print analysis.np.shape(arr)
+            # analysis.plt.imshow(arr)
+            # analysis.plt.show()
+    pass
+
+
+def main():
+    # do_unzip2()
+    # rename()
+    move_one_pix()
+    pass
+
+
+if __name__ == '__main__':
     main()
