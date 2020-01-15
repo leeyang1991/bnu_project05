@@ -23,7 +23,6 @@ from matplotlib.font_manager import FontProperties
 import imageio
 from scipy.stats import gaussian_kde as kde
 import matplotlib as mpl
-
 import multiprocessing
 from multiprocessing.pool import ThreadPool as TPool
 import copy_reg
@@ -1233,6 +1232,34 @@ class DIC_and_TIF:
                 void_dic[key] = []
         return void_dic
 
+    def ascii_to_arr(self,lonlist,latlist,vals):
+        '''
+        transform ascii text to spatial array
+        :param lonlist:[.....]
+        :param latlist: [.....]
+        :param vals: [.....]
+        :return:
+        '''
+
+        lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
+        lon_lat_dic_reverse = {}
+        for key in lon_lat_dic:
+            lon,lat = lon_lat_dic[key]
+            new_key = str(lon)+'_'+str(lat)
+            lon_lat_dic_reverse[new_key] = key
+
+        spatial_dic = {}
+        for i in range(len(lonlist)):
+            lt = str(lonlist[i])+'_'+str(latlist[i])
+            pix = lon_lat_dic_reverse[lt]
+            spatial_dic[pix] = vals[i]
+
+        arr = self.pix_dic_to_spatial_arr(spatial_dic)
+        return arr
+
+
+
+        pass
 
 class MUTIPROCESS:
     '''
@@ -7276,7 +7303,7 @@ def main():
     # NDVI().run()
     # Pre_Process()
     # Pick_Single_events()
-    Pick_Single_events1()
+    # Pick_Single_events1()
     # Recovery_time_winter()
     # Recovery_time_winter_2().run()
     # Recovery_time_winter_3().run()
