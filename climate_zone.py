@@ -1,4 +1,7 @@
 # coding=gbk
+'''
+自定义colormap
+'''
 from analysis import *
 
 
