@@ -2582,127 +2582,127 @@ class Pick_Single_events1():
                 # # # # # # # # # # # # # # # # # # # # # # #
             np.save(out_dir + f, single_event_dic)
 
-    # def kernel_find_drought_period(self, params):
-    #     # 根据不同干旱程度查找干旱时期
-    #     pdsi = params[0]
-    #     key = params[1]
-    #     mode = params[2]
-    #     drought_month = []
-    #     for i, val in enumerate(pdsi):
-    #         # if val < -0.5:# SPEI
-    #         if val < -1:  # PDSI
-    #             drought_month.append(i)
-    #         else:
-    #             drought_month.append(-99)
-    #     # plt.plot(drought_month)
-    #     # plt.show()
-    #     events = []
-    #     event_i = []
-    #     for ii in drought_month:
-    #         if ii > -99:
-    #             event_i.append(ii)
-    #         else:
-    #             if len(event_i) > 3:
-    #                 events.append(event_i)
-    #                 event_i = []
-    #             else:
-    #                 event_i = []
-    #     # print(len(pdsi))
-    #     # print(event_i)
-    #     if len(event_i) > 3:
-    #         events.append(event_i)
-    #
-    #     # print(events)
-    #
-    #     # 去除两头小于0的index
-    #     # events_new = []
-    #     # for event in events:
-    #     #     print(event)
-    #     # exit()
-    #
-    #     flag = 0
-    #     events_dic = {}
-    #
-    #     # 取两个端点
-    #     for i in events:
-    #         # print(i)
-    #         # 去除两端pdsi值小于-0.5
-    #         if 0 in i or len(pdsi) - 1 in i:
-    #             continue
-    #         new_i = []
-    #         for jj in i:
-    #             # print(jj)
-    #             if jj - 1 >= 0:
-    #                 new_i.append(jj - 1)
-    #             else:
-    #                 pass
-    #         new_i.append(i[-1])
-    #         if i[-1] + 1 < len(pdsi):
-    #             new_i.append(i[-1] + 1)
-    #         # print(new_i)
-    #         # exit()
-    #         flag += 1
-    #         vals = []
-    #         for j in new_i:
-    #             try:
-    #                 vals.append(pdsi[j])
-    #             except:
-    #                 print(j)
-    #                 print('error')
-    #                 print(new_i)
-    #                 exit()
-    #         # print(vals)
-    #
-    #         # if 0 in new_i:
-    #         # SPEI
-    #         if mode == 'SPEI':
-    #             min_val = min(vals)
-    #             if -1 <= min_val < -.5:
-    #                 level = 1
-    #             elif -1.5 <= min_val < -1.:
-    #                 level = 2
-    #             elif -2 <= min_val < -1.5:
-    #                 level = 3
-    #             elif min_val <= -2.:
-    #                 level = 4
-    #             else:
-    #                 print('error')
-    #                 print(vals)
-    #                 print(min_val)
-    #                 time.sleep(1)
-    #                 continue
-    #
-    #         # PDSI
-    #         elif mode == 'PDSI':
-    #             min_val = min(vals)
-    #             if -2 <= min_val < -1:
-    #                 level = 1
-    #             elif -3 <= min_val < -2:
-    #                 level = 2
-    #             elif -4 <= min_val < -3:
-    #                 level = 3
-    #             elif min_val <= -4.:
-    #                 level = 4
-    #             else:
-    #                 print('error')
-    #                 print(vals)
-    #                 print(min_val)
-    #                 time.sleep(1)
-    #                 continue
-    #
-    #         else:
-    #             raise IOError('mode {} error'.format(mode))
-    #
-    #         events_dic[flag] = [level, new_i]
-    #         # print(min_val)
-    #         # plt.plot(vals)
-    #         # plt.show()
-    #     # for key in events_dic:
-    #     #     # print key,events_dic[key]
-    #     #     if 0 in events_dic[key][1]:
-    #     #         print(events_dic[key])
-    #     # exit()
-    #     return events_dic, key
+    def kernel_find_drought_period(self, params):
+        # 根据不同干旱程度查找干旱时期
+        pdsi = params[0]
+        key = params[1]
+        mode = params[2]
+        drought_month = []
+        for i, val in enumerate(pdsi):
+            # if val < -0.5:# SPEI
+            if val < -1:  # PDSI
+                drought_month.append(i)
+            else:
+                drought_month.append(-99)
+        # plt.plot(drought_month)
+        # plt.show()
+        events = []
+        event_i = []
+        for ii in drought_month:
+            if ii > -99:
+                event_i.append(ii)
+            else:
+                if len(event_i) > 3:
+                    events.append(event_i)
+                    event_i = []
+                else:
+                    event_i = []
+        # print(len(pdsi))
+        # print(event_i)
+        if len(event_i) > 3:
+            events.append(event_i)
+
+        # print(events)
+
+        # 去除两头小于0的index
+        # events_new = []
+        # for event in events:
+        #     print(event)
+        # exit()
+
+        flag = 0
+        events_dic = {}
+
+        # 取两个端点
+        for i in events:
+            # print(i)
+            # 去除两端pdsi值小于-0.5
+            if 0 in i or len(pdsi) - 1 in i:
+                continue
+            new_i = []
+            for jj in i:
+                # print(jj)
+                if jj - 1 >= 0:
+                    new_i.append(jj - 1)
+                else:
+                    pass
+            new_i.append(i[-1])
+            if i[-1] + 1 < len(pdsi):
+                new_i.append(i[-1] + 1)
+            # print(new_i)
+            # exit()
+            flag += 1
+            vals = []
+            for j in new_i:
+                try:
+                    vals.append(pdsi[j])
+                except:
+                    print(j)
+                    print('error')
+                    print(new_i)
+                    exit()
+            # print(vals)
+
+            # if 0 in new_i:
+            # SPEI
+            if mode == 'SPEI':
+                min_val = min(vals)
+                if -1 <= min_val < -.5:
+                    level = 1
+                elif -1.5 <= min_val < -1.:
+                    level = 2
+                elif -2 <= min_val < -1.5:
+                    level = 3
+                elif min_val <= -2.:
+                    level = 4
+                else:
+                    print('error')
+                    print(vals)
+                    print(min_val)
+                    time.sleep(1)
+                    continue
+
+            # PDSI
+            elif mode == 'PDSI':
+                min_val = min(vals)
+                if -2 <= min_val < -1:
+                    level = 1
+                elif -3 <= min_val < -2:
+                    level = 2
+                elif -4 <= min_val < -3:
+                    level = 3
+                elif min_val <= -4.:
+                    level = 4
+                else:
+                    print('error')
+                    print(vals)
+                    print(min_val)
+                    time.sleep(1)
+                    continue
+
+            else:
+                raise IOError('mode {} error'.format(mode))
+
+            events_dic[flag] = [level, new_i]
+            # print(min_val)
+            # plt.plot(vals)
+            # plt.show()
+        # for key in events_dic:
+        #     # print key,events_dic[key]
+        #     if 0 in events_dic[key][1]:
+        #         print(events_dic[key])
+        # exit()
+        return events_dic, key
 
     def split_winter(self):
         # 筛选 -30度 ~ 30度之间为无冬季
