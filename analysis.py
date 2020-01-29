@@ -29,6 +29,7 @@ import copy_reg
 import types
 from scipy.stats import gamma as gam
 import math
+import copy
 
 this_root = 'D:\\project05\\'
 # this_root = 'D:\\ly\\project05\\'

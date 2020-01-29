@@ -7,8 +7,9 @@ class Recovery_time1:
         pass
 
     def run(self):
-        params = [3,'pick_post_growing_season_events']
-        self.gen_recovery_time(params)
+        params = range(1,13)
+        MUTIPROCESS(self.gen_recovery_time,params).run(process=5)
+        # self.gen_recovery_time(params)
         # self.composite_per_pix(3)
         pass
 
@@ -25,12 +26,62 @@ class Recovery_time1:
 
         return composite
 
+    def transform(self,in_list):
 
-    def early_late_non(self,min_ndvi_indx, growing_date_range):
-        print min_ndvi_indx
-        print growing_date_range
+        a = [12, 1, 2, 3, 4]
+        b = [11, 12, 1, 2, 3]
+        c = [10, 11, 12, 1, 2]
+        d = [9, 10, 11, 12, 1]
 
+        aa = copy.deepcopy(a)
+        bb = copy.deepcopy(b)
+        cc = copy.deepcopy(c)
+        dd = copy.deepcopy(d)
+
+        aa.sort()
+        bb.sort()
+        cc.sort()
+        dd.sort()
+        if in_list == aa:
+            return a
+        elif in_list == bb:
+            return b
+        elif in_list == cc:
+            return c
+        elif in_list == dd:
+            return d
+        else:
+            # print 'in_list',in_list
+            raise IOError('error')
         pass
+
+    def early_late_non(self,input_ind, growing_date_range):
+        # print input_ind
+        # print growing_date_range
+        mon = input_ind % 12 + 1
+        growing_date_range = list(growing_date_range)
+        if len(growing_date_range) < 10:
+            if 1 in growing_date_range and 12 in growing_date_range:
+                t_growing_date_range = self.transform(growing_date_range)
+                ind = t_growing_date_range.index(mon)
+            else:
+                ind = growing_date_range.index(mon)
+
+            # print ind
+            if ind in [0, 1, 2]:
+                mark = 'early'
+            elif ind in [2, 3, 4]:
+                mark = 'late'
+            else:
+                raise IOError('error')
+            return mark
+
+        else:
+            ind = growing_date_range.index(mon)
+            mark = 'tropical'
+            return mark
+
+
 
 
     def gen_recovery_time(self,params):
@@ -39,21 +90,22 @@ class Recovery_time1:
         :param interval: SPEI_{interval}
         :return:
         '''
-        interval, _ = params
+        interval = params
         # pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
         growing_season_daterange = dict(np.load(this_root + 'NDVI\\global_growing_season.npy').item())
         interval = '%02d' % interval
-        # out_dir = this_root + 'arr\\recovery_time\\{}\\SPEI_{}\\'.format(mode, interval)
-        # Tools().mk_dir(out_dir, force=True)
+        out_dir = this_root + 'new_2020\\arr\\recovery_time\\SPEI_{}\\'.format(interval)
+        Tools().mk_dir(out_dir, force=True)
         # 1 加载事件
         # interval = '%02d' % interval
         events = self.composite_per_pix(interval)
         # 2 加载NDVI
         ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
         spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
+        # for f in tqdm(os.listdir(ndvi_dir)):
         for f in os.listdir(ndvi_dir):
-            if not '020' in f:
-                continue
+            # if not '015' in f:
+            #     continue
             ndvi_dic = dict(np.load(ndvi_dir + f).item())
             # ndvi_dic = Tools().detrend_dic(ndvi_dic)
             spei_dic = dict(np.load(spei_dir + f).item())
@@ -96,16 +148,17 @@ class Recovery_time1:
                         # 4.1 获取growing season NDVI的最小值
                         min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
                         # 4.2 判断NDVI 最低点在early late 或是 non Growing Season
-                        self.early_late_non(min_ndvi_indx, growing_date_range)
-                        continue
-                        exit()
+                        # mark
+                        # eln: Early Late Non
+                        eln = self.early_late_non(min_ndvi_indx, growing_date_range)
                         # 4.3 搜索恢复到正常情况的时间，recovery_time：恢复期； mark：'in', 'out', 'tropical'
+                        # mark: In Out Tropical
                         recovery_time, mark, recovery_date_range = self.search(ndvi, min_ndvi_indx, growing_date_range)
                         # recovery_time, mark = self.search_non_growing_season(ndvi, min_ndvi_indx)
-                        recovery_time_result.append([recovery_time, mark, recovery_date_range, date_range])
+                        recovery_time_result.append([recovery_time, mark, recovery_date_range, date_range,eln])
 
                         ################# plot ##################
-                        # print recovery_time, mark
+                        # print recovery_time, mark,eln
                         # print growing_date_range
                         # recovery_date_range = range(min_ndvi_indx, min_ndvi_indx + recovery_time + 1)
                         # recovery_ndvi = Tools().pick_vals_from_1darray(ndvi, recovery_date_range)
@@ -170,7 +223,7 @@ class Recovery_time1:
                     recovery_time_dic[pix] = recovery_time_result
                 else:
                     recovery_time_dic[pix] = []
-            # np.save(out_dir + f, recovery_time_dic)
+            np.save(out_dir + f, recovery_time_dic)
         pass
 
 

@@ -7,16 +7,43 @@ Desctiption
 '''
 from analysis import *
 
-def foo_():
+def foo_(growingseason,ind):
 
-    a = []
-    ind = 18
-    print a
-    print ind%12+1
+    # a = [1,2,10,11,12]
+    # ind = 11
+    mon = ind%12+1
+    b = growingseason.index(mon)
+    # print a
+    # print mon
+    # print b
+    return b
 
-def func():
-    print '123'
+def func(in_list):
+
+    a=[12,1,2,3,4]
+    b=[11,12,1,2,3]
+    c=[10,11,12,1,2]
+    d=[9,10,11,12,1]
+
+    aa = copy.deepcopy(a)
+    bb = copy.deepcopy(a)
+    cc = copy.deepcopy(a)
+    dd = copy.deepcopy(a)
+
+    aa.sort()
+    bb.sort()
+    cc.sort()
+    dd.sort()
+    if in_list == aa:
+        return a
+    elif in_list == bb:
+        return b
+    elif in_list == cc:
+        return c
+    elif in_list == dd:
+        return d
     pass
+
 
 
 class abc:
@@ -34,13 +61,11 @@ class abc:
         print self.a
 
 def main():
-    foo_()
-    # func()
 
+    a=[1,2,3,4,12]
+    b = func(a)
+    print a
+    print b
 
 if __name__ == '__main__':
-    # import this
-#     a = 123
-#     s1 = '\'hello, world!\''
-#     print s1
     main()
