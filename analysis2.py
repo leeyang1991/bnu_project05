@@ -9,15 +9,15 @@ class Recovery_time1:
     def run(self):
         params = range(1,13)
         MUTIPROCESS(self.gen_recovery_time,params).run(process=5)
-        # self.gen_recovery_time(params)
-        # self.composite_per_pix(3)
+        self.compose_recovery_time()
         pass
 
     def composite_per_pix(self, interval):
         fdir = this_root+'SPEI\\single_events_24\\SPEI_{}\\'.format(interval)
         composite = {}
 
-        for f in tqdm(os.listdir(fdir),desc='loading per pix events'):
+        # for f in tqdm(os.listdir(fdir),desc='loading per pix events'):
+        for f in os.listdir(fdir):
             dic = dict(np.load(fdir+f).item())
             for pix in dic:
                 val = dic[pix]
@@ -68,10 +68,12 @@ class Recovery_time1:
                 ind = growing_date_range.index(mon)
 
             # print ind
-            if ind in [0, 1, 2]:
+            if ind in [0, 1]:
                 mark = 'early'
-            elif ind in [2, 3, 4]:
+            elif ind in [3, 4]:
                 mark = 'late'
+            elif ind == 2:
+                mark = 'early_late'
             else:
                 raise IOError('error')
             return mark
@@ -251,10 +253,100 @@ class Recovery_time1:
                 else:  # 不存在冬季的地区
                     return recovery_time, 'tropical', recovery_date_range
 
+    def compose_recovery_time(self):
+        # interval = '%02d'%interval
 
 
+        # fdir = this_root + 'new_2020\\arr\\recovery_time\\SPEI_{}\\'.format(interval)
+        # composite_dic = {}
+        # for f in os.listdir(fdir):
+        #     dic = dict(np.load(fdir+f).item())
+        #     for pix in dic:
+        #         events = dic[pix]
+        #         for event in events:
+        #             recovery_time, mark, recovery_date_range, date_range,eln = event
+        #             print recovery_time, mark, recovery_date_range, date_range,eln
+        '''
+        合成SPEI 1 - 24 的recovery time
+        :return:
+        '''
+        fdir = this_root + 'new_2020\\arr\\recovery_time\\'
+        out_dir = this_root + 'new_2020\\arr\\recovery_time_composite\\'
+        Tools().mk_dir(out_dir)
+        void_dic = DIC_and_TIF().void_spatial_dic()
+        for folder in tqdm(os.listdir(fdir)):
+            for f in os.listdir(fdir + folder):
+                dic = dict(np.load(fdir + folder + '\\' + f).item())
+                for pix in dic:
+                    recovery_events = dic[pix]
+                    for event in recovery_events:
+                        void_dic[pix].append(event)
+        # print '\nsaving...'
+        np.save(out_dir + 'composite', void_dic)
+        # exit()
+        pass
+
+
+    def check(self):
+        print 'loading...'
+        f = this_root+'new_2020\\arr\\recovery_time_composite\\composite.npy'
+        dic = dict(np.load(f).item())
+        for pix in dic:
+            print pix,dic[pix]
+
+    def recovery_early_late_tif(self):
+        print 'loading...'
+        out_dir = this_root+'new_2020\\tif\\recovery_time\\'
+        Tools().mk_dir(out_dir,force=1)
+        f = this_root + 'new_2020\\arr\\recovery_time_composite\\composite.npy'
+        dic = dict(np.load(f).item())
+        recovery_time_early_dic = {}
+        recovery_time_late_dic = {}
+        for pix in dic:
+            events = dic[pix]
+            recovery_early = []
+            recovery_late = []
+            if len(events) == 0:
+                continue
+            for event in events:
+                recovery_time, mark, recovery_date_range, date_range, eln = event
+                if recovery_time == None:
+                    continue
+                # print pix, recovery_time, mark, recovery_date_range, date_range,eln
+                if eln == 'early' or eln == 'early_late' or eln == 'tropical':
+                    # recovery_time_early[pix]
+                    recovery_early.append(recovery_time)
+                if eln == 'late' or eln == 'early_late' or eln == 'tropical':
+                    recovery_late.append(recovery_time)
+                # exit()
+            # print recovery_early
+            # exit()
+            if len(recovery_early) > 0:
+                mean_recovery_early = np.mean(recovery_early)
+            else:
+                mean_recovery_early = np.nan
+            if len(recovery_late) > 0:
+                mean_recovery_late = np.mean(recovery_late)
+            else:
+                mean_recovery_late = np.nan
+            recovery_time_early_dic[pix] = mean_recovery_early
+            recovery_time_late_dic[pix] = mean_recovery_late
+
+        early = DIC_and_TIF().pix_dic_to_spatial_arr(recovery_time_early_dic)
+        early = NDVI().mask_arr_with_NDVI(early)
+        late = DIC_and_TIF().pix_dic_to_spatial_arr(recovery_time_late_dic)
+        late = NDVI().mask_arr_with_NDVI(late)
+
+
+        DIC_and_TIF().arr_to_tif(early,out_dir+'early.tif')
+        DIC_and_TIF().arr_to_tif(late,out_dir+'late.tif')
+
+        # plt.imshow(arr,'jet',vmin=0,vmax=18)
+        # plt.colorbar()
+        # plt.show()
 def main():
-    Recovery_time1().run()
+    Recovery_time1().recovery_early_late_tif()
+    # Recovery_time1().recovery_early_late_tif()
     pass
 
 if __name__ == '__main__':
