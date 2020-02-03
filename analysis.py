@@ -1183,6 +1183,37 @@ class DIC_and_TIF:
         # # plt.title(str(set_level))
         # plt.show()
 
+
+    def pix_dic_to_spatial_arr_ascii(self, spatial_dic):
+        # dtype can be in ascii format
+        # x = []
+        # y = []
+        # for key in spatial_dic:
+        #     key_split = key.split('.')
+        #     x.append(key_split[0])
+        #     y.append(key_split[1])
+        # row = len(set(x))
+        # col = len(set(y))
+        tif_template = this_root + 'conf\\tif_template.tif'
+        arr_template, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+        row = len(arr_template)
+        col = len(arr_template[0])
+        spatial = []
+        for r in range(row):
+            temp = []
+            for c in range(col):
+                key = '%03d.%03d' % (r, c)
+                if key in spatial_dic:
+                    val_pix = spatial_dic[key]
+                    temp.append(val_pix)
+                else:
+                    temp.append(np.nan)
+            spatial.append(temp)
+
+        spatial = np.array(spatial)
+        return spatial
+
+
     def pix_dic_to_tif(self, spatial_dic, out_tif):
 
         x = []
@@ -1255,12 +1286,8 @@ class DIC_and_TIF:
             pix = lon_lat_dic_reverse[lt]
             spatial_dic[pix] = vals[i]
 
-        arr = self.pix_dic_to_spatial_arr(spatial_dic)
+        arr = self.pix_dic_to_spatial_arr_ascii(spatial_dic)
         return arr
-
-
-
-        pass
 
 class MUTIPROCESS:
     '''
@@ -7001,6 +7028,9 @@ class Water_balance:
         self.cross_landuse_WB_recovery_time()
         # self.gen_latitude_zone_arr()
         pass
+    def run(self):
+        # self.gen_koppen_area()
+        pass
 
     def gen_latitude_zone_arr(self):
         tif_template = this_root + 'conf\\tif_template.tif'
@@ -7041,6 +7071,26 @@ class Water_balance:
 
         return latitude_zone_dic
 
+
+    def gen_koppen_area(self):
+        array = this_root+'arr\\koppen_spatial_arr_ascii.npy'
+        pix_dic = DIC_and_TIF().spatial_arr_to_dic(array)
+        unique_val = []
+        for key in pix_dic:
+            # print key,dic[key]
+            val = pix_dic[key]
+            unique_val.append(val)
+        unique_val = set(unique_val)
+
+        dic = {}
+        for i in unique_val:
+            dic[i] = []
+
+        for pix in pix_dic:
+            val = pix_dic[pix]
+            dic[val].append(pix)
+
+        return dic
 
     def gen_landuse_zonal_index(self):
         # [8,10,11,16]
@@ -7137,15 +7187,25 @@ class Water_balance:
         # recovery_time_tif = this_root + 'tif\\Ratio\\pick_pre_growing_season_events.tif'
         # title = 'Ratio of Overwinter in Early Growing Season'
 
-        recovery_time_tif = this_root + 'tif\\Ratio\\pick_post_growing_season_events.tif'
-        title = 'Ratio of Overwinter in Late Growing Season'
+        # recovery_time_tif = this_root + 'tif\\Ratio\\pick_post_growing_season_events.tif'
+        # title = 'Ratio of Overwinter in Late Growing Season'
 
         # recovery_time_tif = this_root + 'tif\\Ratio\\pick_non_growing_season_events.tif'
         # title = 'Drought in None Growing Season and Recovered IN Current Growing Season'
 
-
-
         ############################  Ratio  ############################
+
+
+        ############################  recovery new 2020  ############################
+
+        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\early.tif'
+        # title = 'Early Growing Season'
+
+        recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\late.tif'
+        title = 'Late Growing Season'
+
+        ############################  recovery new 2020  ############################
+
 
         recovery_time_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(recovery_time_tif)
         # mask NDVI
@@ -7182,8 +7242,9 @@ class Water_balance:
             landuse_dic[lc_label] = landuse_index
 
         # 4、生成纬度 dic
-        latitude_dic = self.gen_latitude_zone_arr()
-
+        # latitude_dic = self.gen_latitude_zone_arr()
+        # 4.1 koppen zone
+        latitude_dic = self.gen_koppen_area()
         # 5、交叉像素
 
         intersect_dic = {}
@@ -7215,7 +7276,8 @@ class Water_balance:
                 lc_pixs = landuse_dic[lc_i]
                 lat_pixs = latitude_dic[lat_i]
                 intersect = self.intersection(lc_pixs,lat_pixs)
-                if len(intersect) > 0:
+                # print intersect
+                if len(intersect) > 10:
                     key = lc_i + '.' + str(lat_i)
                     scatter_labels.append(key)
                     intersect_int = []
@@ -7278,9 +7340,9 @@ class Water_balance:
         # plt.xlim(0,1.6)
         # plt.ylim(7,13)
         # plt.ylim(0.5,2.3)
-        plt.ylim(-5,100)
-        # plt.show()
-        plt.savefig(this_root+'AI\\Ratio\\'+title+'.pdf')
+        # plt.ylim(-5,100)
+        plt.show()
+        # plt.savefig(this_root+'AI\\Ratio\\'+title+'.pdf')
 
 def kernel_run(param):
     interval = param
@@ -7312,7 +7374,7 @@ def main():
     # RATIO().run()
     # Winter()
     # HI()
-    # Water_balance()
+    Water_balance().run()
 
 
 

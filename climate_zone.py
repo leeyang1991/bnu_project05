@@ -4,7 +4,7 @@
 '''
 from analysis import *
 
-
+# koppen
 cls_color_dic = {
     'Af':'8d1c21',
     'Am':'e7161a',
@@ -70,7 +70,16 @@ for val in val_list:
     new_val = vals_dic[val]
     new_val_list.append(new_val)
 
+
+
 arr = DIC_and_TIF().ascii_to_arr(lon_list,lat_list,new_val_list)
+
+arr_ascii = DIC_and_TIF().ascii_to_arr(lon_list,lat_list,val_list)
+# np.save(this_root+'arr\\koppen_spatial_arr_ascii',arr_ascii)
+# exit()
+DIC_and_TIF().spatial_arr_to_dic(arr_ascii)
+# arr to tif
+DIC_and_TIF().arr_to_tif(arr,this_root+'climate_zone\\koppen.tif')
 
 palette = []
 for i in vals:
