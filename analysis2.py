@@ -4,6 +4,7 @@ from analysis import *
 class Recovery_time1:
 
     def __init__(self):
+        self.valid_pix()
         pass
 
     def run(self):
@@ -11,6 +12,18 @@ class Recovery_time1:
         MUTIPROCESS(self.gen_recovery_time,params).run(process=5)
         self.compose_recovery_time()
         pass
+
+
+    def run1(self):
+
+        # self.recovery_early_late_in_out()
+        self.ratio()
+
+
+    def valid_pix(self):
+        self.ndvi_valid_pix = NDVI().filter_NDVI_valid_pix()
+        self.tropical_pix = np.load(this_root + 'NDVI\\tropical_pix.npy')
+
 
     def composite_per_pix(self, interval):
         fdir = this_root+'SPEI\\single_events_24\\SPEI_{}\\'.format(interval)
@@ -344,9 +357,110 @@ class Recovery_time1:
         # plt.imshow(arr,'jet',vmin=0,vmax=18)
         # plt.colorbar()
         # plt.show()
+
+    def recovery_early_late_in_out(self):
+        outdir = this_root+'new_2020\\tif\\recovery_time_in_out\\'
+        Tools().mk_dir(outdir)
+        f = this_root+'new_2020\\arr\\recovery_time_composite\\composite.npy'
+        dic = dict(np.load(f).item())
+
+        early_in_dic = {}
+        early_out_dic = {}
+        late_in_dic = {}
+        late_out_dic = {}
+        tropical_pix = self.tropical_pix
+        ndvi_valid_pix = self.ndvi_valid_pix
+        for pix in tqdm(dic):
+            if pix in tropical_pix:
+                continue
+            if pix not in ndvi_valid_pix:
+                continue
+            events = dic[pix]
+            early_in = []
+            early_out = []
+            late_in = []
+            late_out = []
+            for event in events:
+                recovery_time, mark, recovery_date_range, date_range, eln = event
+                # print recovery_time, mark, recovery_date_range, date_range, eln
+                if mark == 'in' and 'early' in eln:
+                    early_in.append(recovery_time)
+                if mark == 'out' and 'early' in eln:
+                    early_out.append(recovery_time)
+                if mark == 'in'  and 'late' in eln:
+                    late_in.append(recovery_time)
+                if mark == 'out' and 'late' in eln:
+                    late_out.append(recovery_time)
+            early_in_mean = np.mean(early_in)
+            early_out_mean = np.mean(early_out)
+            late_in_mean = np.mean(late_in)
+            late_out_mean = np.mean(late_out)
+
+            early_in_dic[pix] = early_in_mean
+            early_out_dic[pix] = early_out_mean
+            late_in_dic[pix] = late_in_mean
+            late_out_dic[pix] = late_out_mean
+
+        early_in_arr = DIC_and_TIF().pix_dic_to_spatial_arr(early_in_dic)
+        early_out_arr = DIC_and_TIF().pix_dic_to_spatial_arr(early_out_dic)
+        late_in_arr = DIC_and_TIF().pix_dic_to_spatial_arr(late_in_dic)
+        late_out_arr = DIC_and_TIF().pix_dic_to_spatial_arr(late_out_dic)
+
+        DIC_and_TIF().arr_to_tif(early_in_arr,outdir+'early_in_arr.tif')
+        DIC_and_TIF().arr_to_tif(early_out_arr,outdir+'early_out_arr.tif')
+        DIC_and_TIF().arr_to_tif(late_in_arr,outdir+'late_in_arr.tif')
+        DIC_and_TIF().arr_to_tif(late_out_arr,outdir+'late_out_arr.tif')
+
+
+        pass
+
+
+    def ratio(self):
+        outdir = this_root + 'new_2020\\tif\\recovery_time_in_out\\'
+        Tools().mk_dir(outdir)
+        f = this_root + 'new_2020\\arr\\recovery_time_composite\\composite.npy'
+        dic = dict(np.load(f).item())
+
+        tropical_pix = self.tropical_pix
+        ndvi_valid_pix = self.ndvi_valid_pix
+
+        early_ratio_dic = {}
+        late_ratio_dic = {}
+        for pix in tqdm(dic):
+            if pix in tropical_pix:
+                continue
+            if pix not in ndvi_valid_pix:
+                continue
+            events = dic[pix]
+            early_flag = 0.
+            late_flag = 0.
+            flag = 0.
+
+            for event in events:
+                recovery_time, mark, recovery_date_range, date_range, eln = event
+                if mark != 'in':
+                    continue
+                flag += 1.
+
+                # print recovery_time, mark, recovery_date_range, date_range, eln
+                if 'early' in eln:
+                    early_flag += 1.
+                if 'late' in eln:
+                    late_flag += 1.
+            early_ratio = early_flag/flag
+            late_ratio = late_flag/flag
+
+
+
+        pass
+
+
+
+
+
 def main():
-    Recovery_time1().recovery_early_late_tif()
-    # Recovery_time1().recovery_early_late_tif()
+
+    Recovery_time1().run1()
     pass
 
 if __name__ == '__main__':

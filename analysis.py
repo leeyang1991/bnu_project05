@@ -6714,7 +6714,7 @@ class RATIO:
 
 
     def valid_pix(self):
-        self.ndvi_valid_pix = Tools().filter_NDVI_valid_pix()
+        self.ndvi_valid_pix = NDVI().filter_NDVI_valid_pix()
         self.tropical_pix = np.load(this_root + 'NDVI\\tropical_pix.npy')
 
     def load_data(self):
@@ -6747,7 +6747,7 @@ class RATIO:
             'pick_pre_growing_season_events',
             'pick_post_growing_season_events'
                 ]
-        ndvi_valid_pix = Tools().filter_NDVI_valid_pix()
+        ndvi_valid_pix = NDVI().filter_NDVI_valid_pix()
         tropical_pix = np.load(this_root+'NDVI\\tropical_pix.npy')
 
         for m in mode:
@@ -6788,7 +6788,7 @@ class RATIO:
             'pick_pre_growing_season_events',
             'pick_post_growing_season_events'
                 ]
-        ndvi_valid_arr = Tools().filter_NDVI_valid_pix()
+        ndvi_valid_arr = NDVI().filter_NDVI_valid_pix()
         for m in mode:
             print m
             f = this_root + 'arr\\recovery_time\\{}_composite_recovery_time\\composite.npy'.format(m)
@@ -7073,15 +7073,15 @@ class Water_balance:
 
 
     def gen_koppen_area(self):
-        array = this_root+'arr\\koppen_spatial_arr_ascii.npy'
+        array = np.load(this_root+'arr\\koppen_spatial_arr_ascii.npy')
         pix_dic = DIC_and_TIF().spatial_arr_to_dic(array)
         unique_val = []
         for key in pix_dic:
-            # print key,dic[key]
+            # print key,pix_dic[key]
             val = pix_dic[key]
             unique_val.append(val)
         unique_val = set(unique_val)
-
+        # exit()
         dic = {}
         for i in unique_val:
             dic[i] = []
@@ -7198,11 +7198,11 @@ class Water_balance:
 
         ############################  recovery new 2020  ############################
 
-        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\early.tif'
-        # title = 'Early Growing Season'
+        recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\early.tif'
+        title = 'Early Growing Season'
 
-        recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\late.tif'
-        title = 'Late Growing Season'
+        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\late.tif'
+        # title = 'Late Growing Season'
 
         ############################  recovery new 2020  ############################
 
@@ -7216,13 +7216,19 @@ class Water_balance:
         # 2、生成 HI 分级别 dic
         HI_tif = this_root+'tif\\HI\\HI.tif'
         HI_arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(HI_tif)
+        HI_arr[HI_arr>2.] = np.nan
         # HI_class_dic, range_class = self.gen_WB_zonal_index(HI_arr, 12)
 
         # 3、landuse 字典
-        # 组合
-        landuse_types = [1,2,3,4,5,[6,7],[8,9],10,12]
-        labels = ['ENF','EBF','DNF','DBF','MF','Shrublands',
-                  'Savannas','Grasslands','Croplands']
+        # lc组合1
+        # landuse_types = [1,2,3,4,5,[6,7],[8,9],10,12]
+        # labels = ['ENF','EBF','DNF','DBF','MF','Shrublands',
+        #           'Savannas','Grasslands','Croplands']
+        # lc组合2
+        landuse_types = [[1, 2, 3, 4, 5], [6, 7], [8, 9], 10, 12]
+        labels = ['Forest', 'Shrublands',
+                  'Savannas', 'Grasslands', 'Croplands']
+
         landuse_class_dic = self.gen_landuse_zonal_index()
 
         landuse_dic = {}
@@ -7252,6 +7258,7 @@ class Water_balance:
 
         markers_dic = {'EBF':"X",
                        'Shrublands':"*",
+                       'Forest':"X",
                       'MF':"s",
                       'DNF':"o",
                        'ENF':"^",
@@ -7263,11 +7270,53 @@ class Water_balance:
         # cmap = sns.color_palette('RdBu_r', len(latitude_dic))
         # flatui = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"]
         # cmap = sns.color_palette(flatui)
-        cmap = sns.diverging_palette(236,0,s=99,l=50,n=len(latitude_dic), center="light")
+        # cmap = sns.diverging_palette(236,0,s=99,l=50,n=len(latitude_dic), center="light")
 
-        color_dic = {}
-        for cm in range(len(cmap)):
-            color_dic[cm] = cmap[cm]
+        # color_dic = {}
+        # for cm in range(len(cmap)):
+        #     color_dic[cm] = cmap[cm]
+
+        cls_color_dic = {
+            'Af': '8d1c21',
+            'Am': 'e7161a',
+            'As': 'f19596',
+            'Aw': 'f8c8c9',
+
+            'BWk': 'f1ee70',
+            'BWh': 'f4c520',
+            'BSk': 'c7a655',
+            'BSh': 'c58a19',
+
+            'Cfa': '113118',
+            'Cfb': '114f2a',
+            'Cfc': '137539',
+            'Csa': '6cb92c',
+            'Csb': '9bc82a',
+            'Csc': 'bfd62e',
+            'Cwa': 'ad6421',
+            'Cwb': '916425',
+            'Cwc': '583d1b',
+
+            'Dfa': '2d112f',
+            'Dfb': '5a255d',
+            'Dfc': '9b3e93',
+            'Dfd': 'b9177d',
+            'Dsa': 'bf7cb2',
+            'Dsb': 'deb3d2',
+            'Dsc': 'd9c5df',
+            'Dsd': 'c8c8c9',
+            'Dwa': 'bdafd5',
+            'Dwb': '957cac',
+            'Dwc': '7f57a1',
+            'Dwd': '603691',
+
+            'EF': '688cc7',
+            'ET': '87cfd9',
+
+            'nan': '000000'
+        }
+
+
         markers_flag = 0
         scatter_dic = {}
         for lc_i in landuse_dic:
@@ -7275,9 +7324,13 @@ class Water_balance:
             for lat_i in latitude_dic:
                 lc_pixs = landuse_dic[lc_i]
                 lat_pixs = latitude_dic[lat_i]
+                # print len(lc_pixs)
+                # print len(lat_pixs)
+                # print lat_pixs
+                # print '****'
                 intersect = self.intersection(lc_pixs,lat_pixs)
                 # print intersect
-                if len(intersect) > 10:
+                if len(intersect) > 100:
                     key = lc_i + '.' + str(lat_i)
                     scatter_labels.append(key)
                     intersect_int = []
@@ -7318,15 +7371,17 @@ class Water_balance:
         plt.figure(figsize=(8,7))
         for key in scatter_dic:
             lc,lat = key.split('.')
-            lat = int(lat)
+            # print key
+            # lat = int(lat)
             # print lc,lat
             marker = markers_dic[lc]
-            color = color_dic[lat]
+            color = cls_color_dic[lat]
             x,y,xerr,yerr = scatter_dic[key]
             # zorder : 图层顺序
-            plt.scatter(x,y,s=80,c=color,marker=marker,edgecolors='black',linewidths=1,zorder=99,label=lc)
+            # plt.scatter(x,y,s=80,c='#'+color,marker=marker,edgecolors='black',linewidths=1,zorder=99,label=lc)
+            plt.scatter(x,y,s=80,c='#'+color,marker=marker,edgecolors='black',linewidths=1,zorder=99)
             # print x,y,xerr,yerr
-            plt.errorbar(x,y,xerr=xerr/4.,yerr=yerr/4.,c='gray',zorder=0,alpha=0.5)
+            plt.errorbar(x,y,xerr=xerr/8.,yerr=yerr/8.,c='gray',zorder=0,alpha=0.5)
             X.append(x)
             Y.append(y)
         # plt.legend()
@@ -7338,6 +7393,7 @@ class Water_balance:
         # plot cmap
         # sns.palplot(cmap)
         # plt.xlim(0,1.6)
+        plt.ylim(0,15)
         # plt.ylim(7,13)
         # plt.ylim(0.5,2.3)
         # plt.ylim(-5,100)
