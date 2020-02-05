@@ -17,7 +17,8 @@ class Recovery_time1:
     def run1(self):
 
         # self.recovery_early_late_in_out()
-        self.ratio()
+        # self.ratio()
+        self.plot_early_late_pdf()
 
 
     def valid_pix(self):
@@ -412,11 +413,9 @@ class Recovery_time1:
         DIC_and_TIF().arr_to_tif(late_out_arr,outdir+'late_out_arr.tif')
 
 
-        pass
-
 
     def ratio(self):
-        outdir = this_root + 'new_2020\\tif\\recovery_time_in_out\\'
+        outdir = this_root + 'new_2020\\tif\\ratio\\'
         Tools().mk_dir(outdir)
         f = this_root + 'new_2020\\arr\\recovery_time_composite\\composite.npy'
         dic = dict(np.load(f).item())
@@ -438,7 +437,7 @@ class Recovery_time1:
 
             for event in events:
                 recovery_time, mark, recovery_date_range, date_range, eln = event
-                if mark != 'in':
+                if mark != 'out':
                     continue
                 flag += 1.
 
@@ -447,17 +446,45 @@ class Recovery_time1:
                     early_flag += 1.
                 if 'late' in eln:
                     late_flag += 1.
+            if flag == 0:
+                continue
             early_ratio = early_flag/flag
             late_ratio = late_flag/flag
+            early_ratio_dic[pix] = early_ratio
+            late_ratio_dic[pix] = late_ratio
+
+        DIC_and_TIF().pix_dic_to_tif(early_ratio_dic,outdir+'early_ratio.tif')
+        DIC_and_TIF().pix_dic_to_tif(late_ratio_dic,outdir+'late_ratio.tif')
 
 
 
-        pass
+    def plot_early_late_pdf(self):
+        fdir = this_root+'new_2020\\tif\\recovery_time\\'
+        early = fdir+'early.tif'
+        late = fdir+'late.tif'
 
+        early_arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(early)
+        late_arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(late)
+        early_pdf = []
+        late_pdf = []
+        tropical_pix = self.tropical_pix
+        for i in tqdm(range(len(early_arr))):
+            for j in range(len(early_arr[0])):
+                pix = '%03d.%03d'%(i,j)
+                # print pix
+                if pix in tropical_pix:
+                    continue
+                early_val = early_arr[i][j]
+                late_val = late_arr[i][j]
+                if early_val > 0 and early_val < 18:
+                    early_pdf.append(early_val)
+                if late_val > 0 and late_val < 18:
+                    late_pdf.append(late_val)
 
-
-
-
+        plt.hist(early_pdf,bins=20)
+        plt.figure()
+        plt.hist(late_pdf,bins=20)
+        plt.show()
 def main():
 
     Recovery_time1().run1()
