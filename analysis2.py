@@ -150,7 +150,7 @@ class Recovery_time1:
                         if len(ndvi) < 300:
                             continue
                         # 1 挑出此次干旱事件的NDVI和SPEI值 （画图需要）
-                        spei_picked_vals = Tools().pick_vals_from_1darray(spei, date_range)
+                        # spei_picked_vals = Tools().pick_vals_from_1darray(spei, date_range)
                         # 2 挑出此次干旱事件SPEI最低的索引
                         min_spei_indx = Tools().pick_min_indx_from_1darray(spei, date_range)
                         # 3 在此次干旱事件SPEI最低索引的周围搜索NDVI的索引和值
