@@ -131,6 +131,57 @@ class Prepare:
         np.save(out_dir + '{}'.format(x), X)
 
 
+    def prepare_NDVI(self):
+        out_dir = this_root + 'new_2020\\random_forest\\'
+        Y_dic = dict(np.load(this_root + 'new_2020\\random_forest\\Y.npy').item())
+        per_pix_dir = this_root + 'NDVI\\per_pix_anomaly\\'
+        # 1 加载所有原始数据
+        all_dic = {}
+        for f in tqdm(os.listdir(per_pix_dir), desc='1/3 loading per_pix_dir ...'):
+            dic = dict(np.load(per_pix_dir + f).item())
+            for pix in dic:
+                all_dic[pix] = dic[pix]
+        # 3 找干旱事件对应的X的距平的平均或求和
+        X = {}
+        for key in tqdm(Y_dic, desc='3/3 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            split_date_range = date_range.split('.')
+            start = split_date_range[0]
+            end = split_date_range[1]
+            start = int(start)
+            end = int(end)
+            drought_range = range(start, end)
+            # print pix,mark,drought_range
+            vals = all_dic[pix]
+            selected_val = []
+            for dr in drought_range:
+                mon = dr % 12 + 1
+                if not mon in month_range:
+                    continue
+                mon = '%02d' % mon
+                mon_mean = mean_dic[mon][pix]
+                if mon_mean < -9999:
+                    continue
+                val = vals[dr]
+                if val < -9999:
+                    continue
+                juping = val - mon_mean
+                selected_val.append(juping)
+            if len(selected_val) > 0:
+                if x == 'TMP' or x == 'CCI':
+                    juping_mean = np.mean(selected_val)
+                else:
+                    juping_mean = np.sum(selected_val)
+            else:
+                juping_mean = np.nan
+            X[key] = juping_mean
+
+        np.save(out_dir + '{}'.format(x), X)
+
+        pass
+
+
 def main():
 
     Prepare().run()
