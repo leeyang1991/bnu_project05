@@ -1416,7 +1416,11 @@ class KDE_plot:
 
 
 class Pre_Process:
+
     def __init__(self):
+        pass
+
+    def run(self):
         fdir = this_root+'GPP\\tif\\'
         per_pix = this_root+'GPP\\per_pix\\'
         anomaly = this_root+'GPP\\per_pix_anomaly\\'
@@ -1576,6 +1580,21 @@ class Pre_Process:
         #     self.kernel_cal_anomaly(p)
         MUTIPROCESS(self.kernel_cal_anomaly, params).run(process=6, process_or_thread='p',
                                                          text='calculating anomaly...')
+
+
+    def smooth_anomaly(self):
+        fdir = this_root+'NDVI\\per_pix_anomaly\\'
+        outdir = this_root+'NDVI\\per_pix_anomaly_smooth\\'
+        Tools().mk_dir(outdir)
+        for f in tqdm(os.listdir(fdir)):
+            dic = dict(np.load(fdir+f).item())
+            smooth_dic = {}
+            for key in dic:
+                vals = dic[key]
+                smooth_vals = SMOOTH().forward_window_smooth(vals)
+                smooth_dic[key] = smooth_vals
+            np.save(outdir+f,smooth_dic)
+
 
 
     def check_ndvi_anomaly(self):
@@ -7025,11 +7044,11 @@ class HI:
 class Water_balance:
 
     def __init__(self):
-        self.cross_landuse_WB_recovery_time()
+        # self.cross_landuse_WB_recovery_time()
         # self.gen_latitude_zone_arr()
         pass
     def run(self):
-        # self.gen_koppen_area()
+        # self.cross_landuse_WB_recovery_time()
         pass
 
     def gen_latitude_zone_arr(self):
@@ -7420,7 +7439,7 @@ def main():
     # run()
     # DIC_and_TIF().run()
     # NDVI().run()
-    # Pre_Process()
+    Pre_Process().smooth_anomaly()
     # Pick_Single_events()
     # Pick_Single_events1()
     # Recovery_time_winter()
@@ -7430,7 +7449,7 @@ def main():
     # RATIO().run()
     # Winter()
     # HI()
-    Water_balance().run()
+    # Water_balance().run()
 
 
 

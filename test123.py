@@ -7,7 +7,8 @@ Desctiption
 '''
 from analysis import *
 
-def foo_(growingseason,ind):
+
+def _foo_(growingseason,ind):
 
     # a = [1,2,10,11,12]
     # ind = 11
@@ -46,7 +47,7 @@ def func(in_list):
 
 
 
-class abc:
+class __abc:
 
     def __init__(self):
         self.get_val()
@@ -59,6 +60,11 @@ class abc:
     def get_a(self):
 
         print self.a
+
+
+def test123():
+
+    print this_root
 
 def main():
 
