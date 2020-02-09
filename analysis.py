@@ -7048,7 +7048,7 @@ class Water_balance:
         # self.gen_latitude_zone_arr()
         pass
     def run(self):
-        # self.cross_landuse_WB_recovery_time()
+        self.cross_landuse_WB_recovery_time()
         pass
 
     def gen_latitude_zone_arr(self):
@@ -7090,26 +7090,6 @@ class Water_balance:
 
         return latitude_zone_dic
 
-
-    def gen_koppen_area(self):
-        array = np.load(this_root+'arr\\koppen_spatial_arr_ascii.npy')
-        pix_dic = DIC_and_TIF().spatial_arr_to_dic(array)
-        unique_val = []
-        for key in pix_dic:
-            # print key,pix_dic[key]
-            val = pix_dic[key]
-            unique_val.append(val)
-        unique_val = set(unique_val)
-        # exit()
-        dic = {}
-        for i in unique_val:
-            dic[i] = []
-
-        for pix in pix_dic:
-            val = pix_dic[pix]
-            dic[val].append(pix)
-
-        return dic
 
     def gen_landuse_zonal_index(self):
         # [8,10,11,16]
@@ -7269,7 +7249,7 @@ class Water_balance:
         # 4、生成纬度 dic
         # latitude_dic = self.gen_latitude_zone_arr()
         # 4.1 koppen zone
-        latitude_dic = self.gen_koppen_area()
+        latitude_dic = Koppen_Reclass().do_reclass()
         # 5、交叉像素
 
         intersect_dic = {}
@@ -7294,47 +7274,6 @@ class Water_balance:
         # color_dic = {}
         # for cm in range(len(cmap)):
         #     color_dic[cm] = cmap[cm]
-
-        cls_color_dic = {
-            'Af': '8d1c21',
-            'Am': 'e7161a',
-            'As': 'f19596',
-            'Aw': 'f8c8c9',
-
-            'BWk': 'f1ee70',
-            'BWh': 'f4c520',
-            'BSk': 'c7a655',
-            'BSh': 'c58a19',
-
-            'Cfa': '113118',
-            'Cfb': '114f2a',
-            'Cfc': '137539',
-            'Csa': '6cb92c',
-            'Csb': '9bc82a',
-            'Csc': 'bfd62e',
-            'Cwa': 'ad6421',
-            'Cwb': '916425',
-            'Cwc': '583d1b',
-
-            'Dfa': '2d112f',
-            'Dfb': '5a255d',
-            'Dfc': '9b3e93',
-            'Dfd': 'b9177d',
-            'Dsa': 'bf7cb2',
-            'Dsb': 'deb3d2',
-            'Dsc': 'd9c5df',
-            'Dsd': 'c8c8c9',
-            'Dwa': 'bdafd5',
-            'Dwb': '957cac',
-            'Dwc': '7f57a1',
-            'Dwd': '603691',
-
-            'EF': '688cc7',
-            'ET': '87cfd9',
-
-            'nan': '000000'
-        }
-
 
         markers_flag = 0
         scatter_dic = {}
@@ -7419,6 +7358,109 @@ class Water_balance:
         plt.show()
         # plt.savefig(this_root+'AI\\Ratio\\'+title+'.pdf')
 
+
+class Koppen_Reclass:
+
+    def __init__(self):
+        self.Koppen_cls()
+        pass
+
+    def Koppen_cls(self):
+        self.Koppen_color_dic = {
+            'Af': '8d1c21',
+            'Am': 'e7161a',
+            'As': 'f19596',
+            'Aw': 'f8c8c9',
+
+            'BWk': 'f1ee70',
+            'BWh': 'f4c520',
+            'BSk': 'c7a655',
+            'BSh': 'c58a19',
+
+            'Cfa': '113118',
+            'Cfb': '114f2a',
+            'Cfc': '137539',
+            'Csa': '6cb92c',
+            'Csb': '9bc82a',
+            'Csc': 'bfd62e',
+            'Cwa': 'ad6421',
+            'Cwb': '916425',
+            'Cwc': '583d1b',
+
+            'Dfa': '2d112f',
+            'Dfb': '5a255d',
+            'Dfc': '9b3e93',
+            'Dfd': 'b9177d',
+            'Dsa': 'bf7cb2',
+            'Dsb': 'deb3d2',
+            'Dsc': 'd9c5df',
+            'Dsd': 'c8c8c9',
+            'Dwa': 'bdafd5',
+            'Dwb': '957cac',
+            'Dwc': '7f57a1',
+            'Dwd': '603691',
+
+            'EF': '688cc7',
+            'ET': '87cfd9',
+
+            'nan': '000000'
+        }
+
+        self.RegAR = ['BWk','BWh','BSk','BSh']
+        self.RegTA = ['Csa','Csb','Csc','Cwa','Cwb','Cwc']
+        self.RegTH = ['Cfa','Cfb','Cfc']
+        self.RegAS = ['Dsa','Dsb','Dsc']
+        self.RegAW = ['Dwa','Dwb','Dwc','Dwd']
+        self.RegAH = ['Dfa','Dfb','Dfc','Dfd']
+
+    def run(self):
+        self.do_reclass()
+        pass
+
+    def gen_koppen_area(self):
+        array = np.load(this_root+'arr\\koppen_spatial_arr_ascii.npy')
+        pix_dic = DIC_and_TIF().spatial_arr_to_dic(array)
+        unique_val = []
+        for key in pix_dic:
+            # print key,pix_dic[key]
+            val = pix_dic[key]
+            unique_val.append(val)
+        unique_val = set(unique_val)
+        # exit()
+        dic = {}
+        for i in unique_val:
+            dic[i] = []
+
+        for pix in pix_dic:
+            val = pix_dic[pix]
+            dic[val].append(pix)
+
+        return dic
+
+    def reclass(self,koppen_dic,reclass_type):
+        # latitude_dic = Water_balance().gen_koppen_area()
+        reclass_pix = []
+        for cls in reclass_type:
+            pixles = koppen_dic[cls]
+            for pix in pixles:
+                reclass_pix.append(pix)
+        return reclass_pix
+
+
+    def do_reclass(self):
+        reclass_type = {'AR':self.RegAR,
+                        'TA':self.RegTA,
+                        'TH':self.RegTH,
+                        'AS':self.RegAS,
+                        'AW':self.RegAW,
+                        'AH':self.RegAH}
+        reclass_dic = {}
+        koppen_dic = self.gen_koppen_area()
+        for rt in reclass_type:
+            reclass_pix = self.reclass(koppen_dic,reclass_type[rt])
+            reclass_dic[rt] = reclass_pix
+        return reclass_dic
+
 def kernel_run(param):
     interval = param
     # PRE_POST_NON_Recovery_time().run(interval, 'non-growing')
@@ -7439,7 +7481,7 @@ def main():
     # run()
     # DIC_and_TIF().run()
     # NDVI().run()
-    Pre_Process().smooth_anomaly()
+    # Pre_Process().smooth_anomaly()
     # Pick_Single_events()
     # Pick_Single_events1()
     # Recovery_time_winter()
@@ -7449,7 +7491,8 @@ def main():
     # RATIO().run()
     # Winter()
     # HI()
-    # Water_balance().run()
+    Water_balance().run()
+    # Koppen_Reclass().run()
 
 
 

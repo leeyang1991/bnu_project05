@@ -172,6 +172,7 @@ class Prepare:
 
 
 
+
 class RF_train:
 
     def __init__(self):
@@ -182,6 +183,7 @@ class RF_train:
     def run(self):
         lc_pix = self.gen_landcover_pixes()
         for lc in lc_pix:
+            print lc
             pixes = lc_pix[lc]
             self.random_forest_train(pixes)
 
@@ -216,7 +218,7 @@ class RF_train:
             else:
                 landuse_index = None
                 raise IOError('landuse type error')
-            landuse_dic[lc_label] = landuse_index
+            landuse_dic[lc_label] = set(landuse_index)
         return landuse_dic
 
     def load_variable(self,selected_pix=()):
@@ -265,8 +267,8 @@ class RF_train:
                     _list_new.append(nan)
                 else:
                     _list_new.append(_l)
-            if False in _list_new:
-                continue
+            # if False in _list_new:
+            #     continue
             pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean = _list_new
 
             # print [pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean]
@@ -366,7 +368,8 @@ class RF_train:
 def main():
 
     # Prepare().run()
-    RF_train().run()
+    # RF_train().run()
+    Koppen_Reclass().run()
     pass
 
 
