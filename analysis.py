@@ -7224,9 +7224,13 @@ class Water_balance:
         # labels = ['ENF','EBF','DNF','DBF','MF','Shrublands',
         #           'Savannas','Grasslands','Croplands']
         # lc组合2
-        landuse_types = [[1, 2, 3, 4, 5], [6, 7], [8, 9], 10, 12]
-        labels = ['Forest', 'Shrublands',
-                  'Savannas', 'Grasslands', 'Croplands']
+        # landuse_types = [[1, 2, 3, 4, 5], [6, 7], [8, 9], 10, 12]
+        # labels = ['Forest', 'Shrublands',
+        #           'Savannas', 'Grasslands', 'Croplands']
+        # lc组合3
+        landuse_types = [[1, 2, 3, 4, 5], [6, 7 ,8, 9], 10]
+        labels = ['Forest', 'Shrublands_Savanna', 'Grasslands']
+
 
         landuse_class_dic = self.gen_landuse_zonal_index()
 
@@ -7264,16 +7268,21 @@ class Water_balance:
                       'Savannas':"D",
                       'DBF':"P",
                       'Croplands':"v",
-                       'Grasslands':"p"
+                       'Grasslands':"p",
+                       'Shrublands_Savanna':"D",
                        }
         # cmap = sns.color_palette('RdBu_r', len(latitude_dic))
         # flatui = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"]
         # cmap = sns.color_palette(flatui)
-        # cmap = sns.diverging_palette(236,0,s=99,l=50,n=len(latitude_dic), center="light")
 
-        # color_dic = {}
-        # for cm in range(len(cmap)):
-        #     color_dic[cm] = cmap[cm]
+        # color dic #
+        cmap = sns.diverging_palette(236,0,s=99,l=50,n=len(latitude_dic), center="light")
+        color_dic = {}
+        cm = 0
+        for lc in latitude_dic:
+            color_dic[lc] = cmap[cm]
+            cm += 1
+        # color dic #
 
         markers_flag = 0
         scatter_dic = {}
@@ -7333,11 +7342,13 @@ class Water_balance:
             # lat = int(lat)
             # print lc,lat
             marker = markers_dic[lc]
-            color = cls_color_dic[lat]
+            # color = cls_color_dic[lat]
+            color = color_dic[lat]
             x,y,xerr,yerr = scatter_dic[key]
             # zorder : 图层顺序
             # plt.scatter(x,y,s=80,c='#'+color,marker=marker,edgecolors='black',linewidths=1,zorder=99,label=lc)
-            plt.scatter(x,y,s=80,c='#'+color,marker=marker,edgecolors='black',linewidths=1,zorder=99)
+            # plt.scatter(x,y,s=80,c='#'+color,marker=marker,edgecolors='black',linewidths=1,zorder=99)
+            plt.scatter(x,y,s=80,c=color,marker=marker,edgecolors='black',linewidths=1,zorder=99)
             # print x,y,xerr,yerr
             plt.errorbar(x,y,xerr=xerr/8.,yerr=yerr/8.,c='gray',zorder=0,alpha=0.5)
             X.append(x)
@@ -7461,6 +7472,94 @@ class Koppen_Reclass:
             reclass_dic[rt] = reclass_pix
         return reclass_dic
 
+
+class Annual_changes:
+
+    def __init__(self):
+        pass
+
+
+    def run(self):
+        recovery_dic = dict(np.load(this_root+'new_2020\\arr\\recovery_time_composite\\composite.npy').item())
+        year_dic = {}
+        for y in range(1982,2016):
+            year_dic[y] = []
+        for key in tqdm(recovery_dic):
+            events = recovery_dic[key]
+            for event in events:
+                recovery_time, mark, recovery_date_range, drought_date_range, eln = event
+                # if recovery_time == None or recovery_time > 18:
+                if recovery_time == None:
+                    continue
+                start = recovery_date_range[0]
+                year = int(start//12 + 1982)
+                year_dic[year].append(recovery_time)
+
+
+        ratio1 = []
+        ratio2 = []
+        ratio3 = []
+        ratio4 = []
+        for i in range(7):
+            recovery_list = []
+
+            selected_year = []
+            for y in range(1982, 2016):
+                if y in range(1981+5*i,1981+5*(i+1)):
+                    selected_year.append(y)
+                    for val in year_dic[y]:
+                        recovery_list.append(val)
+            print selected_year
+            cls1 = []
+            cls2 = []
+            cls3 = []
+            cls4 = []
+            for recovery in recovery_list:
+                if recovery <= 6:
+                    cls1.append(recovery)
+                # elif 6 < recovery <= 9:
+                elif 6 < recovery <= 12:
+                    cls2.append(recovery)
+                elif 12 < recovery <= 24:
+                # elif 12 < recovery <= 24:
+                    cls3.append(recovery)
+                elif 24 < recovery:
+                # elif 24 < recovery <= 18:
+                    cls4.append(recovery)
+                else:
+                    raise IOError('recovery error')
+            total = len(cls1) + len(cls2) + len(cls3) + len(cls4)
+            r1 = float(len(cls1)) / total
+            r2 = float(len(cls2)) / total
+            r3 = float(len(cls3)) / total
+            r4 = float(len(cls4)) / total
+            ratio1.append(r1)
+            ratio2.append(r2)
+            ratio3.append(r3)
+            ratio4.append(r4)
+        ratio1 = np.array(ratio1)
+        ratio2 = np.array(ratio2)
+        ratio3 = np.array(ratio3)
+        ratio4 = np.array(ratio4)
+        plt.bar(range(len(ratio1)),ratio1)
+        plt.bar(range(len(ratio1)),ratio2,bottom=ratio1)
+        plt.bar(range(len(ratio1)),ratio3,bottom=ratio1+ratio2)
+        plt.bar(range(len(ratio1)),ratio4,bottom=ratio1+ratio2+ratio3)
+
+        plt.show()
+
+
+
+        pass
+
+
+
+
+
+
+
+
+
 def kernel_run(param):
     interval = param
     # PRE_POST_NON_Recovery_time().run(interval, 'non-growing')
@@ -7491,9 +7590,9 @@ def main():
     # RATIO().run()
     # Winter()
     # HI()
-    Water_balance().run()
+    # Water_balance().run()
     # Koppen_Reclass().run()
-
+    Annual_changes().run()
 
 
 

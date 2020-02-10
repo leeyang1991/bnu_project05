@@ -369,7 +369,6 @@ def main():
 
     # Prepare().run()
     # RF_train().run()
-    Koppen_Reclass().run()
     pass
 
 

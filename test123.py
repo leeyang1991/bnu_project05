@@ -8,16 +8,15 @@ Desctiption
 from analysis import *
 
 
-def _foo_(growingseason,ind):
+def foo():
+    a=24.1
+    print a//12.0
 
-    # a = [1,2,10,11,12]
-    # ind = 11
-    mon = ind%12+1
-    b = growingseason.index(mon)
-    # print a
-    # print mon
-    # print b
-    return b
+
+
+
+    pass
+
 
 def func(in_list):
 
@@ -67,11 +66,10 @@ def test123():
     print this_root
 
 def main():
+    foo()
 
-    a=[1,2,3,4,12]
-    b = func(a)
-    print a
-    print b
 
+
+    pass
 if __name__ == '__main__':
     main()
