@@ -1216,27 +1216,8 @@ class DIC_and_TIF:
 
     def pix_dic_to_tif(self, spatial_dic, out_tif):
 
-        x = []
-        y = []
-        for key in spatial_dic:
-            key_split = key.split('.')
-            x.append(key_split[0])
-            y.append(key_split[1])
-        row = len(set(x))
-        col = len(set(y))
-        spatial = []
-        for r in range(row):
-            temp = []
-            for c in range(col):
-                key = '%03d.%03d' % (r, c)
-                if key in spatial_dic:
-                    val_pix = spatial_dic[key]
-                    temp.append(val_pix)
-                else:
-                    temp.append(np.nan)
-            spatial.append(temp)
-
-        spatial = np.array(spatial)
+        spatial = self.pix_dic_to_spatial_arr(spatial_dic)
+        # spatial = np.array(spatial)
         self.arr_to_tif(spatial, out_tif)
 
     def spatial_tif_to_lon_lat_dic(self):
@@ -6539,8 +6520,14 @@ class Recovery_time_winter_3:
 
 class Statistic:
     def __init__(self):
-        self.histogram()
+        # self.histogram()
         pass
+
+
+    def run(self):
+
+        pass
+
 
     def get_u_sig(self,val):
         '''
@@ -6709,7 +6696,46 @@ class Statistic:
         pass
 
 
-    # def
+    def recovery_tif_pdf(self):
+        tif = this_root+'new_2020\\tif\\recovery_time\\early.tif'
+        tif = this_root+'new_2020\\tif\\recovery_time\\late.tif'
+        array,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
+        hist = []
+        for i in range(len(array)):
+            for j in range(len(array[0])):
+                val = array[i][j]
+                if 0 < val < 18:
+                    hist.append(val)
+        plt.hist(hist,bins=18,density=1)
+        plt.show()
+        pass
+
+    def recovery_arr_pdf(self):
+        f = this_root+'new_2020\\arr\\recovery_time_composite\\composite.npy'
+        arr = dict(np.load(f).item())
+        early_recovery = []
+        late_recovery = []
+        for key in tqdm(arr):
+            events = arr[key]
+            for event in events:
+                recovery_time, mark, recovery_date_range, date_range, eln = event
+                if recovery_time > 18 or recovery_time == None:
+                    continue
+                # print eln
+                if 'early' in eln or 'tropical' == eln:
+                    early_recovery.append(recovery_time)
+                if 'late' in eln or 'tropical' == eln:
+                    late_recovery.append(recovery_time)
+        plt.figure()
+        plt.hist(early_recovery,bins=19,density=1)
+        plt.ylim(0,0.45)
+        plt.title('early')
+        plt.figure()
+        plt.hist(late_recovery,bins=19,density=1)
+        plt.title('late')
+        plt.ylim(0, 0.45)
+        plt.show()
+        pass
 
 
 class RATIO:
@@ -7197,13 +7223,23 @@ class Water_balance:
 
         ############################  recovery new 2020  ############################
 
-        recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\early.tif'
-        title = 'Early Growing Season'
+        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\early.tif'
+        # title = 'Early Growing Season'
 
         # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\late.tif'
         # title = 'Late Growing Season'
 
         ############################  recovery new 2020  ############################
+
+
+        ############################  recovery new 2020  ############################
+        # recovery_time_tif = this_root + 'new_2020\\tif\\ratio\\early_ratio.tif'
+        # title = 'Ratio of Overwinter in Early Growing Season'
+
+        # recovery_time_tif = this_root + 'new_2020\\tif\\ratio\\late_ratio.tif'
+        # title = 'Ratio of Overwinter in Late Growing Season'
+        ############################  recovery new 2020  ############################
+
 
 
         recovery_time_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(recovery_time_tif)
@@ -7253,7 +7289,7 @@ class Water_balance:
         # 4、生成纬度 dic
         # latitude_dic = self.gen_latitude_zone_arr()
         # 4.1 koppen zone
-        latitude_dic = Koppen_Reclass().do_reclass()
+        latitude_dic = Koppen().do_reclass()
         # 5、交叉像素
 
         intersect_dic = {}
@@ -7362,7 +7398,7 @@ class Water_balance:
         # plot cmap
         # sns.palplot(cmap)
         # plt.xlim(0,1.6)
-        plt.ylim(0,15)
+        # plt.ylim(0,15)
         # plt.ylim(7,13)
         # plt.ylim(0.5,2.3)
         # plt.ylim(-5,100)
@@ -7370,7 +7406,7 @@ class Water_balance:
         # plt.savefig(this_root+'AI\\Ratio\\'+title+'.pdf')
 
 
-class Koppen_Reclass:
+class Koppen:
 
     def __init__(self):
         self.Koppen_cls()
@@ -7391,9 +7427,11 @@ class Koppen_Reclass:
             'Cfa': '113118',
             'Cfb': '114f2a',
             'Cfc': '137539',
+
             'Csa': '6cb92c',
             'Csb': '9bc82a',
             'Csc': 'bfd62e',
+
             'Cwa': 'ad6421',
             'Cwb': '916425',
             'Cwc': '583d1b',
@@ -7402,10 +7440,12 @@ class Koppen_Reclass:
             'Dfb': '5a255d',
             'Dfc': '9b3e93',
             'Dfd': 'b9177d',
+
             'Dsa': 'bf7cb2',
             'Dsb': 'deb3d2',
             'Dsc': 'd9c5df',
             'Dsd': 'c8c8c9',
+
             'Dwa': 'bdafd5',
             'Dwb': '957cac',
             'Dwc': '7f57a1',
@@ -7426,6 +7466,58 @@ class Koppen_Reclass:
 
     def run(self):
         self.do_reclass()
+        pass
+
+
+    def koppen_to_arr(self):
+
+        f = this_root + 'climate_zone\\Koeppen-Geiger-ASCII.txt'
+        fr = open(f)
+        fr.readline()
+        lines = fr.readlines()
+        fr.close()
+        lon_list = []
+        lat_list = []
+        val_list = []
+        for line in lines:
+            line = line.split('\n')[0]
+            lat, lon, cls = line.split()
+            lon_list.append(float(lon))
+            lat_list.append(float(lat))
+            val_list.append(cls)
+
+        vals = list(set(val_list))
+        vals.sort()
+        vals_dic = {}
+        for i in range(len(vals)):
+            vals_dic[vals[i]] = i
+
+        new_val_list = []
+        for val in val_list:
+            new_val = vals_dic[val]
+            new_val_list.append(new_val)
+
+        arr = DIC_and_TIF().ascii_to_arr(lon_list, lat_list, new_val_list)
+
+        arr_ascii = DIC_and_TIF().ascii_to_arr(lon_list, lat_list, val_list)
+
+        # exit()
+
+        palette = []
+        for i in vals:
+            palette.append('#' + self.Koppen_color_dic[i])
+        colors = sns.color_palette(palette)
+        cmap = mpl.colors.ListedColormap(colors)
+        # print cmap
+        plt.imshow(arr, cmap=cmap)
+        plt.show()
+        # save arr
+        np.save(this_root + 'arr\\koppen_spatial_arr_ascii', arr_ascii)
+        # arr to tif
+        DIC_and_TIF().arr_to_tif(arr, this_root + 'climate_zone\\koppen.tif')
+
+
+
         pass
 
     def gen_koppen_area(self):
@@ -7586,13 +7678,13 @@ def main():
     # Recovery_time_winter()
     # Recovery_time_winter_2().run()
     # Recovery_time_winter_3().run()
-    # Statistic()
+    Statistic().recovery_arr_pdf()
     # RATIO().run()
     # Winter()
     # HI()
     # Water_balance().run()
-    # Koppen_Reclass().run()
-    Annual_changes().run()
+    # Koppen().koppen_to_arr()
+    # Annual_changes().run()
 
 
 

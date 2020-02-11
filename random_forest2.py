@@ -1,6 +1,7 @@
 # coding=gbk
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from analysis import *
 
@@ -270,13 +271,14 @@ class RF_train:
             # if False in _list_new:
             #     continue
             pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean = _list_new
-
+            print _list_new
             # print [pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean]
             pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
             pix_dic[pix] = 1
             X.append([pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean])
             Y.append(y)
             flag += 1
+        exit()
         print 'selected pixes: {}'.format(flag)
         selected_pix_spatial = DIC_and_TIF().pix_dic_to_spatial_arr(pix_dic)
         return X,Y,selected_pix_spatial
@@ -302,8 +304,8 @@ class RF_train:
         # clf = sklearn.ensemble.RandomForestRegressor(n_estimators=10, max_depth=None,min_samples_split = 2, random_state = 0)
         # clf = RandomForestRegressor(n_estimators=2000,min_samples_split=1000)
         # clf = RandomForestRegressor(n_estimators=100, max_depth=6, n_jobs=1, verbose=2)
-        # clf = RandomForestRegressor()
-        clf = RandomForestClassifier()
+        clf = RandomForestRegressor()
+        # clf = RandomForestClassifier()
         clf.fit(X_train, Y_train)
 
         importances = clf.feature_importances_
@@ -323,9 +325,9 @@ class RF_train:
         plt.figure()
         plt.imshow(selected_pix_spatial,cmap='gray')
 
-        plt.show()
+        # plt.show()
         # plt.savefig(out_pdf)
-        plt.close()
+        # plt.close()
         # std = np.std([tree.feature_importances_ for tree in clf.estimators_],
         #              axis=0)
         # indices = np.argsort(importances)[::-1]
@@ -350,17 +352,17 @@ class RF_train:
 
         # exit()
         # clf.fe
-        # y_pred = clf.predict(X_test)
+        y_pred = clf.predict(X_test)
         # r = scipy.stats.pearsonr(Y_test, y_pred)
         # r2 = sklearn.metrics.r2_score(Y_test, y_pred)
         # mse = sklearn.metrics.mean_squared_error(Y_test, y_pred)
         # print('r2:%s\nmse:%s\nr:%s' % (r2, mse, r))
-        # analysis.KDE_plot().plot_scatter(Y_test, y_pred,s=40)
+        KDE_plot().plot_scatter(Y_test, y_pred,s=10)
         # plt.figure()
         # plt.scatter(Y_test, y_pred)
         # # plt.xlim(-3,3)
         # # plt.ylim(-3,3)
-        # plt.show()
+        plt.show()
         pass
 
 
@@ -368,7 +370,7 @@ class RF_train:
 def main():
 
     # Prepare().run()
-    # RF_train().run()
+    RF_train().run()
     pass
 
 

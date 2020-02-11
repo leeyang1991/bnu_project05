@@ -17,8 +17,8 @@ class Recovery_time1:
     def run1(self):
 
         # self.recovery_early_late_in_out()
-        # self.ratio()
-        self.plot_early_late_pdf()
+        self.ratio()
+        # self.plot_early_late_pdf()
 
 
     def valid_pix(self):
@@ -452,7 +452,7 @@ class Recovery_time1:
             late_ratio = late_flag/flag
             early_ratio_dic[pix] = early_ratio
             late_ratio_dic[pix] = late_ratio
-
+        # arr = DIC_and_TIF
         DIC_and_TIF().pix_dic_to_tif(early_ratio_dic,outdir+'early_ratio.tif')
         DIC_and_TIF().pix_dic_to_tif(late_ratio_dic,outdir+'late_ratio.tif')
 
