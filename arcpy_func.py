@@ -144,12 +144,38 @@ def do_mapping_recovery_time2():
             mapping(current_dir,tif,outjpeg,title,mxd_file)
 
 
+
+def do_mapping_recovery_time3():
+
+
+    current_dir = r'D:\project05\new_2020\tif\recovery_time_in_out\\'
+    # tif = r'early_in_arr.tif'
+    # title = 'Early IN'
+
+    # tif = r'early_out_arr.tif'
+    # title = 'Early OUT'
+    #
+    # tif = r'late_in_arr.tif'
+    # title = 'Late IN'
+    #
+    tif = r'late_out_arr.tif'
+    title = 'Late OUT'
+
+
+    outjpeg = r'D:\project05\new_2020\jpg\in_out\{}.jpg'.format(title)
+    mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
+    print title
+    mapping(current_dir,tif,outjpeg,title,mxd_file)
+
+
+
+
 def main():
 
-    indir = r'D:\project05\GPP\pre-prosess\unzip\\'
-    outdir = r'D:\project05\GPP\pre-prosess\resample\\'
-    resample(indir,outdir)
-    # do_mapping_recovery_time2()
+    # indir = r'D:\project05\GPP\pre-prosess\unzip\\'
+    # outdir = r'D:\project05\GPP\pre-prosess\resample\\'
+    # resample(indir,outdir)
+    do_mapping_recovery_time3()
     pass
 if __name__ == '__main__':
     main()

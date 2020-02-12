@@ -7232,13 +7232,28 @@ class Water_balance:
         ############################  recovery new 2020  ############################
 
 
-        ############################  recovery new 2020  ############################
+        ############################  ratio new 2020  ############################
         # recovery_time_tif = this_root + 'new_2020\\tif\\ratio\\early_ratio.tif'
         # title = 'Ratio of Overwinter in Early Growing Season'
-
         # recovery_time_tif = this_root + 'new_2020\\tif\\ratio\\late_ratio.tif'
         # title = 'Ratio of Overwinter in Late Growing Season'
-        ############################  recovery new 2020  ############################
+        ############################  ratio new 2020  ############################
+
+        ############################  recovery new 2020 in out ############################
+        # early in
+        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\early_in_arr.tif'
+        # title = 'Drought in Early Growing Season and Recovered IN Current Growing Season'
+        # early out
+        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\early_out_arr.tif'
+        # title = 'Drought in Early Growing Season and Recovered OUT Current Growing Season'
+
+        # late in
+        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\late_in_arr.tif'
+        # title = 'Drought in Late Growing Season and Recovered IN Current Growing Season'
+        # late out
+        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\late_out_arr.tif'
+        # title = 'Drought in Late Growing Season and Recovered OUT Current Growing Season'
+        ############################  recovery new 2020 in out ############################
 
 
 
@@ -7316,6 +7331,7 @@ class Water_balance:
         color_dic = {}
         cm = 0
         for lc in latitude_dic:
+            print lc,cm,cmap[cm]
             color_dic[lc] = cmap[cm]
             cm += 1
         # color dic #
@@ -7565,6 +7581,39 @@ class Koppen:
         return reclass_dic
 
 
+    def plot_reclass(self):
+        reclass_dic = self.do_reclass()
+        void_dic = DIC_and_TIF().void_spatial_dic()
+        flag = 0
+        for i in reclass_dic:
+            pixels = reclass_dic[i]
+            for pix in pixels:
+                void_dic[pix] = flag
+            flag += 1
+        for pix in void_dic:
+            if void_dic[pix] == []:
+                void_dic[pix] = np.nan
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(void_dic)
+
+        # palette = []
+        # for i in range(len(reclass_dic)):
+        #     palette.append('#' + self.Koppen_color_dic[i])
+        # colors = sns.color_palette(palette)
+        # cmap = mpl.colors.ListedColormap(colors)
+
+
+        cmap = sns.diverging_palette(236, 0, s=99, l=50, n=len(reclass_dic), center="light")
+        cmap = mpl.colors.ListedColormap(cmap)
+        # color_dic = {}
+        # cm = 0
+        # for lc in reclass_dic:
+        #     print lc, cm, cmap[cm]
+        #     color_dic[lc] = cmap[cm]
+        #     cm += 1
+
+        plt.imshow(arr,cmap)
+        plt.show()
+
 class Annual_changes:
 
     def __init__(self):
@@ -7581,11 +7630,14 @@ class Annual_changes:
             for event in events:
                 recovery_time, mark, recovery_date_range, drought_date_range, eln = event
                 # if recovery_time == None or recovery_time > 18:
+
                 if recovery_time == None:
                     continue
-                start = recovery_date_range[0]
-                year = int(start//12 + 1982)
-                year_dic[year].append(recovery_time)
+                # if 'early' in eln:
+                if 'tropical' in eln:
+                    start = recovery_date_range[0]
+                    year = int(start//12 + 1982)
+                    year_dic[year].append(recovery_time)
 
 
         ratio1 = []
@@ -7678,12 +7730,12 @@ def main():
     # Recovery_time_winter()
     # Recovery_time_winter_2().run()
     # Recovery_time_winter_3().run()
-    Statistic().recovery_arr_pdf()
+    # Statistic().recovery_arr_pdf()
     # RATIO().run()
     # Winter()
     # HI()
-    # Water_balance().run()
-    # Koppen().koppen_to_arr()
+    Water_balance().run()
+    # Koppen().plot_reclass()
     # Annual_changes().run()
 
 
