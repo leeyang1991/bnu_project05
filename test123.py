@@ -8,15 +8,11 @@ Desctiption
 from analysis import *
 
 
+
 def foo():
-    a=24.1
-    print a//12.0
-
-
 
 
     pass
-
 
 def func(in_list):
 

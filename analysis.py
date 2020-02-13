@@ -1606,6 +1606,27 @@ class Pre_Process:
                 val = dic[pix]
                 print pix,val
 
+    def extend_GPP(self):
+        fidr = this_root + 'GPP\\per_pix_anomaly\\'
+        outdir = this_root + 'GPP\\per_pix_anomaly_extend\\'
+        Tools().mk_dir(outdir)
+        for f in tqdm(os.listdir(fidr)):
+            # if not '015' in f:
+            #     continue
+            dic = dict(np.load(fidr + f).item())
+            new_dic = {}
+            for key in dic:
+                val = dic[key]
+                n = len(val)
+                if n == 0:
+                    new_dic[key] = []
+                    continue
+                ni = 408 - 192
+                null_list = [np.nan] * ni
+                null_list.extend(val)
+                new_dic[key] = null_list
+            np.save(outdir + f, new_dic)
+
 
 class Pick_Single_events():
     def __init__(self):
@@ -2552,7 +2573,7 @@ class Pick_Single_events1():
         n = 24
         spei_dir = this_root + mode + '\\per_pix\\' + 'SPEI_{:0>2d}\\'.format(interval)
         # spei_dir = this_root+'PDSI\\per_pix\\'
-        out_dir = this_root + mode + '\\192_single_events_{}\\'.format(n) + 'SPEI_{:0>2d}\\'.format(interval)
+        out_dir = this_root + mode + '\\single_events_{}\\'.format(n) + 'SPEI_{:0>2d}\\'.format(interval)
         # out_dir = this_root+'PDSI\\single_events\\'
         Tools().mk_dir(out_dir, force=True)
         for f in tqdm(os.listdir(spei_dir), 'file...'):
@@ -3205,7 +3226,75 @@ class Pick_Single_events1():
         plt.show()
         pass
 
-    def composite_3_modes(self):
+    def plot_spatial_events(self):
+        fdir = this_root+'SPEI\\single_events_24\\'
+        outf = this_root+'tif\\droughts_event_2020.tif'
+        arr_sum = 0.
+        void_dic = DIC_and_TIF().void_spatial_dic()
+
+        for folder in tqdm(os.listdir(fdir)):
+            folder_dir = fdir+folder+'\\'
+            # spatial_dic = {}
+            for f in os.listdir(folder_dir):
+                dic = dict(np.load(folder_dir+f).item())
+                for pix in dic:
+                    events = dic[pix]
+                    flag = 0
+                    for event in events:
+                        flag += 1
+                    if flag == 0:
+                        continue
+                    # spatial_dic[pix] = flag
+                    void_dic[pix].append(flag)
+        # arr_sum[arr_sum==0] = np.nan
+        spatial_dic = {}
+        for pix in void_dic:
+            vals_list = void_dic[pix]
+            mean = np.mean(vals_list)
+            spatial_dic[pix] = mean
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
+        DIC_and_TIF().arr_to_tif(arr,outf)
+        # plt.imshow(arr,'jet')
+        # plt.colorbar()
+        # plt.show()
+        pass
+
+
+    def plot_spatial_events_192(self):
+        # 2000 年以后的事件
+        fdir = this_root + 'SPEI\\single_events_24\\'
+        outf = this_root + 'tif\\droughts_event_2020_192.tif'
+        ni = 408 - 192
+        arr_sum = 0.
+        void_dic = DIC_and_TIF().void_spatial_dic()
+
+        for folder in tqdm(os.listdir(fdir)):
+            folder_dir = fdir + folder + '\\'
+            # spatial_dic = {}
+            for f in os.listdir(folder_dir):
+                dic = dict(np.load(folder_dir + f).item())
+                for pix in dic:
+                    events = dic[pix]
+                    flag = 0
+                    for event in events:
+                        if event[0] < ni:
+                            continue
+                        flag += 1
+                    if flag == 0:
+                        continue
+                    # spatial_dic[pix] = flag
+                    void_dic[pix].append(flag)
+        # arr_sum[arr_sum==0] = np.nan
+        spatial_dic = {}
+        for pix in void_dic:
+            vals_list = void_dic[pix]
+            mean = np.mean(vals_list)
+            spatial_dic[pix] = mean
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
+        DIC_and_TIF().arr_to_tif(arr, outf)
+        # plt.imshow(arr,'jet')
+        # plt.colorbar()
+        # plt.show()
 
         pass
 
@@ -7726,7 +7815,7 @@ def main():
     # NDVI().run()
     # Pre_Process().smooth_anomaly()
     # Pick_Single_events()
-    # Pick_Single_events1()
+    Pick_Single_events1().plot_spatial_events_192()
     # Recovery_time_winter()
     # Recovery_time_winter_2().run()
     # Recovery_time_winter_3().run()
@@ -7734,7 +7823,7 @@ def main():
     # RATIO().run()
     # Winter()
     # HI()
-    Water_balance().run()
+    # Water_balance().run()
     # Koppen().plot_reclass()
     # Annual_changes().run()
 

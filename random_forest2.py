@@ -271,7 +271,7 @@ class RF_train:
             # if False in _list_new:
             #     continue
             pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean = _list_new
-            # print _list_new
+            print _list_new
             # print [pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean]
             pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
             pix_dic[pix] = 1
