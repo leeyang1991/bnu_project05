@@ -7815,7 +7815,7 @@ def main():
     # NDVI().run()
     # Pre_Process().smooth_anomaly()
     # Pick_Single_events()
-    Pick_Single_events1().plot_spatial_events_192()
+    # Pick_Single_events1().plot_spatial_events_192()
     # Recovery_time_winter()
     # Recovery_time_winter_2().run()
     # Recovery_time_winter_3().run()
