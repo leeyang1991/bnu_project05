@@ -692,6 +692,17 @@ class Tools:
         # print(add)
 
 
+    def index_to_date_list(self):
+        index_date_list = []
+        for iii in np.arange(408):
+            year = 1982 + iii / 12
+            mon = iii % 12 + 1
+            mon = '%02d' % mon
+            index_date_list.append('{}.{}'.format(year, mon))
+        return index_date_list
+        pass
+
+
 
 class NDVI:
 

@@ -7,11 +7,18 @@ Desctiption
 '''
 from analysis import *
 
+def return_foo():
 
+    return None,None
 
 def foo():
+    f = this_root+'new_2020\\tif\\recovery_time_2\\mix.tif'
+    arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(f)
+    plt.subplot(111,projection='aitoff')
+    plt.imshow(arr)
 
-
+    plt.grid(1)
+    plt.show()
     pass
 
 def func(in_list):

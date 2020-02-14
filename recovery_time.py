@@ -1,4 +1,4 @@
-# coding=gbk
+# coding=utf-8
 from analysis import *
 
 class Recovery_time1:
@@ -102,7 +102,7 @@ class Recovery_time1:
 
     def gen_recovery_time(self,params):
         '''
-        …˙≥…»´«Úª÷∏¥∆⁄
+        ÁîüÊàêÂÖ®ÁêÉÊÅ¢Â§çÊúü
         :param interval: SPEI_{interval}
         :return:
         '''
@@ -112,10 +112,10 @@ class Recovery_time1:
         interval = '%02d' % interval
         out_dir = this_root + 'new_2020\\arr\\recovery_time\\SPEI_{}\\'.format(interval)
         Tools().mk_dir(out_dir, force=True)
-        # 1 º”‘ÿ ¬º˛
+        # 1 Âä†ËΩΩ‰∫ã‰ª∂
         # interval = '%02d' % interval
         events = self.composite_per_pix(interval)
-        # 2 º”‘ÿNDVI
+        # 2 Âä†ËΩΩNDVI
         ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
         spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
         # for f in tqdm(os.listdir(ndvi_dir)):
@@ -149,25 +149,25 @@ class Recovery_time1:
 
                         if len(ndvi) < 300:
                             continue
-                        # 1 ÃÙ≥ˆ¥À¥Œ∏…∫µ ¬º˛µƒNDVI∫ÕSPEI÷µ £®ª≠Õº–Ë“™£©
+                        # 1 ÊåëÂá∫Ê≠§Ê¨°Âπ≤Êó±‰∫ã‰ª∂ÁöÑNDVIÂíåSPEIÂÄº ÔºàÁîªÂõæÈúÄË¶ÅÔºâ
                         # spei_picked_vals = Tools().pick_vals_from_1darray(spei, date_range)
-                        # 2 ÃÙ≥ˆ¥À¥Œ∏…∫µ ¬º˛SPEI◊ÓµÕµƒÀ˜“˝
+                        # 2 ÊåëÂá∫Ê≠§Ê¨°Âπ≤Êó±‰∫ã‰ª∂SPEIÊúÄ‰ΩéÁöÑÁ¥¢Âºï
                         min_spei_indx = Tools().pick_min_indx_from_1darray(spei, date_range)
-                        # 3 ‘⁄¥À¥Œ∏…∫µ ¬º˛SPEI◊ÓµÕÀ˜“˝µƒ÷‹ŒßÀ—À˜NDVIµƒÀ˜“˝∫Õ÷µ
-                        # ‘⁄µ±«∞…˙≥§ºæÀ—À˜
+                        # 3 Âú®Ê≠§Ê¨°Âπ≤Êó±‰∫ã‰ª∂SPEIÊúÄ‰ΩéÁ¥¢ÂºïÁöÑÂë®Âõ¥ÊêúÁ¥¢NDVIÁöÑÁ¥¢ÂºïÂíåÂÄº
+                        # Âú®ÂΩìÂâçÁîüÈïøÂ≠£ÊêúÁ¥¢
                         growing_index, growing_vals = Tools().pick_growing_season_vals(ndvi, min_spei_indx,
                                                                                        growing_date_range)
-                        # Œﬁ∑®¬˙◊„…∏—°Ãıº˛ continue
+                        # Êó†Ê≥ïÊª°Ë∂≥Á≠õÈÄâÊù°‰ª∂ continue
                         if len(growing_index) == 0:
                             continue
-                        # 4 À—À˜ª÷∏¥∆⁄
-                        # 4.1 ªÒ»°growing season NDVIµƒ◊Ó–°÷µ
+                        # 4 ÊêúÁ¥¢ÊÅ¢Â§çÊúü
+                        # 4.1 Ëé∑Âèñgrowing season NDVIÁöÑÊúÄÂ∞èÂÄº
                         min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
-                        # 4.2 ≈–∂œNDVI ◊ÓµÕµ„‘⁄early late ªÚ « non Growing Season
+                        # 4.2 Âà§Êñ≠NDVI ÊúÄ‰ΩéÁÇπÂú®early late ÊàñÊòØ non Growing Season
                         # mark
                         # eln: Early Late Non
                         eln = self.early_late_non(min_ndvi_indx, growing_date_range)
-                        # 4.3 À—À˜ª÷∏¥µΩ’˝≥£«Èøˆµƒ ±º‰£¨recovery_time£∫ª÷∏¥∆⁄£ª mark£∫'in', 'out', 'tropical'
+                        # 4.3 ÊêúÁ¥¢ÊÅ¢Â§çÂà∞Ê≠£Â∏∏ÊÉÖÂÜµÁöÑÊó∂Èó¥Ôºårecovery_timeÔºöÊÅ¢Â§çÊúüÔºõ markÔºö'in', 'out', 'tropical'
                         # mark: In Out Tropical
                         recovery_time, mark, recovery_date_range = self.search(ndvi, min_ndvi_indx, growing_date_range)
                         # recovery_time, mark = self.search_non_growing_season(ndvi, min_ndvi_indx)
@@ -245,10 +245,10 @@ class Recovery_time1:
 
 
     def search(self, ndvi, min_ndvi_indx, growing_date_range):
-        # if ndvi[min_ndvi_indx] >= 0:  # »Áπ˚‘⁄…˙≥§ºæ÷–£¨NDVI◊Ó–°÷µ¥Û”⁄0£¨‘Úª÷∏¥∆⁄Œ™0∏ˆ‘¬
+        # if ndvi[min_ndvi_indx] >= 0:  # Â¶ÇÊûúÂú®ÁîüÈïøÂ≠£‰∏≠ÔºåNDVIÊúÄÂ∞èÂÄºÂ§ß‰∫é0ÔºåÂàôÊÅ¢Â§çÊúü‰∏∫0‰∏™Êúà
         #     return 0,'in'
         for i in range(len(ndvi)):
-            if (min_ndvi_indx + i) >= len(ndvi):  # µΩÕ∑¡À
+            if (min_ndvi_indx + i) >= len(ndvi):  # Âà∞Â§¥‰∫Ü
                 return None, None, None
             search_ = min_ndvi_indx + i
             search_v = ndvi[search_]
@@ -256,15 +256,15 @@ class Recovery_time1:
                 recovery_time = i
                 end_mon = search_ % 12 + 1
                 recovery_date_range = range(min_ndvi_indx,min_ndvi_indx+i+1)
-                if len(growing_date_range) <= 10:  # ¥Ê‘⁄∂¨ºæµƒµÿ«¯
-                    if end_mon in growing_date_range:  # ‘⁄µ±ƒÍƒ⁄ª÷∏¥
+                if len(growing_date_range) <= 10:  # Â≠òÂú®ÂÜ¨Â≠£ÁöÑÂú∞Âå∫
+                    if end_mon in growing_date_range:  # Âú®ÂΩìÂπ¥ÂÜÖÊÅ¢Â§ç
                         if recovery_time <= 5:
-                            return recovery_time, 'in',recovery_date_range  # ‘⁄…˙≥§ºæª÷∏¥
+                            return recovery_time, 'in',recovery_date_range  # Âú®ÁîüÈïøÂ≠£ÊÅ¢Â§ç
                         else:
-                            return recovery_time,'out',recovery_date_range  # ≤ª‘⁄…˙≥§ºæª÷∏¥
+                            return recovery_time,'out',recovery_date_range  # ‰∏çÂú®ÁîüÈïøÂ≠£ÊÅ¢Â§ç
                     else:
-                        continue  # ºÃ–¯À—À˜
-                else:  # ≤ª¥Ê‘⁄∂¨ºæµƒµÿ«¯
+                        continue  # ÁªßÁª≠ÊêúÁ¥¢
+                else:  # ‰∏çÂ≠òÂú®ÂÜ¨Â≠£ÁöÑÂú∞Âå∫
                     return recovery_time, 'tropical', recovery_date_range
 
     def compose_recovery_time(self):
@@ -281,7 +281,7 @@ class Recovery_time1:
         #             recovery_time, mark, recovery_date_range, date_range,eln = event
         #             print recovery_time, mark, recovery_date_range, date_range,eln
         '''
-        ∫œ≥…SPEI 1 - 24 µƒrecovery time
+        ÂêàÊàêSPEI 1 - 24 ÁöÑrecovery time
         :return:
         '''
         fdir = this_root + 'new_2020\\arr\\recovery_time\\'
@@ -592,7 +592,7 @@ class Recovery_time1_GPP:
 
     def gen_recovery_time(self,params):
         '''
-        …˙≥…»´«Úª÷∏¥∆⁄
+        ÁîüÊàêÂÖ®ÁêÉÊÅ¢Â§çÊúü
         :param interval: SPEI_{interval}
         :return:
         '''
@@ -602,10 +602,10 @@ class Recovery_time1_GPP:
         interval = '%02d' % interval
         out_dir = this_root + 'new_2020\\arr\\recovery_time_GPP\\SPEI_{}\\'.format(interval)
         Tools().mk_dir(out_dir, force=True)
-        # 1 º”‘ÿ ¬º˛
+        # 1 Âä†ËΩΩ‰∫ã‰ª∂
         # interval = '%02d' % interval
         events = self.composite_per_pix(interval)
-        # 2 º”‘ÿNDVI
+        # 2 Âä†ËΩΩNDVI
         ndvi_dir = this_root + 'GPP\\per_pix_anomaly_extend\\'
         spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
         # for f in tqdm(os.listdir(ndvi_dir)):
@@ -643,25 +643,25 @@ class Recovery_time1_GPP:
 
                         if len(ndvi) < 300:
                             continue
-                        # 1 ÃÙ≥ˆ¥À¥Œ∏…∫µ ¬º˛µƒNDVI∫ÕSPEI÷µ £®ª≠Õº–Ë“™£©
+                        # 1 ÊåëÂá∫Ê≠§Ê¨°Âπ≤Êó±‰∫ã‰ª∂ÁöÑNDVIÂíåSPEIÂÄº ÔºàÁîªÂõæÈúÄË¶ÅÔºâ
                         # spei_picked_vals = Tools().pick_vals_from_1darray(spei, date_range)
-                        # 2 ÃÙ≥ˆ¥À¥Œ∏…∫µ ¬º˛SPEI◊ÓµÕµƒÀ˜“˝
+                        # 2 ÊåëÂá∫Ê≠§Ê¨°Âπ≤Êó±‰∫ã‰ª∂SPEIÊúÄ‰ΩéÁöÑÁ¥¢Âºï
                         min_spei_indx = Tools().pick_min_indx_from_1darray(spei, date_range)
-                        # 3 ‘⁄¥À¥Œ∏…∫µ ¬º˛SPEI◊ÓµÕÀ˜“˝µƒ÷‹ŒßÀ—À˜NDVIµƒÀ˜“˝∫Õ÷µ
-                        # ‘⁄µ±«∞…˙≥§ºæÀ—À˜
+                        # 3 Âú®Ê≠§Ê¨°Âπ≤Êó±‰∫ã‰ª∂SPEIÊúÄ‰ΩéÁ¥¢ÂºïÁöÑÂë®Âõ¥ÊêúÁ¥¢NDVIÁöÑÁ¥¢ÂºïÂíåÂÄº
+                        # Âú®ÂΩìÂâçÁîüÈïøÂ≠£ÊêúÁ¥¢
                         growing_index, growing_vals = Tools().pick_growing_season_vals(ndvi, min_spei_indx,
                                                                                        growing_date_range)
-                        # Œﬁ∑®¬˙◊„…∏—°Ãıº˛ continue
+                        # Êó†Ê≥ïÊª°Ë∂≥Á≠õÈÄâÊù°‰ª∂ continue
                         if len(growing_index) == 0:
                             continue
-                        # 4 À—À˜ª÷∏¥∆⁄
-                        # 4.1 ªÒ»°growing season NDVIµƒ◊Ó–°÷µ
+                        # 4 ÊêúÁ¥¢ÊÅ¢Â§çÊúü
+                        # 4.1 Ëé∑Âèñgrowing season NDVIÁöÑÊúÄÂ∞èÂÄº
                         min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
-                        # 4.2 ≈–∂œNDVI ◊ÓµÕµ„‘⁄early late ªÚ « non Growing Season
+                        # 4.2 Âà§Êñ≠NDVI ÊúÄ‰ΩéÁÇπÂú®early late ÊàñÊòØ non Growing Season
                         # mark
                         # eln: Early Late Non
                         eln = self.early_late_non(min_ndvi_indx, growing_date_range)
-                        # 4.3 À—À˜ª÷∏¥µΩ’˝≥£«Èøˆµƒ ±º‰£¨recovery_time£∫ª÷∏¥∆⁄£ª mark£∫'in', 'out', 'tropical'
+                        # 4.3 ÊêúÁ¥¢ÊÅ¢Â§çÂà∞Ê≠£Â∏∏ÊÉÖÂÜµÁöÑÊó∂Èó¥Ôºårecovery_timeÔºöÊÅ¢Â§çÊúüÔºõ markÔºö'in', 'out', 'tropical'
                         # mark: In Out Tropical
                         recovery_time, mark, recovery_date_range = self.search(ndvi, min_ndvi_indx, growing_date_range)
                         # recovery_time, mark = self.search_non_growing_season(ndvi, min_ndvi_indx)
@@ -740,10 +740,10 @@ class Recovery_time1_GPP:
 
 
     def search(self, ndvi, min_ndvi_indx, growing_date_range):
-        # if ndvi[min_ndvi_indx] >= 0:  # »Áπ˚‘⁄…˙≥§ºæ÷–£¨NDVI◊Ó–°÷µ¥Û”⁄0£¨‘Úª÷∏¥∆⁄Œ™0∏ˆ‘¬
+        # if ndvi[min_ndvi_indx] >= 0:  # Â¶ÇÊûúÂú®ÁîüÈïøÂ≠£‰∏≠ÔºåNDVIÊúÄÂ∞èÂÄºÂ§ß‰∫é0ÔºåÂàôÊÅ¢Â§çÊúü‰∏∫0‰∏™Êúà
         #     return 0,'in'
         for i in range(len(ndvi)):
-            if (min_ndvi_indx + i) >= len(ndvi):  # µΩÕ∑¡À
+            if (min_ndvi_indx + i) >= len(ndvi):  # Âà∞Â§¥‰∫Ü
                 return None, None, None
             search_ = min_ndvi_indx + i
             search_v = ndvi[search_]
@@ -751,15 +751,15 @@ class Recovery_time1_GPP:
                 recovery_time = i
                 end_mon = search_ % 12 + 1
                 recovery_date_range = range(min_ndvi_indx,min_ndvi_indx+i+1)
-                if len(growing_date_range) <= 10:  # ¥Ê‘⁄∂¨ºæµƒµÿ«¯
-                    if end_mon in growing_date_range:  # ‘⁄µ±ƒÍƒ⁄ª÷∏¥
+                if len(growing_date_range) <= 10:  # Â≠òÂú®ÂÜ¨Â≠£ÁöÑÂú∞Âå∫
+                    if end_mon in growing_date_range:  # Âú®ÂΩìÂπ¥ÂÜÖÊÅ¢Â§ç
                         if recovery_time <= 5:
-                            return recovery_time, 'in',recovery_date_range  # ‘⁄…˙≥§ºæª÷∏¥
+                            return recovery_time, 'in',recovery_date_range  # Âú®ÁîüÈïøÂ≠£ÊÅ¢Â§ç
                         else:
-                            return recovery_time,'out',recovery_date_range  # ≤ª‘⁄…˙≥§ºæª÷∏¥
+                            return recovery_time,'out',recovery_date_range  # ‰∏çÂú®ÁîüÈïøÂ≠£ÊÅ¢Â§ç
                     else:
-                        continue  # ºÃ–¯À—À˜
-                else:  # ≤ª¥Ê‘⁄∂¨ºæµƒµÿ«¯
+                        continue  # ÁªßÁª≠ÊêúÁ¥¢
+                else:  # ‰∏çÂ≠òÂú®ÂÜ¨Â≠£ÁöÑÂú∞Âå∫
                     return recovery_time, 'tropical', recovery_date_range
 
     def compose_recovery_time(self):
@@ -776,7 +776,7 @@ class Recovery_time1_GPP:
         #             recovery_time, mark, recovery_date_range, date_range,eln = event
         #             print recovery_time, mark, recovery_date_range, date_range,eln
         '''
-        ∫œ≥…SPEI 1 - 24 µƒrecovery time
+        ÂêàÊàêSPEI 1 - 24 ÁöÑrecovery time
         :return:
         '''
         fdir = this_root + 'new_2020\\arr\\recovery_time_GPP\\'
@@ -1024,15 +1024,46 @@ class Recovery_time1_GPP:
 
 class Recovery_time2:
     # method 2
+    # ‰∏çËÄÉËôëÂÜ¨Â≠£ÁöÑÊÅ¢Â§çÊúü
     def __init__(self):
 
         pass
 
 
+    def run(self):
+        # params = range(1,13)
+        # MUTIPROCESS(self.gen_recovery_time,params).run(process=5)
+        # self.recovery_mix_tif()
+
+        self.gen_recovery_time(3)
+
+        pass
+
     def valid_pix(self):
         self.ndvi_valid_pix = NDVI().filter_NDVI_valid_pix()
         self.tropical_pix = np.load(this_root + 'NDVI\\tropical_pix.npy')
 
+
+    def compose_recovery_time(self):
+        '''
+        ÂêàÊàêSPEI 1 - 24 ÁöÑrecovery time
+        :return:
+        '''
+        fdir = this_root + 'new_2020\\arr\\recovery_time_2\\'
+        out_dir = this_root + 'new_2020\\arr\\recovery_time_2_composite\\'
+        Tools().mk_dir(out_dir)
+        void_dic = DIC_and_TIF().void_spatial_dic()
+        for folder in tqdm(os.listdir(fdir)):
+            for f in os.listdir(fdir + folder):
+                dic = dict(np.load(fdir + folder + '\\' + f).item())
+                for pix in dic:
+                    recovery_events = dic[pix]
+                    for event in recovery_events:
+                        void_dic[pix].append(event)
+        # print '\nsaving...'
+        np.save(out_dir + 'composite', void_dic)
+        # exit()
+        pass
 
     def composite_per_pix(self, interval):
         fdir = this_root+'SPEI\\single_events_24\\SPEI_{}\\'.format(interval)
@@ -1047,11 +1078,28 @@ class Recovery_time2:
                     composite[pix] = val
 
         return composite
+    def __search_return(self):
+        return None,None
+
+
+    def search(self, ndvi,recovery_start,pre_drought_NDVI_base_line):
+        # if ndvi[min_ndvi_indx] >= 0:  # Â¶ÇÊûúÂú®ÁîüÈïøÂ≠£‰∏≠ÔºåNDVIÊúÄÂ∞èÂÄºÂ§ß‰∫é0ÔºåÂàôÊÅ¢Â§çÊúü‰∏∫0‰∏™Êúà
+        #     return 0,'in'
+        for i in range(len(ndvi)):
+            if (recovery_start + i) >= len(ndvi):  # Âà∞Â§¥‰∫Ü
+                return self.__search_return()
+            search_ = recovery_start + i
+            search_v = ndvi[search_]
+            if search_v >= pre_drought_NDVI_base_line:
+                recovery_time = i
+                recovery_date_range = range(recovery_start,recovery_start+i+1)
+                return recovery_time, recovery_date_range
+
 
 
     def gen_recovery_time(self,params):
         '''
-        …˙≥…»´«Úª÷∏¥∆⁄
+        ÁîüÊàêÂÖ®ÁêÉÊÅ¢Â§çÊúü
         :param interval: SPEI_{interval}
         :return:
         '''
@@ -1059,30 +1107,29 @@ class Recovery_time2:
         # pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
         growing_season_daterange = dict(np.load(this_root + 'NDVI\\global_growing_season.npy').item())
         interval = '%02d' % interval
-        out_dir = this_root + 'new_2020\\arr\\recovery_time_2\\SPEI_{}\\'.format(interval)
+        out_dir = this_root + 'new_2020\\arr\\recovery_time_3\\SPEI_{}\\'.format(interval)
         Tools().mk_dir(out_dir, force=True)
-        # 1 º”‘ÿ ¬º˛
+        index_date_list = Tools().index_to_date_list()
+        # 1 Âä†ËΩΩ‰∫ã‰ª∂
         # interval = '%02d' % interval
         events = self.composite_per_pix(interval)
-        # 2 º”‘ÿNDVI
+        # 2 Âä†ËΩΩNDVI
         ndvi_dir = this_root + 'NDVI\\per_pix_anomaly\\'
         spei_dir = this_root + 'SPEI\\per_pix\\SPEI_{}\\'.format(interval)
-        # for f in tqdm(os.listdir(ndvi_dir)):
         for f in os.listdir(ndvi_dir):
-            # if not '015' in f:
-            #     continue
+            if not '009' in f:
+                continue
             ndvi_dic = dict(np.load(ndvi_dir + f).item())
             # ndvi_dic = Tools().detrend_dic(ndvi_dic)
             spei_dic = dict(np.load(spei_dir + f).item())
             recovery_time_dic = {}
             for pix in ndvi_dic:
                 if pix in events and pix in growing_season_daterange:
-                    growing_date_range = growing_season_daterange[pix]
                     ndvi = ndvi_dic[pix]
                     spei = spei_dic[pix]
                     event = events[pix]
                     smooth_window = 3
-                    # ndvi = Tools().forward_window_smooth(ndvi, smooth_window)
+                    ndvi = Tools().forward_window_smooth(ndvi, smooth_window)
                     spei = Tools().forward_window_smooth(spei, smooth_window)
                     recovery_time_result = []
                     for date_range in event:
@@ -1098,34 +1145,34 @@ class Recovery_time2:
 
                         if len(ndvi) < 300:
                             continue
-                        # 1 ÃÙ≥ˆ¥À¥Œ∏…∫µ ¬º˛µƒNDVI∫ÕSPEI÷µ £®ª≠Õº–Ë“™£©
-                        # spei_picked_vals = Tools().pick_vals_from_1darray(spei, date_range)
-                        # 2 ÃÙ≥ˆ¥À¥Œ∏…∫µ ¬º˛SPEI◊ÓµÕµƒÀ˜“˝
-                        min_spei_indx = Tools().pick_min_indx_from_1darray(spei, date_range)
-                        # 3 ‘⁄¥À¥Œ∏…∫µ ¬º˛SPEI◊ÓµÕÀ˜“˝µƒ÷‹ŒßÀ—À˜NDVIµƒÀ˜“˝∫Õ÷µ
-                        # ‘⁄µ±«∞…˙≥§ºæÀ—À˜
-                        growing_index, growing_vals = Tools().pick_growing_season_vals(ndvi, min_spei_indx,
-                                                                                       growing_date_range)
-                        # Œﬁ∑®¬˙◊„…∏—°Ãıº˛ continue
-                        if len(growing_index) == 0:
+                        # 1 ÊåëÂá∫Ê≠§Ê¨°Âπ≤Êó±‰∫ã‰ª∂ÁöÑNDVIÂíåSPEIÂÄº ÔºàÁîªÂõæÈúÄË¶ÅÔºâ
+                        spei_picked_vals = Tools().pick_vals_from_1darray(spei, date_range)
+                        # 2 ÊåëÂá∫Ê≠§Ê¨°Âπ≤Êó±‰∫ã‰ª∂SPEIÁ¨¨‰∏Ä‰∏™ÂíåÊúÄÂêé‰∏Ä‰∏™ÊúàÁöÑÁ¥¢Âºï
+                        # 2.1 Á¨¨Âπ≤Êó±Ââç3‰∏™ÊúàÁöÑNDVIÁöÑÂπ≥ÂùáÂÄºÂÅö‰∏∫Base Line ÈòàÂÄº
+                        base_line_index = date_range[0]
+                        if base_line_index-2 < 0:  # Âà∞Â§¥‰∫ÜÔºåËß¶ÂèäÂ∑¶ËæπÁïåÔºåËàçÂéªËØ•‰∫ã‰ª∂
                             continue
-                        # 4 À—À˜ª÷∏¥∆⁄
-                        # 4.1 ªÒ»°growing season NDVIµƒ◊Ó–°÷µ
-                        min_ndvi_indx = Tools().pick_min_indx_from_1darray(ndvi, growing_index)
-                        # 4.2 ≈–∂œNDVI ◊ÓµÕµ„‘⁄early late ªÚ « non Growing Season
-                        # mark
-                        # eln: Early Late Non
-                        eln = self.early_late_non(min_ndvi_indx, growing_date_range)
-                        # 4.3 À—À˜ª÷∏¥µΩ’˝≥£«Èøˆµƒ ±º‰£¨recovery_time£∫ª÷∏¥∆⁄£ª mark£∫'in', 'out', 'tropical'
-                        # mark: In Out Tropical
-                        recovery_time, mark, recovery_date_range = self.search(ndvi, min_ndvi_indx, growing_date_range)
+                        pre_drought_index = [base_line_index-2,base_line_index-1,base_line_index]
+                        pre_drought_NDVI_list = Tools().pick_vals_from_1darray(ndvi, pre_drought_index)
+                        pre_drought_NDVI_base_line = np.mean(pre_drought_NDVI_list)
+                        # 2.2 Ëé∑ÂèñÊúÄÂêé‰∏Ä‰∏™ÊúàÁ¥¢Âºï‰Ωú‰∏∫ÊÅ¢Â§çÊúüÁöÑËµ∑ÂßãÁÇπ
+                        recovery_start = date_range[-1]
+                        # 3 ÊêúÁ¥¢ÊÅ¢Â§çÊúü
+                        # Áõ¥Âà∞NDVI ÊÅ¢Â§çÂà∞Base LineÊó∂‰∏∫ÊÅ¢Â§çÔºåÊ≠§Èó¥‰Ωú‰∏∫ÊÅ¢Â§çÊúü
+
+                        recovery_time, recovery_date_range = self.search(ndvi, recovery_start, pre_drought_NDVI_base_line,)
                         # recovery_time, mark = self.search_non_growing_season(ndvi, min_ndvi_indx)
-                        recovery_time_result.append([recovery_time, mark, recovery_date_range, date_range,eln])
+                        recovery_time_result.append([recovery_time, recovery_date_range, date_range])
 
                         ################# plot ##################
-                        # print recovery_time, mark,eln
-                        # print growing_date_range
-                        # recovery_date_range = range(min_ndvi_indx, min_ndvi_indx + recovery_time + 1)
+                        # if recovery_date_range == None:
+                        #     continue
+                        # print '*'*8
+                        # print 'pre_drought_NDVI_list',pre_drought_NDVI_list
+                        # print 'base line',pre_drought_NDVI_base_line
+                        # print 'recovery_time',recovery_time
+                        # print 'recovery_date_range',recovery_date_range
+                        # print index_date_list[recovery_date_range[0]],'-->',index_date_list[recovery_date_range[-1]]
                         # recovery_ndvi = Tools().pick_vals_from_1darray(ndvi, recovery_date_range)
                         #
                         # tmp_pre_date_range = []
@@ -1181,7 +1228,10 @@ class Recovery_time2:
                         # plt.xlim(minx - 5, maxx + 5)
                         #
                         # lon, lat, address = Tools().pix_to_address(pix)
-                        # plt.title('lon:{} lat:{} address:{}'.format(lon, lat, address))
+                        #
+                        # # address = address.decode('utf-8')
+                        # # print address
+                        # # plt.title('lon:{} lat:{} address:{}'.format(lon, lat, address))
                         # plt.show()
                         #################plot##################
 
@@ -1191,12 +1241,49 @@ class Recovery_time2:
             np.save(out_dir + f, recovery_time_dic)
         pass
 
+    def recovery_mix_tif(self):
+        print 'loading...'
+        out_dir = this_root + 'new_2020\\tif\\recovery_time_2\\'
+        Tools().mk_dir(out_dir, force=1)
+        f = this_root + 'new_2020\\arr\\recovery_time_2_composite\\composite.npy'
+        dic = dict(np.load(f).item())
+        recovery_time_mix_dic = {}
+        for pix in dic:
+            events = dic[pix]
+            recovery_mix = []
+            if len(events) == 0:
+                continue
+            for event in events:
+                recovery_time, recovery_date_range, date_range = event
+                if recovery_time == None:
+                    continue
+                # print pix, recovery_time, mark, recovery_date_range, date_range,eln
+                recovery_mix.append(recovery_time)
+                # exit()
+            # print recovery_early
+            # exit()
+            if len(recovery_mix) > 0:
+                mean_recovery_mix = np.mean(recovery_mix)
+            else:
+                mean_recovery_mix = np.nan
+            recovery_time_mix_dic[pix] = mean_recovery_mix
+
+        mix = DIC_and_TIF().pix_dic_to_spatial_arr(recovery_time_mix_dic)
+        mix = NDVI().mask_arr_with_NDVI(mix)
+
+        DIC_and_TIF().arr_to_tif(mix, out_dir + 'mix.tif')
+
+        # plt.imshow(arr,'jet',vmin=0,vmax=18)
+        # plt.colorbar()
+        # plt.show()
+
+
 
 def main():
 
     # Recovery_time1().run1()
     # Recovery_time1_GPP().recovery_mix_tif()
-    Recovery_time2()
+    Recovery_time2().run()
     pass
 
 if __name__ == '__main__':

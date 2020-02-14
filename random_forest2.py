@@ -174,35 +174,40 @@ class Prepare:
 
 
 
-class RF_train:
-
+class RF_train_events:
+    '''
+    Random Forest based on events
+    '''
     def __init__(self):
 
         pass
 
 
     def run(self):
-        lc_pix = self.gen_landcover_pixes()
-        for lc in lc_pix:
-            print lc
-            pixes = lc_pix[lc]
-            self.random_forest_train(pixes)
-
+        # lc_pix = self.gen_landcover_pixes()
+        # for lc in lc_pix:
+        #     print lc
+        #     pixes = lc_pix[lc]
+        #     self.random_forest_train(pixes)
+        # self.load_variable()
+        # self.do_partition()
+        self.check_partition()
         pass
 
 
     def __split_keys(self,key):
-        pix, mark, enl, date_range = key.split('~')
+        pix, mark, eln, date_range = key.split('~')
         drought_start, recovery_start = date_range.split('.')
         drought_start = int(drought_start)
         recovery_start = int(recovery_start)
-        return pix, mark, enl, date_range, drought_start, recovery_start
+        return pix, mark, eln, date_range, drought_start, recovery_start
 
 
-    def gen_landcover_pixes(self):
-        landuse_types = [[1, 2, 3, 4, 5], [6, 7], [8, 9], 10, 12]
-        labels = ['Forest', 'Shrublands',
-                  'Savannas', 'Grasslands', 'Croplands']
+    def landcover_partition(self):
+        # lc◊È∫œ3
+        landuse_types = [[1, 2, 3, 4, 5], [6, 7, 8, 9], 10]
+        labels = ['Forest', 'Shrublands_Savanna', 'Grasslands']
+
         landuse_class_dic = Water_balance().gen_landuse_zonal_index()
 
         landuse_dic = {}
@@ -219,8 +224,100 @@ class RF_train:
             else:
                 landuse_index = None
                 raise IOError('landuse type error')
-            landuse_dic[lc_label] = set(landuse_index)
+            landuse_dic[lc_label] = landuse_index
         return landuse_dic
+
+    def koppen_partition(self):
+        koppen_dic = Koppen().do_reclass()
+        return koppen_dic
+        pass
+
+
+    def cross_koppen_landuse(self):
+        HI_tif = this_root + 'tif\\HI\\HI.tif'
+        HI_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(HI_tif)
+        HI_arr[HI_arr > 2.] = np.nan
+
+        landuse_dic = self.landcover_partition()
+        koppen_dic = self.koppen_partition()
+
+        cross_pix = {}
+        for lc_i in landuse_dic:
+            scatter_labels = []
+            for kop_i in koppen_dic:
+                lc_pixs = landuse_dic[lc_i]
+                lat_pixs = koppen_dic[kop_i]
+                intersect = Water_balance().intersection(lc_pixs,lat_pixs)
+                # print intersect
+                if len(intersect) > 100:
+                    key = lc_i + '.' + str(kop_i)
+                    scatter_labels.append(key)
+                    intersect_int = []
+                    for str_pix in intersect:
+                        r,c = str_pix.split('.')
+                        r = int(r)
+                        c = int(c)
+                        intersect_int.append([r,c])
+                    # ÃÙx÷·
+                    HI_picked_val = Tools().pick_vals_from_2darray(HI_arr,intersect_int)
+                    HI_picked_val[HI_picked_val<0] = np.nan
+                    # HI_picked_val[HI_picked_val>2] = np.nan
+                    HI_mean,_ = Tools().arr_mean_nan(HI_picked_val)
+                    cross_pix[key] = [intersect,HI_mean]
+        return cross_pix
+
+
+
+    def parition(self,keys,pix_,mark_,eln_,desc=''):
+        # pix_ = ['182.432','182.431']
+        # mark_ = 'out'
+        # eln_ = 'late'
+        # keys = [
+        #     ['182.432', 'out', 'late', '26.28', '26', '28'],
+        #     ['182.431', 'out', 'late', '26.28', '26', '28'],
+        # ]
+        selected_keys = []
+        for key in keys:
+            pix, mark, eln, date_range, drought_start, recovery_start = self.__split_keys(key)
+            if pix in pix_:
+                if mark == mark_:
+                    if eln in eln_:
+                        selected_keys.append(key)
+        return selected_keys
+
+
+    def do_partition(self):
+        fdir = this_root + 'new_2020\\random_forest\\'
+        outf = this_root+'arr\\RF_partition'
+        dic = dict(np.load(fdir + 'NDVI_change.npy').item())
+        keys = []
+        for key in dic:
+            keys.append(key)
+        keys = tuple(keys)
+        cross_pix = self.cross_koppen_landuse()
+        selected = {}
+        for mark in ['in','out','tropical']:
+            for eln in ['early','late','tropical']:
+                condition_key = mark+'~'+eln
+                cp_selected_keys = {}
+                for cp in tqdm(cross_pix,desc=condition_key):
+                    pix_,hi_mean = cross_pix[cp]
+                    mark_, eln_ =mark, eln
+                    search_keys = self.parition(keys, pix_, mark_, eln_)
+                    cp_selected_keys[cp] = search_keys
+
+                selected[condition_key] = cp_selected_keys
+        np.save(outf,selected)
+
+
+    def check_partition(self):
+        f = this_root+'arr\\RF_partition.npy'
+        dic = dict(np.load(f).item())
+        keys = dic['in~early']['Forest.TA']
+        for key in keys:
+            print key
+
+
 
     def load_variable(self,selected_pix=()):
 
@@ -237,7 +334,7 @@ class RF_train:
         selected_keys = []
         for key in tqdm(Y_dic):
             pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
-            # print pix
+            print pix, mark, enl, date_range, drought_start, recovery_start
             if selected_pix == ():
                 selected_keys.append(key)
             else:
@@ -271,7 +368,7 @@ class RF_train:
             # if False in _list_new:
             #     continue
             pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean = _list_new
-            print _list_new
+            # print _list_new
             # print [pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean]
             pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
             pix_dic[pix] = 1
@@ -279,7 +376,7 @@ class RF_train:
             Y.append(y)
             flag += 1
         # exit()
-        print 'selected pixes: {}'.format(flag)
+        # print 'selected pixes: {}'.format(flag)
         selected_pix_spatial = DIC_and_TIF().pix_dic_to_spatial_arr(pix_dic)
         return X,Y,selected_pix_spatial
 
@@ -367,10 +464,25 @@ class RF_train:
 
 
 
+class RF_train_pixels:
+    '''
+    Random Forest based on pixels
+    '''
+    def __init__(self):
+
+        pass
+
+
+    def run(self):
+
+        pass
+
+
+
 def main():
 
     # Prepare().run()
-    RF_train().run()
+    RF_train_events().run()
     pass
 
 
