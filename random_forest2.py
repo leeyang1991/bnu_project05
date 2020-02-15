@@ -191,7 +191,8 @@ class RF_train_events:
         #     self.random_forest_train(pixes)
         # self.load_variable()
         # self.do_partition()
-        self.check_partition()
+        # self.check_partition()
+        self.do_random_forest_train()
         pass
 
 
@@ -318,11 +319,19 @@ class RF_train_events:
             print key
 
 
+    def variable_partition(self):
+        f = this_root + 'arr\\RF_partition.npy'
+        dic = dict(np.load(f).item())
+        for key in dic:
+            print key
+        pass
 
-    def load_variable(self,selected_pix=()):
+
+
+    def load_variable(self,partition_keys_dic,condition1,condition2):
 
         fdir = this_root+'new_2020\\random_forest\\'
-        print 'loading variables ...'
+        # print 'loading variables ...'
         Y_dic = dict(np.load(fdir+'Y.npy').item())
         pre_dic = dict(np.load(fdir+'PRE.npy').item())
         tmp_dic = dict(np.load(fdir+'TMP.npy').item())
@@ -331,21 +340,12 @@ class RF_train_events:
         NDVI_change_dic = dict(np.load(fdir+'NDVI_change.npy').item())
         two_month_early_vals_mean_dic = dict(np.load(fdir+'two_month_early_vals_mean.npy').item())
 
-        selected_keys = []
-        for key in tqdm(Y_dic):
-            pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
-            print pix, mark, enl, date_range, drought_start, recovery_start
-            if selected_pix == ():
-                selected_keys.append(key)
-            else:
-                if pix in selected_pix:
-                    selected_keys.append(key)
+        selected_keys = partition_keys_dic[condition1][condition2]
         nan = False
         Y = []
         X = []
         pix_dic = {}
-        flag = 0
-        for key in tqdm(selected_keys):
+        for key in selected_keys:
             y = Y_dic[key]
             if y > 18:
                 continue
@@ -358,108 +358,112 @@ class RF_train_events:
                 two_month_early_vals_mean = two_month_early_vals_mean_dic[key]
             except:
                 continue
-            _list = [pre,tmp,cci,swe,ndvi_change,two_month_early_vals_mean]
-            _list_new = []
-            for _l in _list:
-                if np.isnan(_l):
-                    _list_new.append(nan)
-                else:
-                    _list_new.append(_l)
-            # if False in _list_new:
-            #     continue
-            pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean = _list_new
-            # print _list_new
-            # print [pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean]
-            pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
-            pix_dic[pix] = 1
-            X.append([pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean])
-            Y.append(y)
-            flag += 1
-        # exit()
-        # print 'selected pixes: {}'.format(flag)
+
+            if 'in' in condition1 or 'tropical' in condition1:
+                _list = [pre,tmp,cci,ndvi_change,two_month_early_vals_mean]
+                _list_new = []
+                for _l in _list:
+                    if np.isnan(_l):
+                        _list_new.append(nan)
+                    else:
+                        _list_new.append(_l)
+                pre, tmp, cci, ndvi_change, two_month_early_vals_mean = _list_new
+                pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
+                pix_dic[pix] = 1
+                X.append([pre, tmp, cci, ndvi_change, two_month_early_vals_mean])
+                Y.append(y)
+
+            elif 'out' in condition1:
+                _list = [pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean]
+                _list_new = []
+                for _l in _list:
+                    if np.isnan(_l):
+                        _list_new.append(nan)
+                    else:
+                        _list_new.append(_l)
+                pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean = _list_new
+                pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
+                pix_dic[pix] = 1
+                X.append([pre, tmp, cci, swe, ndvi_change, two_month_early_vals_mean])
+                Y.append(y)
+            else:
+                raise IOError('error')
         selected_pix_spatial = DIC_and_TIF().pix_dic_to_spatial_arr(pix_dic)
-        return X,Y,selected_pix_spatial
+        return X, Y, selected_pix_spatial
 
-        # arr = DIC_and_TIF().pix_dic_to_spatial_arr(valid_pix)
-        # plt.imshow(arr,cmap='gray')
-        # plt.show()
-        # pass
-
-    def random_forest_train(self,selected_pix=()):
-        # outdir = this_root+'AI\\RF\\'
-        # title = '{} {}'.format(mode_dic[mode],' and '.join(arg))
-        # print title
-        # out_pdf = outdir+title+'.pdf'
-
-        # exit()
-        X, Y, selected_pix_spatial = self.load_variable(selected_pix)
-        # X = pd.DataFrame(X)
+    def random_forest_train(self, X, Y, selected_pix_spatial,isplot=False):
 
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1)
-
-        # clf = RandomForestClassifier(max_depth=None, min_samples_split=2,random_state = 0)
-        # clf = sklearn.ensemble.RandomForestRegressor(n_estimators=10, max_depth=None,min_samples_split = 2, random_state = 0)
-        # clf = RandomForestRegressor(n_estimators=2000,min_samples_split=1000)
-        # clf = RandomForestRegressor(n_estimators=100, max_depth=6, n_jobs=1, verbose=2)
         clf = RandomForestRegressor()
         # clf = RandomForestClassifier()
         clf.fit(X_train, Y_train)
 
         importances = clf.feature_importances_
-        print importances
-        print sum(importances)
-        y_min = min(importances)
-        y_max = max(importances)
-        offset = (y_max-y_min)
-
-        y_min = y_min-offset*0.3
-        y_max = y_max+offset*0.3
-
-        plt.ylim(y_min,y_max)
-        plt.bar(range(len(importances)),importances,width=0.3)
-        # plt.xticks(range(len(importances)),['P','T','CCI','SWE'])
-        # plt.title(title)
-        plt.figure()
-        plt.imshow(selected_pix_spatial,cmap='gray')
-
-        # plt.show()
-        # plt.savefig(out_pdf)
-        # plt.close()
-        # std = np.std([tree.feature_importances_ for tree in clf.estimators_],
-        #              axis=0)
-        # indices = np.argsort(importances)[::-1]
-        #
-        # # Print the feature ranking
-        # print("Feature ranking:")
-        #
-        # for f in range(4):
-        #     print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
-        #
-        # # Plot the feature importances of the forest
-        # plt.figure()
-        # plt.title("Feature importances")
-        # plt.bar(range(4), importances[indices],
-        #         color="r", yerr=std[indices], align="center")
-        # plt.xticks(range(4), indices)
-        # plt.xlim([-1, 4])
-        # plt.show()
-
-
-
-
-        # exit()
-        # clf.fe
         y_pred = clf.predict(X_test)
-        # r = scipy.stats.pearsonr(Y_test, y_pred)
-        # r2 = sklearn.metrics.r2_score(Y_test, y_pred)
-        # mse = sklearn.metrics.mean_squared_error(Y_test, y_pred)
-        # print('r2:%s\nmse:%s\nr:%s' % (r2, mse, r))
-        KDE_plot().plot_scatter(Y_test, y_pred,s=10)
-        # plt.figure()
-        # plt.scatter(Y_test, y_pred)
-        # # plt.xlim(-3,3)
-        # # plt.ylim(-3,3)
-        plt.show()
+        r = stats.pearsonr(Y_test, y_pred)[0]
+        mse = sklearn.metrics.mean_squared_error(Y_test, y_pred)
+
+        #### plot ####
+        if isplot:
+            print importances
+            print('mse:%s\nr:%s' % (mse, r))
+            # 1 plot spatial
+            plt.figure()
+            plt.imshow(selected_pix_spatial,cmap='gray')
+
+            # 2 plot importance
+            plt.figure()
+            y_min = min(importances)
+            y_max = max(importances)
+            offset = (y_max-y_min)
+
+            y_min = y_min-offset*0.3
+            y_max = y_max+offset*0.3
+
+            plt.ylim(y_min,y_max)
+            plt.bar(range(len(importances)),importances,width=0.3)
+            KDE_plot().plot_scatter(Y_test, y_pred,s=10)
+            plt.show()
+        #### plot ####
+
+
+        return importances,mse, r
+
+
+
+    def do_random_forest_train(self):
+
+        result_dic_arr = this_root+'arr\\RF_result_dic_arr'
+        partition_keys_dic = dict(np.load(this_root + 'arr\\RF_partition.npy').item())
+        condition1_list = [
+                        'in~early',
+                        'in~late',
+                        'tropical~tropical',
+                        'out~early',
+                        'out~late'
+                        ]
+        condition2_list = []
+
+        for i in partition_keys_dic['in~early']:
+            condition2_list.append(i)
+
+
+        result_dic = {}
+
+        for c1 in tqdm(condition1_list):
+            for c2 in condition2_list:
+                key = c1+'-'+c2
+                X, Y, selected_pix_spatial = self.load_variable(partition_keys_dic, c1, c2)
+                if len(X) < 100:
+                    result_dic[key] = [None, None, None]
+                    continue
+                try:
+                    importances, mse, r = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
+                    result_dic[key] = [importances, mse, r]
+                except Exception as e:
+                    print e
+                    result_dic[key] = [None,None,None]
+        np.save(result_dic_arr,result_dic)
         pass
 
 

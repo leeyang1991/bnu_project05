@@ -30,6 +30,8 @@ import types
 from scipy.stats import gamma as gam
 import math
 import copy
+import scipy
+import sklearn
 
 this_root = 'D:\\project05\\'
 # this_root = 'D:\\ly\\project05\\'
