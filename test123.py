@@ -12,13 +12,18 @@ def return_foo():
     return None,None
 
 def foo():
-    f = this_root+'new_2020\\tif\\recovery_time_2\\mix.tif'
-    arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(f)
-    plt.subplot(111,projection='aitoff')
-    plt.imshow(arr)
+    cmap = sns.diverging_palette(236, 0, s=99, l=50, n=10, center="light")
+    r = 0.957316550548675
+    r = round(r,1)
+    print r
+    print cmap[int(r*10)-1]
+    # for i in cmap:
+    #     print i
 
-    plt.grid(1)
-    plt.show()
+
+
+
+
     pass
 
 def func(in_list):

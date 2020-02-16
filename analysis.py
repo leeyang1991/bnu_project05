@@ -7794,33 +7794,7 @@ class Annual_changes:
 
         plt.show()
 
-
-
         pass
-
-
-
-
-
-
-
-
-
-def kernel_run(param):
-    interval = param
-    # PRE_POST_NON_Recovery_time().run(interval, 'non-growing')
-    # Pick_Single_events().run(interval)
-    Pick_Single_events().run(interval)
-
-
-def run():
-    param = []
-    for interval in range(1, 13):
-        param.append(interval)
-        # Pick_Single_events().run()
-        # Recovery_time_winter(interval)
-    MUTIPROCESS(kernel_run, param).run()
-
 
 def main():
     # run()

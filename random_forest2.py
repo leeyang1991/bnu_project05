@@ -236,6 +236,7 @@ class RF_train_events:
 
     def cross_koppen_landuse(self):
         HI_tif = this_root + 'tif\\HI\\HI.tif'
+        outf = this_root+'arr\\cross_koppen_landuse_pix'
         HI_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(HI_tif)
         HI_arr[HI_arr > 2.] = np.nan
 
@@ -265,6 +266,7 @@ class RF_train_events:
                     # HI_picked_val[HI_picked_val>2] = np.nan
                     HI_mean,_ = Tools().arr_mean_nan(HI_picked_val)
                     cross_pix[key] = [intersect,HI_mean]
+        np.save(outf,cross_pix)
         return cross_pix
 
 
@@ -394,6 +396,8 @@ class RF_train_events:
     def random_forest_train(self, X, Y, selected_pix_spatial,isplot=False):
 
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1)
+        Y_train = np.array(Y_train)
+        Y_test = np.array(Y_test)
         clf = RandomForestRegressor()
         # clf = RandomForestClassifier()
         clf.fit(X_train, Y_train)
@@ -427,13 +431,28 @@ class RF_train_events:
         #### plot ####
 
 
-        return importances,mse, r
+        return importances,mse, r, Y_test, y_pred
 
+
+    def kernel_do_random_forest_train(self,params):
+        c1,c2,partition_keys_dic = params
+        key = c1 + '-' + c2
+        X, Y, selected_pix_spatial = self.load_variable(partition_keys_dic, c1, c2)
+        # if len(X) < 100:
+        #     result_dic[key] = None
+        #     continue
+        try:
+            importances, mse, r, Y_test, y_pred = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
+            result = key,{'importances':importances, 'mse':mse, 'r':r, 'Y_test':Y_test, 'y_pred':y_pred}
+            return result
+        except Exception as e:
+            return key,[]
+        pass
 
 
     def do_random_forest_train(self):
 
-        result_dic_arr = this_root+'arr\\RF_result_dic_arr'
+        result_dic_arr = this_root+'arr\\RF_result_dic_arr1'
         partition_keys_dic = dict(np.load(this_root + 'arr\\RF_partition.npy').item())
         condition1_list = [
                         'in~early',
@@ -448,22 +467,17 @@ class RF_train_events:
             condition2_list.append(i)
 
 
-        result_dic = {}
+        # result_dic = {}
 
-        for c1 in tqdm(condition1_list):
+        params = []
+        for c1 in condition1_list:
             for c2 in condition2_list:
-                key = c1+'-'+c2
-                X, Y, selected_pix_spatial = self.load_variable(partition_keys_dic, c1, c2)
-                if len(X) < 100:
-                    result_dic[key] = [None, None, None]
-                    continue
-                try:
-                    importances, mse, r = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
-                    result_dic[key] = [importances, mse, r]
-                except Exception as e:
-                    print e
-                    result_dic[key] = [None,None,None]
-        np.save(result_dic_arr,result_dic)
+                params.append([c1,c2,partition_keys_dic])
+        # key_,result_ = self.__kernel_do_random_forest_train(params[1])
+        # print key_,result_
+        result = MUTIPROCESS(self.kernel_do_random_forest_train,params).run()
+        # self.__kernel_do_random_forest_train()
+        np.save(result_dic_arr,result)
         pass
 
 
@@ -483,10 +497,196 @@ class RF_train_pixels:
 
 
 
+class Plot_RF_train_events_result:
+    def __init__(self):
+
+        pass
+
+
+    def run(self):
+        region_pix = dict(np.load(this_root+'arr\\cross_koppen_landuse_pix.npy').item())
+        f = this_root+'arr\\RF_result_dic_arr1.npy'
+        arr = np.load(f)
+        x0list = []
+        ylist = []
+        size_list = []
+        colors_list = []
+        for key,result_dic in arr:
+            print key
+            try:
+                importances = result_dic['importances']
+                r = result_dic['r']
+                if np.isnan(r):
+                    continue
+            except:
+                continue
+            scatter_size = self.__importances_to_scatter_size(importances)
+            color = self.__r_to_color(r)
+            x0,y = self.__get_scatter_position(key,region_pix)
+            x0list.append(x0)
+            ylist.append(y)
+            colors_list.append(color)
+            size_list.append(scatter_size)
+
+        self.__plot_grid()
+        self.__plot_scatter(x0list,ylist,size_list,colors_list)
+        # plt.scatter(xs,ys)
+        plt.show()
+        # key = 'in~early-Shrublands_Savanna.AH'
+        # self.__plot_grid()
+        pass
+
+    # def run1(self):
+    #     key = 'in~early-Shrublands_Savanna.AH'
+    #     self.__get_scatter_position(key)
+
+    def plot_colors_palette(self):
+        cmap = sns.diverging_palette(236, 0, s=99, l=50, n=10, center="light")
+        sns.palplot(cmap)
+        plt.show()
+
+    def plot_regions_arr(self):
+
+
+        outpng_dir = this_root+'png\\plot_regions_arr\\'
+        Tools().mk_dir(outpng_dir)
+        partition_keys_dic = dict(np.load(this_root + 'arr\\RF_partition.npy').item())
+        condition1_list = [
+            'in~early',
+            'in~late',
+            'tropical~tropical',
+            'out~early',
+            'out~late'
+        ]
+        condition2_list = []
+
+        for i in partition_keys_dic['in~early']:
+            condition2_list.append(i)
+
+        for c1 in tqdm(condition1_list):
+            for c2 in condition2_list:
+                key = c1 + '-' + c2
+                X, Y, selected_pix_spatial = RF_train_events().load_variable(partition_keys_dic, c1, c2)
+                # self.__get_scatter_position()
+                plt.imshow(selected_pix_spatial)
+                plt.title(key)
+                plt.savefig(outpng_dir+key+'.png')
+                plt.close()
+
+        pass
+
+
+    def __split_keys(self,key):
+        pix, mark, eln, date_range = key.split('~')
+        drought_start, recovery_start = date_range.split('.')
+        drought_start = int(drought_start)
+        recovery_start = int(recovery_start)
+        return pix, mark, eln, date_range, drought_start, recovery_start
+
+
+    def __plot_grid(self):
+        plt.figure(figsize=(6*5+2, 17))
+        # plot vertical lines
+
+        X = range(6*5+2)
+
+        # plot horizental lines
+
+        Y = range(17)
+
+        for x in X:
+            plt.plot([x] * 2, [0, 17-1],c='black')
+        for y in Y:
+            plt.plot([0, 6*5+2-1],[y]*2,c='black')
+
+
+        plt.axis("equal")
+        # self.__plot_scatter()
+        # plt.show()
+        pass
+
+    def __plot_scatter(self,x0list,ylist,slist,clist):
+        # for i in range(len(x0list)):
+        #     print x0list[i],ylist[i],slist[i],clist[i]
+        for i in range(len(x0list)):
+            for j in range(len(slist[i])):
+                plt.scatter(x0list[i]+j, ylist[i], s=slist[i][j], c=clist[i])
+
+
+    def __importances_to_scatter_size(self,importances_list):
+
+        size_list = []
+        for i in range(1,7):
+            size = i * 80
+            size_list.append(size)
+
+        scatter_size_list = []
+        a = np.argsort(importances_list)
+        for i in a:
+            scatter_size_list.append(size_list[i])
+        return scatter_size_list
+        pass
+
+
+    def __r_to_color(self,r):
+
+        cmap = sns.diverging_palette(236, 0, s=99, l=50, n=10, center="light")
+        r = round(r, 1)
+        c = cmap[int(r * 10) - 1]
+        return c
+        pass
+
+
+
+    def __get_scatter_position(self,key,region_pix):
+        # key = 'in~early-Shrublands_Savanna.AH'
+
+        # get Y coordinate
+        region = key.split('-')[1]
+        # region_pix = RF_train_events().cross_koppen_landuse()
+        region_HI_list = []
+        regions = []
+        for region_i in region_pix:
+            HI = region_pix[region_i][1]
+            regions.append(region_i)
+            region_HI_list.append(HI)
+        # HI ÅÅĞò
+        region_sort_index = np.argsort(region_HI_list)
+        region_sort_dic = {}
+        for i in range(len(region_sort_index)):
+            region_sort_dic[regions[i]] = region_sort_index[i]
+        y = region_sort_dic[region] + 0.5 # plus 0.5 means move the point to the center of a grid
+
+        # get X0 coordinate
+        conditions = key.split('-')[0]
+        if conditions == 'in~early':
+            x0 = 0
+        elif conditions == 'out~early':
+            x0 = 0 + 6
+
+        elif conditions == 'in~late':
+            x0 = 0 + 6 + 7
+        elif conditions == 'out~late':
+            x0 = 0 + 6 + 7 + 6
+
+        elif conditions == 'tropical~tropical':
+            x0 = 0 + 6 + 7 + 6 + 7
+
+        else:
+            raise IOError('key error...')
+        x0 = x0 + 0.5  # plus 0.5 means move the point to the center of a grid
+
+
+        return x0,y
+
+        pass
+
 def main():
 
     # Prepare().run()
-    RF_train_events().run()
+    # RF_train_events().run()
+    # Plot_RF_train_events_result().run()
+    Plot_RF_train_events_result().plot_regions_arr()
     pass
 
 
