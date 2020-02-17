@@ -511,6 +511,8 @@ class Plot_RF_train_events_result:
         ylist = []
         size_list = []
         colors_list = []
+
+        self.__plot_grid()
         for key,result_dic in arr:
             print key
             try:
@@ -528,7 +530,7 @@ class Plot_RF_train_events_result:
             colors_list.append(color)
             size_list.append(scatter_size)
 
-        self.__plot_grid()
+
         self.__plot_scatter(x0list,ylist,size_list,colors_list)
         # plt.scatter(xs,ys)
         plt.show()
@@ -652,10 +654,19 @@ class Plot_RF_train_events_result:
             region_HI_list.append(HI)
         # HI ÅÅĞò
         region_sort_index = np.argsort(region_HI_list)
+        # print region_sort_index
+        # print region_HI_list
+        # exit()
         region_sort_dic = {}
         for i in range(len(region_sort_index)):
             region_sort_dic[regions[i]] = region_sort_index[i]
+        # for i in region_sort_dic:
+        #     print i,region_sort_dic[i]
+        # exit()
         y = region_sort_dic[region] + 0.5 # plus 0.5 means move the point to the center of a grid
+        if 'in~early' in key:
+            plt.text(-0.5, y, key, fontsize=12,horizontalalignment='right')
+        # plt.text(-0.5, y, key, fontsize=12)
 
         # get X0 coordinate
         conditions = key.split('-')[0]
@@ -681,12 +692,72 @@ class Plot_RF_train_events_result:
 
         pass
 
+
+
+
+    def get_scatter_y(self):
+
+        HI_tif = this_root + 'tif\\HI\\HI.tif'
+        HI_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(HI_tif)
+        HI_arr[HI_arr > 2.] = np.nan
+
+        # lc×éºÏ3
+        landuse_types = [[1, 2, 3, 4, 5], [6, 7, 8, 9], 10]
+        labels = ['Forest', 'Shrublands_Savanna', 'Grasslands']
+
+        landuse_class_dic = Water_balance().gen_landuse_zonal_index()
+
+        landuse_dic = {}
+        for landuse in range(len(landuse_types)):
+            #     # print 'landuse',landuse
+            lc_label = labels[landuse]
+            if type(landuse_types[landuse]) == int:
+                landuse_index = landuse_class_dic[landuse_types[landuse]]
+            elif type(landuse_types[landuse]) == list:
+                landuse_index = []
+                for lt in landuse_types[landuse]:
+                    for ll in landuse_class_dic[lt]:
+                        landuse_index.append(ll)
+            else:
+                landuse_index = None
+                raise IOError('landuse type error')
+            landuse_dic[lc_label] = landuse_index
+
+        latitude_dic = Koppen().do_reclass()
+        scatter_dic = {}
+        for lc_i in landuse_dic:
+            scatter_labels = []
+            for lat_i in latitude_dic:
+                lc_pixs = landuse_dic[lc_i]
+                lat_pixs = latitude_dic[lat_i]
+                intersect = Water_balance().intersection(lc_pixs,lat_pixs)
+                # print intersect
+                if len(intersect) > 100:
+                    key = lc_i + '.' + str(lat_i)
+                    scatter_labels.append(key)
+                    intersect_int = []
+                    for str_pix in intersect:
+                        r,c = str_pix.split('.')
+                        r = int(r)
+                        c = int(c)
+                        intersect_int.append([r,c])
+                    # ÌôxÖá
+                    HI_picked_val = Tools().pick_vals_from_2darray(HI_arr, intersect_int)
+                    HI_picked_val[HI_picked_val < 0] = np.nan
+                    # HI_picked_val[HI_picked_val>2] = np.nan
+                    HI_mean, xerr = Tools().arr_mean_nan(HI_picked_val)
+                    scatter_dic[key] = HI_mean
+        for i in scatter_dic:
+            print i,scatter_dic[i]
+
+
+
 def main():
 
     # Prepare().run()
     # RF_train_events().run()
-    # Plot_RF_train_events_result().run()
-    Plot_RF_train_events_result().plot_regions_arr()
+    Plot_RF_train_events_result().run()
+    # Plot_RF_train_events_result().get_scatter_y()
     pass
 
 
