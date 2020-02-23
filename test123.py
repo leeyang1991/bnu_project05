@@ -7,9 +7,6 @@ Desctiption
 '''
 from analysis import *
 
-def return_foo():
-
-    return None,None
 
 def foo():
     cmap = sns.diverging_palette(236, 0, s=99, l=50, n=10, center="light")
@@ -26,32 +23,18 @@ def foo():
 
     pass
 
-def func(in_list):
-
-    a=[12,1,2,3,4]
-    b=[11,12,1,2,3]
-    c=[10,11,12,1,2]
-    d=[9,10,11,12,1]
-
-    aa = copy.deepcopy(a)
-    bb = copy.deepcopy(a)
-    cc = copy.deepcopy(a)
-    dd = copy.deepcopy(a)
-
-    aa.sort()
-    bb.sort()
-    cc.sort()
-    dd.sort()
-    if in_list == aa:
-        return a
-    elif in_list == bb:
-        return b
-    elif in_list == cc:
-        return c
-    elif in_list == dd:
-        return d
-    pass
-
+def func():
+    x = range(1,10000)
+    y = []
+    y2 =[]
+    for x_i in tqdm(x):
+        y_i = x_i / (34 - np.log(abs(x_i)+1)/np.log(2))
+        y.append(y_i)
+        y2.append(x_i/20.)
+    plt.plot(x,y)
+    plt.plot(x,y2)
+    # plt.axis("equal")
+    plt.show()
 
 
 class __abc:
@@ -74,7 +57,7 @@ def test123():
     print this_root
 
 def main():
-    foo()
+    func()
 
 
 

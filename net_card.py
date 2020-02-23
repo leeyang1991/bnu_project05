@@ -1,6 +1,7 @@
 # coding=gbk
 '''
 python 获取管理员权限
+启动禁用网卡
 '''
 import os
 import ctypes, sys
@@ -14,8 +15,8 @@ def is_admin():
 
 def hello_message():
 
-    print '1: Enable Network card'
-    print '0: Disable Network card'
+    print('1: Enable Network card')
+    print('0: Disable Network card')
 
 def enable_disable():
     try:
@@ -29,7 +30,7 @@ def enable_disable():
         os.system(stat)
 
     except:
-        print 'input error...'
+        print('input error...')
 
 
 def main():
