@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from analysis import *
-
+import matplotlib.patches as patches
 
 
 class Prepare:
@@ -18,8 +18,110 @@ class Prepare:
         # self.prepare_Y()
         # x = ['TMP', 'PRE', 'CCI', 'SWE']
         # MUTIPROCESS(self.prepare_X,x).run()
-        self.prepare_NDVI()
+        # self.prepare_NDVI()
+        # self.abs_X()
+        self.minus_X()
         pass
+
+
+
+    def abs_X(self):
+
+        fdir = this_root + 'new_2020\\random_forest\\'
+        abs_fdir = this_root+'new_2020\\random_forest_abs\\'
+        Tools().mk_dir(abs_fdir)
+
+        pre_dic = dict(np.load(fdir + 'PRE.npy').item())
+        tmp_dic = dict(np.load(fdir + 'TMP.npy').item())
+        swe_dic = dict(np.load(fdir + 'SWE.npy').item())
+        cci_dic = dict(np.load(fdir + 'CCI.npy').item())
+        NDVI_change_dic = dict(np.load(fdir + 'NDVI_change.npy').item())
+        two_month_early_vals_mean_dic = dict(np.load(fdir + 'two_month_early_vals_mean.npy').item())
+
+
+        new_pre_dic = {}
+        new_tmp_dic = {}
+        new_swe_dic = {}
+        new_cci_dic = {}
+        new_NDVI_change_dic = {}
+        new_two_month_early_vals_mean_dic = {}
+
+        for key in tqdm(two_month_early_vals_mean_dic):
+            try:
+                pre = pre_dic[key]
+                tmp = tmp_dic[key]
+                cci = cci_dic[key]
+                swe = swe_dic[key]
+                ndvi_change = NDVI_change_dic[key]
+                two_month_early_vals_mean = two_month_early_vals_mean_dic[key]
+            except:
+                continue
+            new_pre_dic[key] = abs(pre)
+            new_tmp_dic[key] = abs(tmp)
+            new_cci_dic[key] = abs(cci)
+            new_swe_dic[key] = abs(swe)
+            new_NDVI_change_dic[key] = abs(ndvi_change)
+            new_two_month_early_vals_mean_dic[key] = abs(two_month_early_vals_mean)
+
+        np.save(abs_fdir+'PRE.npy',new_pre_dic)
+        np.save(abs_fdir+'TMP.npy',new_tmp_dic)
+        np.save(abs_fdir+'CCI.npy',new_cci_dic)
+        np.save(abs_fdir+'SWE.npy',new_swe_dic)
+        np.save(abs_fdir+'NDVI_change.npy',new_NDVI_change_dic)
+        np.save(abs_fdir+'two_month_early_vals_mean.npy',new_two_month_early_vals_mean_dic)
+
+
+
+
+
+    def minus_X(self):
+
+        fdir = this_root + 'new_2020\\random_forest\\'
+        abs_fdir = this_root+'new_2020\\random_forest_minus\\'
+        Tools().mk_dir(abs_fdir)
+
+        pre_dic = dict(np.load(fdir + 'PRE.npy').item())
+        tmp_dic = dict(np.load(fdir + 'TMP.npy').item())
+        swe_dic = dict(np.load(fdir + 'SWE.npy').item())
+        cci_dic = dict(np.load(fdir + 'CCI.npy').item())
+        NDVI_change_dic = dict(np.load(fdir + 'NDVI_change.npy').item())
+        two_month_early_vals_mean_dic = dict(np.load(fdir + 'two_month_early_vals_mean.npy').item())
+
+
+        new_pre_dic = {}
+        new_tmp_dic = {}
+        new_swe_dic = {}
+        new_cci_dic = {}
+        new_NDVI_change_dic = {}
+        new_two_month_early_vals_mean_dic = {}
+
+        for key in tqdm(two_month_early_vals_mean_dic):
+            try:
+                pre = pre_dic[key]
+                tmp = tmp_dic[key]
+                cci = cci_dic[key]
+                swe = swe_dic[key]
+                ndvi_change = NDVI_change_dic[key]
+                two_month_early_vals_mean = two_month_early_vals_mean_dic[key]
+            except:
+                continue
+            new_pre_dic[key] = -pre
+            new_tmp_dic[key] = tmp
+            new_cci_dic[key] = -cci
+            new_swe_dic[key] = -swe
+            new_NDVI_change_dic[key] = -ndvi_change
+            new_two_month_early_vals_mean_dic[key] = two_month_early_vals_mean
+
+        np.save(abs_fdir+'PRE.npy',new_pre_dic)
+        np.save(abs_fdir+'TMP.npy',new_tmp_dic)
+        np.save(abs_fdir+'CCI.npy',new_cci_dic)
+        np.save(abs_fdir+'SWE.npy',new_swe_dic)
+        np.save(abs_fdir+'NDVI_change.npy',new_NDVI_change_dic)
+        np.save(abs_fdir+'two_month_early_vals_mean.npy',new_two_month_early_vals_mean_dic)
+
+
+
+
 
     def prepare_Y(self):
         # config
@@ -332,7 +434,9 @@ class RF_train_events:
 
     def load_variable(self,partition_keys_dic,condition1,condition2):
 
-        fdir = this_root+'new_2020\\random_forest\\'
+        # fdir = this_root+'new_2020\\random_forest\\'
+        # fdir = this_root+'new_2020\\random_forest_abs\\'
+        fdir = this_root+'new_2020\\random_forest_minus\\'
         # print 'loading variables ...'
         Y_dic = dict(np.load(fdir+'Y.npy').item())
         pre_dic = dict(np.load(fdir+'PRE.npy').item())
@@ -404,13 +508,28 @@ class RF_train_events:
 
         importances = clf.feature_importances_
         y_pred = clf.predict(X_test)
-        r = stats.pearsonr(Y_test, y_pred)[0]
+        r_model = stats.pearsonr(Y_test, y_pred)[0]
         mse = sklearn.metrics.mean_squared_error(Y_test, y_pred)
 
+        r_X = []
+        for i in range(len(X_test[0])):
+            corr_x = []
+            corr_y = []
+            for j in range(len(X_test)):
+                if X_test[j][i] == False:
+                    continue
+                corr_x.append(X_test[j][i])
+                corr_y.append(y_pred[j])
+            # print corr_y
+            r_c, p = stats.pearsonr(corr_x, corr_y)
+            r_X.append(r_c)
+            # print i, r_c, p
+            # plt.scatter(corr_x, corr_y)
+            # plt.show()
         #### plot ####
         if isplot:
             print importances
-            print('mse:%s\nr:%s' % (mse, r))
+            print('mse:%s\nr:%s' % (mse, r_model))
             # 1 plot spatial
             plt.figure()
             plt.imshow(selected_pix_spatial,cmap='gray')
@@ -431,7 +550,7 @@ class RF_train_events:
         #### plot ####
 
 
-        return importances,mse, r, Y_test, y_pred
+        return importances,mse, r_model, Y_test, y_pred,r_X
 
 
     def kernel_do_random_forest_train(self,params):
@@ -441,18 +560,25 @@ class RF_train_events:
         # if len(X) < 100:
         #     result_dic[key] = None
         #     continue
+
+
+
+        ################## debug
+        # importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
+
         try:
-            importances, mse, r, Y_test, y_pred = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
-            result = key,{'importances':importances, 'mse':mse, 'r':r, 'Y_test':Y_test, 'y_pred':y_pred}
+            importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
+            result = key,{'importances':importances, 'mse':mse, 'r':r, 'Y_test':Y_test, 'y_pred':y_pred,'rX':rX}
             return result
         except Exception as e:
+            # print e,'error'
             return key,[]
         pass
 
 
     def do_random_forest_train(self):
 
-        result_dic_arr = this_root+'arr\\RF_result_dic_arr1'
+        result_dic_arr = this_root+'arr\\RF_result_dic_arr_with_rX_minus'
         partition_keys_dic = dict(np.load(this_root + 'arr\\RF_partition.npy').item())
         condition1_list = [
                         'in~early',
@@ -473,11 +599,16 @@ class RF_train_events:
         for c1 in condition1_list:
             for c2 in condition2_list:
                 params.append([c1,c2,partition_keys_dic])
-        # key_,result_ = self.__kernel_do_random_forest_train(params[1])
-        # print key_,result_
+        # print params[1]
+        # exit()
+        ###1### debug
+        # result = self.kernel_do_random_forest_train(params[1])
+        ###1###
+
+        ##### 2 run
         result = MUTIPROCESS(self.kernel_do_random_forest_train,params).run()
-        # self.__kernel_do_random_forest_train()
         np.save(result_dic_arr,result)
+        ##### 2
         pass
 
 
@@ -496,6 +627,27 @@ class RF_train_pixels:
         pass
 
 
+class Corelation_analysis():
+
+    def __init__(self):
+        pass
+
+    def run(self):
+        result_dic_arr = np.load(this_root + 'arr\\RF_result_dic_arr1.npy')
+
+        for key in result_dic_arr:
+            print key
+            exit()
+
+
+
+
+
+        pass
+
+
+
+
 
 class Plot_RF_train_events_result:
     def __init__(self):
@@ -505,12 +657,14 @@ class Plot_RF_train_events_result:
 
     def run(self):
         region_pix = dict(np.load(this_root+'arr\\cross_koppen_landuse_pix.npy').item())
-        f = this_root+'arr\\RF_result_dic_arr1.npy'
+        # f = this_root+'arr\\RF_result_dic_arr1.npy'
+        f = this_root+'arr\\RF_result_dic_arr_with_rX_minus.npy'
         arr = np.load(f)
         x0list = []
         ylist = []
         size_list = []
         colors_list = []
+        rX_colors_list = []
 
         self.__plot_grid()
         for key,result_dic in arr:
@@ -518,20 +672,24 @@ class Plot_RF_train_events_result:
             try:
                 importances = result_dic['importances']
                 r = result_dic['r']
+                rX = result_dic['rX']
                 if np.isnan(r):
                     continue
             except:
                 continue
             scatter_size = self.__importances_to_scatter_size(importances)
+            rX_color = self.__rX_to_colors(rX)
             color = self.__r_to_color(r)
             x0,y = self.__get_scatter_position(key,region_pix)
             x0list.append(x0)
             ylist.append(y)
             colors_list.append(color)
             size_list.append(scatter_size)
+            rX_colors_list.append(rX_color)
 
 
-        self.__plot_scatter(x0list,ylist,size_list,colors_list)
+        # self.__plot_scatter(x0list,ylist,size_list,colors_list)
+        self.__plot_scatter(x0list,ylist,size_list,rX_colors_list)
         # plt.scatter(xs,ys)
         plt.show()
         # key = 'in~early-Shrublands_Savanna.AH'
@@ -612,7 +770,14 @@ class Plot_RF_train_events_result:
         #     print x0list[i],ylist[i],slist[i],clist[i]
         for i in range(len(x0list)):
             for j in range(len(slist[i])):
-                plt.scatter(x0list[i]+j, ylist[i], s=slist[i][j], c=clist[i])
+                plt.scatter(x0list[i]+j, ylist[i], s=slist[i][j], c=clist[i][j])
+
+
+    def __plot_matrix(self,x0list,ylist,slist,clist):
+        for i in range(len(x0list)):
+            for j in range(len(slist[i])):
+                plt.scatter(x0list[i]+j, ylist[i], s=slist[i][j], c=clist[i][j])
+
 
 
     def __importances_to_scatter_size(self,importances_list):
@@ -628,6 +793,23 @@ class Plot_RF_train_events_result:
             scatter_size_list.append(size_list[i])
         return scatter_size_list
         pass
+
+
+
+    def __rX_to_colors(self,rX_list):
+
+        colors_list = []
+        cmap = sns.diverging_palette(236, 0, s=99, l=50, n=10, center="light")
+
+        for r in rX_list:
+            if np.isnan(r):
+                colors_list.append('cmap[5]')
+            else:
+                rr = int(round(round(r, 1) * 10. / 2. + 5., 0)) - 1
+                c = cmap[rr]
+                colors_list.append(c)
+
+        return colors_list
 
 
     def __r_to_color(self,r):
@@ -758,6 +940,7 @@ def main():
     # RF_train_events().run()
     Plot_RF_train_events_result().run()
     # Plot_RF_train_events_result().get_scatter_y()
+    # Corelation_analysis().run()
     pass
 
 
