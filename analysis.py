@@ -2447,6 +2447,11 @@ class Pick_Single_events():
 
 
 class Pick_Single_events1():
+
+    '''
+    using this method
+    '''
+
     def __init__(self):
         # self.check_global_dic()
         # self.check_events()
@@ -2462,30 +2467,22 @@ class Pick_Single_events1():
         # 耗时：13 min
         self.pick(interval)
 
-        # 2 在single event 的基础上，找在生长季的干旱事件，分南北半球和热带
-        # 耗时：15 min
-        self.pick_non_growing_season_events(interval)
-        self.pick_pre_growing_season_events(interval)
-        self.pick_post_growing_season_events(interval)
-        # self.pick_growing_season_events(interval)
+        # # 2 在single event 的基础上，找在生长季的干旱事件，分南北半球和热带
+        # # 耗时：15 min
+        # self.pick_non_growing_season_events(interval)
+        # self.pick_pre_growing_season_events(interval)
+        # self.pick_post_growing_season_events(interval)
+        # # self.pick_growing_season_events(interval)
+        #
+        # # 3 合成南北半球和热带区域的生长季事件
+        # # self.composite_global_growing(interval)
+        # self.composite_global_non_growing(interval)
+        # self.composite_global_pre_growing(interval)
+        # self.composite_global_post_growing(interval)
 
-        # 3 合成南北半球和热带区域的生长季事件
-        # self.composite_global_growing(interval)
-        self.composite_global_non_growing(interval)
-        self.composite_global_pre_growing(interval)
-        self.composite_global_post_growing(interval)
-
-    def run1(self, interval):
-        # 1 找single event 前后24个月无严重干旱事件
-        # 耗时：13 min
-        self.pick(interval)
-
-        # 2 在single event 的基础上，找在生长季的干旱事件，分南北半球和热带
-        # 耗时：15 min
-        self.pick_non_growing_season_events(interval)
-        self.pick_pre_growing_season_events(interval)
-        self.pick_post_growing_season_events(interval)
-
+    def run1(self):
+        # self.plot_spatial_events()
+        self.plot_early_late_events()
         pass
 
     def pick_plot(self):
@@ -3266,10 +3263,10 @@ class Pick_Single_events1():
             mean = np.mean(vals_list)
             spatial_dic[pix] = mean
         arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
-        DIC_and_TIF().arr_to_tif(arr,outf)
-        # plt.imshow(arr,'jet')
-        # plt.colorbar()
-        # plt.show()
+        # DIC_and_TIF().arr_to_tif(arr,outf)
+        plt.imshow(arr,'jet')
+        plt.colorbar()
+        plt.show()
         pass
 
 
@@ -3310,6 +3307,34 @@ class Pick_Single_events1():
         # plt.show()
 
         pass
+
+
+    def plot_early_late_events(self):
+        f = this_root + 'new_2020\\random_forest\\Y.npy'
+        out_tif = this_root+'new_2020\\tif\\late_events.tif'
+        dic = dict(np.load(f).item())
+        void_dic = DIC_and_TIF().void_spatial_dic()
+        for key in dic:
+            if 'late' in key or 'tropical' in key:
+                pix = key.split('~')[0]
+                void_dic[pix].append(1.)
+            # pix = key.split('~')[0]
+            # void_dic[pix].append(1.)
+        spatio_dic = {}
+        for pix in void_dic:
+            val_list = void_dic[pix]
+            if len(val_list)>0:
+                spatio_dic[pix] = np.sum(val_list)
+            else:
+                spatio_dic[pix] = np.nan
+
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatio_dic)
+        DIC_and_TIF().arr_to_tif(arr,out_tif)
+        plt.imshow(arr)
+        plt.colorbar()
+        plt.show()
+
+
 
 
 # class Recovery_time:
@@ -7735,8 +7760,8 @@ class Annual_changes:
 
                 if recovery_time == None:
                     continue
-                # if 'early' in eln:
-                if 'tropical' in eln:
+                if 'early' in eln:
+                # if 'tropical' in eln:
                     start = recovery_date_range[0]
                     year = int(start//12 + 1982)
                     year_dic[year].append(recovery_time)
@@ -7802,7 +7827,7 @@ def main():
     # NDVI().run()
     # Pre_Process().smooth_anomaly()
     # Pick_Single_events()
-    # Pick_Single_events1().plot_spatial_events_192()
+    Pick_Single_events1().run1()
     # Recovery_time_winter()
     # Recovery_time_winter_2().run()
     # Recovery_time_winter_3().run()
