@@ -143,7 +143,7 @@ def nc_to_tif(nc,outdir):
         # print(date_str)
         # exit()
         ndv = np.nan
-        arr = ncin.variables['PDSI'][i]
+        arr = ncin.variables['def'][i]
         for name,variable in ncin.variables.items():
             for var in variable.ncattrs():
                 if var == 'missing_value':
@@ -171,9 +171,9 @@ def nc_to_tif(nc,outdir):
 def main():
     # n=12
     # n='%02d'%n
-    this_root = r'D:\project06\PDSI\\'
-    for year in tqdm(range(1982,2018)):
-        nc = this_root + 'NC\\PDSI_{}.nc'.format(year)
+    this_root = r'D:\project05\CWD\\'
+    for year in tqdm(range(1982,2016)):
+        nc = this_root + 'download\\TerraClimate_def_{}.nc'.format(year)
         out_dir = this_root+'tif\\'
         nc_to_tif(nc,out_dir)
 

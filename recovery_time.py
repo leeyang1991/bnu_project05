@@ -1278,12 +1278,48 @@ class Recovery_time2:
         # plt.show()
 
 
+def Methods_1_2_plot_scatter():
+    # 画方法1和方法2的散点图
+    m1_tif = this_root+'tif\\recovery_time\\recovery_time_mix.tif'
+    m2_tif = this_root+'new_2020\\tif\\recovery_time_2\\mix.tif'
+
+    arr1,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(m1_tif)
+    arr2,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(m2_tif)
+
+    arr1_list = []
+    arr2_list = []
+    for i in range(len(arr1)):
+        for j in range(len(arr1[0])):
+            val1 = arr1[i][j]
+            val2 = arr2[i][j]
+            if not (0 < val1 < 24):
+                continue
+            if not (0 < val2 < 24):
+                continue
+            arr1_list.append(val1)
+            arr2_list.append(val2)
+    # print len(arr1_list)
+    # exit()
+    # plt.scatter(arr1_list,arr2_list)
+    # KDE_plot().plot_scatter(arr1_list,arr2_list)+
+
+    plt.figure()
+    plt.hist(arr1_list,bins=25)
+    plt.figure()
+    plt.hist(arr2_list,bins=25)
+    plt.show()
+
+
+    pass
+
+
 
 def main():
 
     # Recovery_time1().run1()
     # Recovery_time1_GPP().recovery_mix_tif()
-    Recovery_time2().run()
+    # Recovery_time2().run()
+    Methods_1_2_plot_scatter()
     pass
 
 if __name__ == '__main__':
