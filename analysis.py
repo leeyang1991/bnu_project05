@@ -802,7 +802,7 @@ class NDVI:
 
 
     def filter_NDVI_valid_pix(self):
-        mask_ndvi_arr = np.load(this_root + 'NDVI\\NDVI_growing_season_mean.npy')
+        mask_ndvi_arr = np.load(this_root + 'data\\NDVI\\NDVI_growing_season_mean.npy')
 
         valid_pix = []
         for i in range(len(mask_ndvi_arr)):
@@ -818,7 +818,7 @@ class NDVI:
 
 
     def mask_arr_with_NDVI(self,arr):
-        mask_ndvi_arr = np.load(this_root + 'NDVI\\NDVI_growing_season_mean.npy')
+        mask_ndvi_arr = np.load(this_root + 'data\\NDVI\\NDVI_growing_season_mean.npy')
         grid = np.isnan(mask_ndvi_arr)
         arr[grid] = np.nan
         # plt.imshow(arr)
@@ -1344,9 +1344,6 @@ class MUTIPROCESS:
         :param kwargs: tqdm kwargs
         :return:
         '''
-        if 'text' in kwargs:
-            kwargs['desc'] = kwargs['text']
-            del kwargs['text']
 
         if process > 0:
             if process_or_thread == 'p':
@@ -1447,8 +1444,8 @@ class Pre_Process:
         pass
 
     def run(self):
-        fdir = this_root+'GPP\\tif\\'
-        per_pix = this_root+'GPP\\per_pix\\'
+        # fdir = this_root+'GPP\\tif\\'
+        per_pix = this_root+'data\\SPEI\\per_pix\\'
         anomaly = this_root+'GPP\\per_pix_anomaly\\'
         # # Tools().mk_dir(outdir)
         self.data_transform(fdir,per_pix)
@@ -7164,6 +7161,38 @@ class RATIO:
             plt.title(m)
             plt.show()
 
+class Landcover:
+
+    def __init__(self):
+
+        pass
+
+    def gen_landcover_dic(self):
+
+        # tif = r'D:\project05\landcover\tif\0.5\landcover_0.5.tif'
+        # array,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
+        # plt.imshow(array)
+        # plt.colorbar()
+        # plt.show()
+        landcover_dir = this_root + 'landcover\\per_pix\\'
+        landcover_dic = {}
+
+        for i in range(18):
+            landcover_dic[i] = []
+
+        for f in tqdm(os.listdir(landcover_dir), desc='loading landcover'):
+            dic = dict(np.load(landcover_dir + f).item())
+            for pix in dic:
+                val = dic[pix][0]
+                landcover_dic[val].append(pix)
+        # for type_ in range()
+        landcover_dic_array = {}
+        for i in landcover_dic:
+            landcover_dic_array[i] = np.array(landcover_dic[i])
+
+        np.save(this_root+'arr\\landcover_dic',landcover_dic_array)
+
+
 
 
 class HI:
@@ -7857,9 +7886,9 @@ def main():
     # run()
     # DIC_and_TIF().run()
     # NDVI().run()
-    # Pre_Process().smooth_anomaly()
+    Pre_Process().smooth_anomaly()
     # Pick_Single_events()
-    Pick_Single_events1().run1()
+    # Pick_Single_events1().run1()
     # Recovery_time_winter()
     # Recovery_time_winter_2().run()
     # Recovery_time_winter_3().run()
