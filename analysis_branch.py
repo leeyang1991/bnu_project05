@@ -1,9 +1,9 @@
 # coding=gbk
 
 from analysis import *
+this_root_branch = this_root+'branch2020\\'
 
-
-class Winter:
+class Winter1:
     '''
     20200301 更新
     1、生长季选为6个月，前3个月为Early 后3个月为Late
@@ -16,6 +16,11 @@ class Winter:
     4、选出冬季date range
     '''
     def __init__(self):
+        self.this_class_arr = this_root_branch+'arr\\Winter1\\'
+        self.this_class_tif = this_root_branch+'tif\\Winter1\\'
+
+        Tools().mk_dir(self.this_class_arr,force=True)
+        Tools().mk_dir(self.this_class_tif,force=True)
 
         pass
 
@@ -23,11 +28,8 @@ class Winter:
     def run(self):
         # self.cal_monthly_mean()
         # self.count_num()
-        self.get_grow_season_index()
-        # self.composite_tropical_growingseason()
-        # self.check_composite_growing_season()
-        # self.check_pix()
-        # self.growing_season_one_month_in_advance()
+        # self.get_grow_season_index()
+        self.check_pix()
         pass
 
     def cal_monthly_mean(self):
@@ -72,7 +74,7 @@ class Winter:
                     if val>5000:
                         flag += 1.
                 if flag == 12:
-                    winter_pix.append('%04d.%04d'%(i,j))
+                    winter_pix.append('%03d.%03d'%(i,j))
                 temp.append(flag)
             winter_count.append(temp)
 
@@ -117,39 +119,118 @@ class Winter:
         return growing_season
 
 
-    def __get_val_and_pop(self,in_list):
-        print in_list
-        # print max_indx
-
-
-
-        pass
-
-    def max_6_vals(self,vals):
+    def max_6_vals(self,pix,vals):
         '''
         20200301更新
         选取top 6 NDVI月份
         :param vals:
         :return:
         '''
-        vals = np.array(vals)
-        # 从小到大排序，获取索引值
+        vals = list(np.array(vals))
+
+        # 1 从小到大排序，获取索引值
         sort = np.argsort(vals)
-        sort_dic = {} # {rank:val}
-        for i in range(len(vals)):
-            val = vals[i]
-            month = i
-            rank = sort[i]
-            sort_dic[rank] = [val]
-        print vals
-        print sort
-        print sort_dic
+        sort = sort[::-1]
 
-        plt.plot(vals)
-        plt.show()
+        # 2 选取排序排名前6的索引值
+        max_6_vals = []
+        for i in range(6):
+            max_6_index = sort[i]
+            rank = i
+            max_6_vals.append([vals[max_6_index],max_6_index,rank])
 
+        # 3 选取生长季月份
+        selected_months = []
+        for i in range(len(max_6_vals)):
+            selected_months.append(max_6_vals[i][1])
+        selected_months.sort()
+
+        # 3.1 生长季跨年
+        if 0 in selected_months and 11 in selected_months:
+            # 1 计算selected_months与12月份的差值delta，相差几个月
+            bias = []
+            for i in selected_months:
+                if i < 6:
+                    delta = i + 1
+                    pass
+                else:
+                    delta = i - 11
+                bias.append(delta)
+            # 2 计算中间月份，取floor作为mid_month
+            mid_month = np.floor(np.mean(bias)) + 11
+
+            # 3 计算 mid month前3个月，后3个月，结果会大于12
+            growing_season = [
+                mid_month - 3,
+                mid_month - 2,
+                mid_month - 1,
+                mid_month + 0,
+                mid_month + 1,
+                mid_month + 2,
+            ]
+            # 4 调整，结果大于12的月份
+            new_growing_season = []
+            for i in growing_season:
+                if i > 11:
+                    new_growing_season.append(int(i-12))
+                else:
+                    new_growing_season.append(int(i))
+            growing_season = new_growing_season
+
+        # 3.2 生长在年内
+        else:
+            mid_month = int(np.mean(selected_months))
+            growing_season = [
+                mid_month - 3,
+                mid_month - 2,
+                mid_month - 1,
+                mid_month + 0,
+                mid_month + 1,
+                mid_month + 2,
+                ]
+        growing_season = np.array(growing_season) + 1
+        ################### plot ###################
+        # x, y = pix.split('.')
+        # print int(x),int(y)
+        ########### pix selection ###########
+        # if int(x) in range(80, 85) and int(y) in range(580, 585):
+        #     print '\n'
+        #     print pix
+        #     print selected_months
+        #     print mid_month
+        #     plt.figure()
+        #     plt.subplot(211)
+        #     plt.plot(vals)
+        #     plt.scatter(range(len(vals)),vals)
+        #     for i in range(len(max_6_vals)):
+        #         plt.text(max_6_vals[i][1], max_6_vals[i][0], str(max_6_vals[i][2]) + '\n' + '%0.2f' % max_6_vals[i][0])
+        #     plt.subplot(212)
+        #     DIC_and_TIF().plot_back_ground_arr()
+        #     void_dic = DIC_and_TIF().void_spatial_dic_nan()
+        #     xlist = []
+        #     ylist = []
+        #     buffer_ = 5
+        #     for i in (np.array(range(buffer_)) - buffer_/2):
+        #         xlist.append(int(x) + i)
+        #         ylist.append(int(y) + i)
+        #     # buffer_pix = []
+        #     for i in range(len(xlist)):
+        #         for j in range(len(ylist)):
+        #             buffer_pix_i = '%03d.%03d'%(xlist[i],ylist[j])
+        #             # buffer_pix.append(buffer_pix_i)
+        #             # print buffer_pix_i
+        #             void_dic[buffer_pix_i] = 1
+        #     arr = DIC_and_TIF().pix_dic_to_spatial_arr(void_dic)
+        #     plt.imshow(arr,'gray')
+        #     plt.show()
+        #
+        #     print '*******'
+        ################### plot ###################
+        return growing_season
 
     def get_grow_season_index(self):
+        outdir = this_root_branch + 'arr\\Winter1\\'
+        Tools().mk_dir(outdir,force=True)
         tropical_pix = np.load(this_root+'data\\NDVI\\tropical_pix.npy')
         fdir = this_root + 'data\\NDVI\\mon_mean_tif\\'
         arrs = []
@@ -165,12 +246,12 @@ class Winter:
         winter_dic = {}
         for i in tqdm(range(row)):
             for j in range(col):
-                if i < 150:
-                    continue
-                pix = '%04d.%04d' % (i, j)
+                # if i < 250:
+                #     continue
+                pix = '%03d.%03d' % (i, j)
                 # print pix
                 if pix in tropical_pix:
-                    winter_dic[pix] = range(1,13)
+                    winter_dic[pix] = np.array(range(1,13))
                     continue
                 vals = []
                 for arr in arrs:
@@ -180,13 +261,9 @@ class Winter:
                     std = np.std(vals)
                     if std == 0:
                         continue
-                    growing_season = self.max_6_vals(vals)
-                    # print growing_season
-                    # plt.plot(vals)
-                    # plt.grid()
-                    # plt.show()
+                    growing_season = self.max_6_vals(pix,vals)
                     winter_dic[pix] = growing_season
-        # np.save(this_root+'NDVI\\growing_season_index',winter_dic)
+        np.save(outdir+'growing_season_index',winter_dic)
 
         pass
 
@@ -201,33 +278,20 @@ class Winter:
             pix_dic[pix] = range(1,13)
         np.save(this_root+'NDVI\\composite_growing_season',pix_dic)
 
-    def growing_season_one_month_in_advance(self):
-        # 将生长季提前一个月
-
-        growing_season_f = this_root + 'NDVI\\composite_growing_season.npy'
-        growing_season_dic = dict(np.load(growing_season_f).item())
-        new_growing_season_dic = {}
-        for pix in tqdm(growing_season_dic):
-            growing_season = growing_season_dic[pix]
-            new_growing_season = Tools().growing_season_index_one_month_in_advance(growing_season)
-            new_growing_season_dic[pix] = new_growing_season
-        np.save(this_root + 'NDVI\\composite_growing_season_one_month_in_advance.npy',new_growing_season_dic)
-        pass
 
     def check_pix(self):
-        growing_season_index = dict(np.load(this_root+'NDVI\\growing_season_index.npy').item())
-        tropical_pix = np.load(this_root+'NDVI\\tropical_pix.npy')
+        growing_season_index = dict(np.load(self.this_class_arr+'growing_season_index.npy').item())
+        # growing_season_index = dict(np.load(this_root+'data\\NDVI\\growing_season_index.npy').item())
         pix_dic = {}
-        for pix in tropical_pix:
-            pix_dic[pix] = 2
-
         for pix in growing_season_index:
-            pix_dic[pix] = 1
+            # length = len(growing_season_index[pix])
+            pix_dic[pix] = growing_season_index[pix][2]
             # print growing_season_index[pix]
 
         arr = DIC_and_TIF().pix_dic_to_spatial_arr(pix_dic)
 
         plt.imshow(arr)
+        plt.colorbar()
         plt.show()
 
         pass
@@ -248,7 +312,7 @@ class Winter:
         plt.show()
 
 
-class Pick_new:
+class Pick1:
     '''
     foreest 前后4年 single event
     '''
@@ -441,8 +505,8 @@ class CWD:
 
 def main():
 
-    # Pick_new().run()
-    Winter().run()
+    # Pick1().run()
+    Winter1().run()
 
 
 if __name__ == '__main__':
