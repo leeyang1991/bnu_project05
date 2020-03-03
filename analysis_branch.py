@@ -317,19 +317,22 @@ class Pick1:
     foreest 前后4年 single event
     '''
     def __init__(self):
-
+        self.this_class_arr = this_root_branch + 'arr\\Pick1\\'
+        self.this_class_tif = this_root_branch + 'tif\\Pick1\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
         pass
 
     def run(self):
 
         pass
 
-    def pick(self, interval, mode='SPEI'):
+    def pick(self, interval):
         # 前n个月和后n个月无极端干旱事件
         n = 24
-        spei_dir = this_root + mode + '\\per_pix\\' + 'SPEI_{:0>2d}\\'.format(interval)
+        spei_dir = this_root + '\\per_pix\\' + 'SPEI_{:0>2d}\\'.format(interval)
         # spei_dir = this_root+'PDSI\\per_pix\\'
-        out_dir = this_root + mode + '\\single_events_{}\\'.format(n) + 'SPEI_{:0>2d}\\'.format(interval)
+        out_dir = self.this_class_arr + '\\single_events_{}\\'.format(n) + 'SPEI_{:0>2d}\\'.format(interval)
         # out_dir = this_root+'PDSI\\single_events\\'
         Tools().mk_dir(out_dir, force=True)
         for f in tqdm(os.listdir(spei_dir), 'file...'):
@@ -344,7 +347,7 @@ class Pick1:
                     single_event_dic[pix] = []
                     continue
                 spei = Tools().forward_window_smooth(spei, 3)
-                params = [spei, pix, mode]
+                params = [spei, pix]
                 events_dic, key = self.kernel_find_drought_period(params)
                 # for i in events_dic:
                 #     print i,events_dic[i]
@@ -503,11 +506,38 @@ class CWD:
 
 
 
+def kernel_smooth_SPEI(params):
+    fdir,f,outdir_i = params
+    dic = dict(np.load(fdir + f).item())
+    smooth_dic = {}
+    for key in dic:
+        vals = dic[key]
+        smooth_vals = SMOOTH().forward_window_smooth(vals)
+        smooth_dic[key] = smooth_vals
+    np.save(outdir_i + f, smooth_dic)
+    pass
+
+
+def smooth_SPEI():
+    outdir = this_root+'data\\SPEI\\per_pix_smooth\\'
+    Tools().mk_dir(outdir)
+    for interval in range(1,13):
+        fdir = this_root + 'data\\SPEI\\per_pix\\SPEI_%02d\\' % interval
+        outdir_i = outdir + 'SPEI_%02d\\' % interval
+        Tools().mk_dir(outdir_i)
+        params = []
+        for f in os.listdir(fdir):
+            params.append([fdir,f,outdir_i])
+        MUTIPROCESS(kernel_smooth_SPEI,params).run(desc=outdir_i)
+
+    pass
+
+
 def main():
 
     # Pick1().run()
-    Winter1().run()
-
+    # Winter1().run()
+    smooth_SPEI()
 
 if __name__ == '__main__':
     main()
