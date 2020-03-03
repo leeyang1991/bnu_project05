@@ -1258,6 +1258,38 @@ class DIC_and_TIF:
                 void_dic[key] = []
         return void_dic
 
+
+    def void_spatial_dic_nan(self):
+        tif_template = this_root + 'conf\\tif_template.tif'
+        arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+        void_dic = {}
+        for row in range(len(arr)):
+            for col in range(len(arr[row])):
+                key = '%03d.%03d' % (row, col)
+                void_dic[key] = np.nan
+        return void_dic
+
+    def plot_back_ground_arr(self):
+        tif_template = this_root + 'conf\\tif_template.tif'
+        arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
+        back_ground = []
+        for i in range(len(arr)):
+            temp = []
+            for j in range(len(arr[0])):
+                val = arr[i][j]
+                if val < -90000:
+                    temp.append(np.nan)
+                else:
+                    temp.append(1)
+            back_ground.append(temp)
+        back_ground = np.array(back_ground)
+        plt.imshow(back_ground, 'gray', vmin=0, vmax=1.4)
+
+        # return back_ground
+
+        pass
+
+
     def ascii_to_arr(self,lonlist,latlist,vals):
         '''
         transform ascii text to spatial array
