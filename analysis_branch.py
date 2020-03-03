@@ -18,17 +18,15 @@ class Winter1:
     def __init__(self):
         self.this_class_arr = this_root_branch+'arr\\Winter1\\'
         self.this_class_tif = this_root_branch+'tif\\Winter1\\'
-
         Tools().mk_dir(self.this_class_arr,force=True)
         Tools().mk_dir(self.this_class_tif,force=True)
-
         pass
 
 
     def run(self):
         # self.cal_monthly_mean()
         # self.count_num()
-        # self.get_grow_season_index()
+        self.get_grow_season_index()
         self.check_pix()
         pass
 
@@ -188,7 +186,14 @@ class Winter1:
                 mid_month + 1,
                 mid_month + 2,
                 ]
+
         growing_season = np.array(growing_season) + 1
+        new_growing_season = []
+        for i in growing_season:
+            if i == 0:
+                i = 12
+            new_growing_season.append(i)
+        growing_season = new_growing_season
         ################### plot ###################
         # x, y = pix.split('.')
         # print int(x),int(y)
@@ -262,6 +267,7 @@ class Winter1:
                     if std == 0:
                         continue
                     growing_season = self.max_6_vals(pix,vals)
+                    # print growing_season
                     winter_dic[pix] = growing_season
         np.save(outdir+'growing_season_index',winter_dic)
 
@@ -324,29 +330,50 @@ class Pick1:
         pass
 
     def run(self):
+        # self.do_pick()
+        self.plot_spatial_events()
+        pass
+
+
+    def do_pick(self):
+        param = []
+        for i in range(1,13):
+            param.append(i)
+        MUTIPROCESS(self.pick,param).run()
 
         pass
 
+
     def pick(self, interval):
         # 前n个月和后n个月无极端干旱事件
-        n = 24
-        spei_dir = this_root + '\\per_pix\\' + 'SPEI_{:0>2d}\\'.format(interval)
-        # spei_dir = this_root+'PDSI\\per_pix\\'
-        out_dir = self.this_class_arr + '\\single_events_{}\\'.format(n) + 'SPEI_{:0>2d}\\'.format(interval)
-        # out_dir = this_root+'PDSI\\single_events\\'
+        normal_n = 24 # 正常植被24个月的间隔
+        forest_n = 4 * 12 # 森林前后4年的间隔
+        spei_dir = this_root + 'data\\SPEI\\per_pix_smooth\\' + 'SPEI_{:0>2d}\\'.format(interval)
+        out_dir = self.this_class_arr + '\\single_events_no_n\\' + 'SPEI_{:0>2d}\\'.format(interval)
+        # 加载landcover
+        index_landuse_dic = this_root + 'arr\\landcover_dic.npy'
+        dic = dict(np.load(index_landuse_dic).item())
+
+        forest_dic = {}
+        for key in dic:
+            if key in range(1,6):
+                pixs = dic[key]
+                for pix in pixs:
+                    forest_dic[pix] = 1
+
         Tools().mk_dir(out_dir, force=True)
-        for f in tqdm(os.listdir(spei_dir), 'file...'):
+        # for f in tqdm(os.listdir(spei_dir), 'file...'):
+        for f in os.listdir(spei_dir):
             # if not '005' in f:
             #     continue
             spei_dic = dict(np.load(spei_dir + f).item())
             single_event_dic = {}
-            for pix in tqdm(spei_dic, f):
+            for pix in spei_dic:
                 spei = spei_dic[pix]
                 spei = Tools().interp_1d(spei, -10)
                 if len(spei) == 1 or spei[0] == -999999:
                     single_event_dic[pix] = []
                     continue
-                spei = Tools().forward_window_smooth(spei, 3)
                 params = [spei, pix]
                 events_dic, key = self.kernel_find_drought_period(params)
                 # for i in events_dic:
@@ -360,33 +387,38 @@ class Pick1:
 
                 # # # # # # # # # # # # # # # # # # # # # # #
                 # 不筛选单次事件（前后n个月无干旱事件）
-                # single_event_dic[pix] = events_4
+                single_event_dic[pix] = events_4
                 # print events_4
                 # # # # # # # # # # # # # # # # # # # # # # #
 
                 # # # # # # # # # # # # # # # # # # # # # # #
                 # # 筛选单次事件（前后n个月无干旱事件）
-                single_event = []
-                for i in range(len(events_4)):
-                    if i - 1 < 0:  # 首次事件
-                        if events_4[i][0] - n < 0 or events_4[i][-1] + n >= len(spei):  # 触及两边则忽略
-                            continue
-                        if len(events_4) == 1:
-                            single_event.append(events_4[i])
-                        elif events_4[i][-1] + n <= events_4[i + 1][0]:
-                            single_event.append(events_4[i])
-                        continue
-
-                    # 最后一次事件
-                    if i + 1 >= len(events_4):
-                        if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= len(spei):
-                            single_event.append(events_4[i])
-                        break
-
-                    # 中间事件
-                    if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= events_4[i + 1][0]:
-                        single_event.append(events_4[i])
-                single_event_dic[pix] = single_event
+                # 如果像素在forest里，n=4*12，否则n=24
+                # if pix in forest_dic:
+                #     n = forest_n
+                # else:
+                #     n = normal_n
+                # single_event = []
+                # for i in range(len(events_4)):
+                #     if i - 1 < 0:  # 首次事件
+                #         if events_4[i][0] - n < 0 or events_4[i][-1] + n >= len(spei):  # 触及两边则忽略
+                #             continue
+                #         if len(events_4) == 1:
+                #             single_event.append(events_4[i])
+                #         elif events_4[i][-1] + n <= events_4[i + 1][0]:
+                #             single_event.append(events_4[i])
+                #         continue
+                #
+                #     # 最后一次事件
+                #     if i + 1 >= len(events_4):
+                #         if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= len(spei):
+                #             single_event.append(events_4[i])
+                #         break
+                #
+                #     # 中间事件
+                #     if events_4[i][0] - events_4[i - 1][-1] >= n and events_4[i][-1] + n <= events_4[i + 1][0]:
+                #         single_event.append(events_4[i])
+                # single_event_dic[pix] = single_event
                 # # # # # # # # # # # # # # # # # # # # # # #
             np.save(out_dir + f, single_event_dic)
 
@@ -488,6 +520,40 @@ class Pick1:
         # exit()
         return events_dic, key
 
+
+    def plot_spatial_events(self):
+        # fdir = self.this_class_arr + '\\single_events\\'
+        fdir = self.this_class_arr + '\\single_events_no_n\\'
+        arr_sum = 0.
+        void_dic = DIC_and_TIF().void_spatial_dic()
+
+        for folder in tqdm(os.listdir(fdir)):
+            folder_dir = fdir + folder + '\\'
+            # spatial_dic = {}
+            for f in os.listdir(folder_dir):
+                dic = dict(np.load(folder_dir + f).item())
+                for pix in dic:
+                    events = dic[pix]
+                    flag = 0
+                    for event in events:
+                        flag += 1
+                    if flag == 0:
+                        continue
+                    # spatial_dic[pix] = flag
+                    void_dic[pix].append(flag)
+        # arr_sum[arr_sum==0] = np.nan
+        spatial_dic = {}
+        for pix in void_dic:
+            vals_list = void_dic[pix]
+            mean = np.mean(vals_list)
+            spatial_dic[pix] = mean
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
+        # DIC_and_TIF().arr_to_tif(arr,outf)
+        plt.imshow(arr, 'jet')
+        plt.colorbar()
+        plt.show()
+        pass
+
 class CWD:
     '''
     CWD = P - PET 气候水分亏缺
@@ -537,7 +603,9 @@ def main():
 
     # Pick1().run()
     # Winter1().run()
-    smooth_SPEI()
+    # smooth_SPEI()
+
+    pass
 
 if __name__ == '__main__':
     main()
