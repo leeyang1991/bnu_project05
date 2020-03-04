@@ -169,13 +169,21 @@ def do_mapping_recovery_time3():
 
 
 
+def do_resample_HWSD():
+    f = r'D:\project05\branch2020\tif\HWSD\S_CLAY.tif'
+    outf = r'D:\project05\branch2020\tif\HWSD\S_CLAY_resample.tif'
+    arcpy.Resample_management(f,outf,"0.5","NEAREST")
+
+    pass
+
 
 def main():
 
     # indir = r'D:\project05\GPP\pre-prosess\unzip\\'
     # outdir = r'D:\project05\GPP\pre-prosess\resample\\'
     # resample(indir,outdir)
-    do_mapping_recovery_time3()
+    # do_mapping_recovery_time3()
+    do_resample_HWSD()
     pass
 if __name__ == '__main__':
     main()

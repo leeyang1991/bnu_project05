@@ -30,11 +30,12 @@ class Recovery_time1:
     def run1(self):
         # plot func
         # self.check()
-        # self.recovery_early_late_in_out()
-        # self.ratio()
         # self.plot_early_late_pdf()
         # self.recovery_early_late_tif()
-        self.recovery_mix_tif()
+        # self.recovery_mix_tif()
+        # self.recovery_early_late_in_out()
+        self.ratio()
+
         pass
 
     def valid_pix(self):
@@ -378,9 +379,9 @@ class Recovery_time1:
         # plt.show()
 
     def recovery_early_late_in_out(self):
-        outdir = this_root+'new_2020\\tif\\recovery_time_in_out\\'
+        outdir = self.this_class_tif+'\\recovery_time_in_out\\'
         Tools().mk_dir(outdir)
-        f = this_root+'new_2020\\arr\\recovery_time_composite\\composite.npy'
+        f = self.this_class_arr+'recovery_time_composite\\composite.npy'
         dic = dict(np.load(f).item())
 
         early_in_dic = {}
@@ -433,9 +434,9 @@ class Recovery_time1:
 
 
     def ratio(self):
-        outdir = this_root + 'new_2020\\tif\\ratio\\'
+        outdir = self.this_class_tif + '\\ratio\\'
         Tools().mk_dir(outdir)
-        f = this_root + 'new_2020\\arr\\recovery_time_composite\\composite.npy'
+        f = self.this_class_arr + '\\recovery_time_composite\\composite.npy'
         dic = dict(np.load(f).item())
 
         tropical_pix = self.tropical_pix
