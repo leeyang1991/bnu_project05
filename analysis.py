@@ -221,7 +221,6 @@ class Tools:
         see also:
         numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
         scipy.signal.lfilter
-        TODO: the window parameter could be the window itself if an array instead of a string
         NOTE: length(output) != length(input), to correct this: return y[(window_len/2-1):-(window_len/2)] instead of just y.
         """
         x = np.array(x)
@@ -524,6 +523,8 @@ class Tools:
         picked_val = []
         for r, c in index:
             val = array[r, c]
+            if np.isnan(val):
+                continue
             picked_val.append(val)
         picked_val = np.array(picked_val)
         return picked_val
@@ -7432,8 +7433,8 @@ class Water_balance:
         # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\early_in_arr.tif'
         # title = 'Drought in Early Growing Season and Recovered IN Current Growing Season'
         # early out
-        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\early_out_arr.tif'
-        # title = 'Drought in Early Growing Season and Recovered OUT Current Growing Season'
+        recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\early_out_arr.tif'
+        title = 'Drought in Early Growing Season and Recovered OUT Current Growing Season'
 
         # late in
         # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\late_in_arr.tif'
@@ -7886,7 +7887,7 @@ def main():
     # run()
     # DIC_and_TIF().run()
     # NDVI().run()
-    Pre_Process().smooth_anomaly()
+    # Pre_Process().smooth_anomaly()
     # Pick_Single_events()
     # Pick_Single_events1().run1()
     # Recovery_time_winter()
@@ -7896,7 +7897,7 @@ def main():
     # RATIO().run()
     # Winter()
     # HI()
-    # Water_balance().run()
+    Water_balance().run()
     # Koppen().plot_reclass()
     # Annual_changes().run()
 
