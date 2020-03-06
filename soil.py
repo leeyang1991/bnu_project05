@@ -16,14 +16,17 @@ class HWSD:
     def run(self):
 
         fdir = this_root+'data\\HWSD\\data\\'
-        outdir = self.this_class_tif
-        f = fdir+'S_CLAY.nc4'
-        self.nc_to_tif(f,outdir)
+        # nc = 'T_CLAY.nc4'
+        # nc = 'T_SAND.nc4'
+        nc = 'T_SILT.nc4'
+        f = fdir+nc
+        outf = self.this_class_tif + nc.split('.')[0]+'.tif'
+        variables_ = nc.split('.')[0]
+        self.nc_to_tif(f,outf,variables_)
         pass
 
-    def nc_to_tif(self,nc,outdir):
+    def nc_to_tif(self,nc,outf,variables_):
         ncin = Dataset(nc, 'r')
-        outf = outdir+'S_CLAY.tif'
         # print ncin.variables
         # exit()
         lat = ncin['lat']
@@ -35,7 +38,7 @@ class HWSD:
         latitude_start = lat[0]
         # exit()
         ndv = np.nan
-        arr = ncin.variables['S_CLAY']
+        arr = ncin.variables[variables_]
         for name,variable in ncin.variables.items():
             for var in variable.ncattrs():
                 if var == 'missing_value':

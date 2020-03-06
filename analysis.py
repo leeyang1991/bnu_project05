@@ -32,6 +32,7 @@ import math
 import copy
 import scipy
 import sklearn
+import ternary
 
 this_root = 'D:\\project05\\'
 # this_root = 'D:\\ly\\project05\\'

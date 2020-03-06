@@ -170,8 +170,8 @@ def do_mapping_recovery_time3():
 
 
 def do_resample_HWSD():
-    f = r'D:\project05\branch2020\tif\HWSD\S_CLAY.tif'
-    outf = r'D:\project05\branch2020\tif\HWSD\S_CLAY_resample.tif'
+    f = r'D:\project05\branch2020\tif\HWSD\T_SAND.tif'
+    outf = r'D:\project05\branch2020\tif\HWSD\T_SAND_resample.tif'
     arcpy.Resample_management(f,outf,"0.5","NEAREST")
 
     pass
