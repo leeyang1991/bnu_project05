@@ -947,8 +947,8 @@ class Water_balance_3d:
         recovery_time_tif1 = recovery_time_branch.Recovery_time1().this_class_tif + 'recovery_time\\early.tif'
         recovery_time_tif2 = recovery_time_branch.Recovery_time1().this_class_tif + 'recovery_time\\late.tif'
         # self.cross_landuse_WB_recovery_time(recovery_time_tif1)
-        self.plot_error_bar()
-        # self.cross_landuse_WB_recovery_time(recovery_time_tif1)
+        # self.plot_error_bar()
+        self.cross_landuse_WB_recovery_time(recovery_time_tif2)
         pass
 
     def plot_error_bar(self):
@@ -1091,6 +1091,9 @@ class Water_balance_3d:
         soil_tif = this_root_branch+'tif\\HWSD\\S_CLAY_resample.tif'
         soil_arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(soil_tif)
         soil_arr[soil_arr<0] = np.nan
+        plt.imshow(soil_arr)
+        plt.colorbar()
+        plt.show()
         # soil_dic = DIC_and_TIF().spatial_arr_to_dic(soil_arr)
 
         # 6¡¢½»²æÏñËØ
@@ -1238,8 +1241,20 @@ class Water_balance_3d:
         ax.set_zlabel('Z')
 
         plt.title(title)
-        # plt.axis("equal")
-        plt.show()
+        # plt.show()
+
+
+        ################## plot animation ##################
+        from matplotlib import animation
+        def animate(i):
+            ax.view_init(elev=10., azim=i)
+            return fig,
+
+        anim = animation.FuncAnimation(fig, animate, init_func=None,
+                                       frames=360, interval=20, blit=True)
+        anim.save('basic_animation_late.html', fps=30, extra_args=['-vcodec', 'libx264'])
+        ################## plot animation ##################
+
 
 
 def kernel_smooth_SPEI(params):
@@ -1265,8 +1280,6 @@ def smooth_SPEI():
         for f in os.listdir(fdir):
             params.append([fdir,f,outdir_i])
         MUTIPROCESS(kernel_smooth_SPEI,params).run(desc=outdir_i)
-
-    pass
 
 
 def main():
