@@ -1257,6 +1257,95 @@ class Water_balance_3d:
 
 
 
+class Ternary_plot:
+
+    def __init__(self):
+        self.this_class_arr = this_root_branch + 'arr\\Ternary_plot\\'
+        self.this_class_tif = this_root_branch + 'tif\\Ternary_plot\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
+        pass
+
+
+
+    def run(self):
+        recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\early.tif'
+        tif_CLAY = this_root_branch+'\\tif\\HWSD\\T_CLAY_resample.tif'
+        tif_SAND = this_root_branch+'\\tif\\HWSD\\T_SAND_resample.tif'
+        tif_SILT = this_root_branch+'\\tif\\HWSD\\T_SILT_resample.tif'
+
+        arr_clay = to_raster.raster2array(tif_CLAY)[0]
+        arr_sand = to_raster.raster2array(tif_SAND)[0]
+        arr_silt = to_raster.raster2array(tif_SILT)[0]
+        arr_recovery = to_raster.raster2array(recovery_tif)[0]
+
+        arr_clay[arr_clay<-999] = np.nan
+        arr_sand[arr_sand<-999] = np.nan
+        arr_silt[arr_silt<-999] = np.nan
+        arr_recovery[arr_recovery<-999] = np.nan
+
+        spatial_arr = []
+        data = {}
+        for i in tqdm(range(len(arr_recovery))):
+            # temp = []
+            for j in range(len(arr_recovery[0])):
+                if np.isnan(arr_silt[i][j]):
+                    continue
+                silt = int(arr_silt[i][j])
+                # sand = arr_sand[i][j]
+                clay = int(arr_clay[i][j])
+                # val = arr_recovery[i][j]
+                # if np.isnan(val):
+                #     temp.append(np.nan)
+                #     continue
+                # if not (silt+sand+clay) > 90:
+                #     temp.append(np.nan)
+                #     continue
+                # print silt,clay
+                data[(silt,clay)] = 1
+                # x.append(sand)
+                # y.append(silt)
+                # z.append(val)
+                # temp.append(1)
+                # print silt
+                # print sand
+                # print clay
+                # print silt+sand+clay
+                # print val
+                # print '***'
+                # time.sleep(1)
+            # spatial_arr.append(temp)
+        figure, tax = ternary.figure(scale=100)
+        plt.axis('equal')
+        print len(data)
+        tax.heatmap(data, cmap='jet',style="triangular",vmin=0, vmax=18)
+        tax.boundary()
+        plt.show()
+        # plt.figure()
+        # plt.imshow(spatial_arr)
+        # plt.colorbar()
+
+
+        flag = 0
+
+        for i in spatial_arr:
+            for j in i:
+                if not np.isnan(flag):
+                    flag += 1
+        print flag
+        plt.show()
+
+
+        pass
+
+
+
+
+
+
+
+
+
 def kernel_smooth_SPEI(params):
     fdir,f,outdir_i = params
     dic = dict(np.load(fdir + f).item())
@@ -1288,7 +1377,8 @@ def main():
     # Winter1().run()
     # smooth_SPEI()
     # Water_balance().run()
-    Water_balance_3d().run()
+    # Water_balance_3d().run()
+    Ternary_plot().run()
     pass
 
 if __name__ == '__main__':
