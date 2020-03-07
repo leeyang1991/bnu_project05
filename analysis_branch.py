@@ -1268,8 +1268,11 @@ class Ternary_plot:
 
 
 
-    def run(self):
-        recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\early.tif'
+    def plot_scatter(self):
+        # 1 load soil and recovery time data
+        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\mix.tif'
+        recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\late.tif'
+        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\early.tif'
         tif_CLAY = this_root_branch+'\\tif\\HWSD\\T_CLAY_resample.tif'
         tif_SAND = this_root_branch+'\\tif\\HWSD\\T_SAND_resample.tif'
         tif_SILT = this_root_branch+'\\tif\\HWSD\\T_SILT_resample.tif'
@@ -1284,66 +1287,151 @@ class Ternary_plot:
         arr_silt[arr_silt<-999] = np.nan
         arr_recovery[arr_recovery<-999] = np.nan
 
-        spatial_arr = []
-        data = {}
-        for i in tqdm(range(len(arr_recovery))):
-            # temp = []
-            for j in range(len(arr_recovery[0])):
+        # 2 make empty points list dic
+        points_list_dic = {}
+        for i in range(len(arr_clay)):
+            for j in range(len(arr_clay[0])):
                 if np.isnan(arr_silt[i][j]):
                     continue
                 silt = int(arr_silt[i][j])
-                # sand = arr_sand[i][j]
+                sand = int(arr_sand[i][j])
                 clay = int(arr_clay[i][j])
-                # val = arr_recovery[i][j]
-                # if np.isnan(val):
-                #     temp.append(np.nan)
-                #     continue
-                # if not (silt+sand+clay) > 90:
-                #     temp.append(np.nan)
-                #     continue
-                # print silt,clay
-                data[(silt,clay)] = 1
-                # x.append(sand)
-                # y.append(silt)
-                # z.append(val)
-                # temp.append(1)
-                # print silt
-                # print sand
-                # print clay
-                # print silt+sand+clay
-                # print val
-                # print '***'
-                # time.sleep(1)
-            # spatial_arr.append(temp)
-        figure, tax = ternary.figure(scale=100)
+                points_list_dic[(sand,silt,clay)] = []
+
+
+        for i in range(len(arr_clay)):
+            for j in range(len(arr_clay[0])):
+                if np.isnan(arr_silt[i][j]):
+                    continue
+                silt = int(arr_silt[i][j])
+                sand = int(arr_sand[i][j])
+                clay = int(arr_clay[i][j])
+                recovery = arr_recovery[i][j]
+                if np.isnan(recovery):
+                    continue
+                if recovery > 18:
+                    continue
+                points_list_dic[(sand, silt, clay)].append(recovery)
+
+        points_dic = {}
+        for key in points_list_dic:
+            vals = points_list_dic[key]
+            mean,xerr = Tools().arr_mean_nan(vals)
+            if not mean == None:
+                points_dic[key] = mean
+
+        # ternary.plt.figure(figsize=(11, 6))
+        # figure = plt.figure(figsize=(16, 7))
+        # plt.AxesSubplot
+        # fig = figure.add_subplot(111)
+        figure, ax = plt.subplots(figsize=(16, 7))
+        fig, tax = ternary.figure(ax=ax,scale=100,permutation='120')
+        # figure, ax = plt.subplots(figsize=(11, 6))
+
+        # fig = ternary.plt.figure(figsize=(11, 6))
+        # figure
+        tax.boundary(linewidth=1.5)
+        tax.gridlines(color="black", multiple=10)
+        # tax.gridlines(color="blue", multiple=10, linewidth=0.5)
+
+        tax.ticks(linewidth=1, multiple=10, offset=0.03,clockwise=True)
+        # tax.ticks(linewidth=1, multiple=10, offset=0.03)
+        fontsize = 12
+        tax.left_axis_label("Clay", fontsize=fontsize,offset=0.1)
+        tax.right_axis_label("Silt", fontsize=fontsize,offset=0.1)
+        tax.bottom_axis_label("Sand", fontsize=fontsize,offset=0.1)
         plt.axis('equal')
-        print len(data)
-        tax.heatmap(data, cmap='jet',style="triangular",vmin=0, vmax=18)
+        # tax.heatmap(data,style="triangular",vmin=0, vmax=100)
+        points = []
+        c_vals = []
+        for point in points_dic:
+            # print point
+            points.append(point)
+            c_vals.append(points_dic[point])
+        # cmap = 'gist_heat_r'
+        # cmap = 'hot_r'
+        # cmap = 'afmhot_r'
+        # cmap = 'magma_r'
+        # cmap = 'YlGnBu'
+        # cmap = 'hot'
+        cmap = 'RdBu_r'
+        # cmap = 'BrBG_r'
+        tax.scatter(points,c=c_vals,cmap=cmap,colormap=cmap,s=16,vmin=0,marker='h',vmax=9,colorbar=True,alpha=1,linewidth=0)
         tax.boundary()
+        # plt.colorbar(ax)
         plt.show()
-        # plt.figure()
-        # plt.imshow(spatial_arr)
-        # plt.colorbar()
+
+        pass
 
 
-        flag = 0
+    def classify_soil_texture(self):
+        '''
+        classified by the proportion of silt, sand and clay
+        :return:
+        '''
 
-        for i in spatial_arr:
-            for j in i:
-                if not np.isnan(flag):
-                    flag += 1
-        print flag
+        heavy_clay = '0-40 sand, 0-40 silt'
+        heavy_clay = [range(40),range(40)]
+
+
+        pass
+
+
+    def plot_classify_soil(self):
+        tif_CLAY = this_root_branch + '\\tif\\HWSD\\T_CLAY_resample.tif'
+        tif_SAND = this_root_branch + '\\tif\\HWSD\\T_SAND_resample.tif'
+        tif_SILT = this_root_branch + '\\tif\\HWSD\\T_SILT_resample.tif'
+
+        arr_clay = to_raster.raster2array(tif_CLAY)[0]
+        arr_sand = to_raster.raster2array(tif_SAND)[0]
+        arr_silt = to_raster.raster2array(tif_SILT)[0]
+
+        arr_sand[arr_sand<0]=np.nan
+        arr_sand[arr_sand>40]=np.nan
+        arr_sand[arr_silt<0]=np.nan
+        arr_sand[arr_silt>40]=np.nan
+
+        plt.imshow(arr_sand,cmap='jet')
+        plt.colorbar()
         plt.show()
 
 
         pass
 
 
+    def clockwise_and_counter_clockwise_example(self):
+        '''
+        make sure clockwise and counter-clockwise
+        :return:
+        '''
+        sand = 20
+        silt = 20
+        clay = 60
+        # sand, silt, clay to axis 0, 1, 2 i.e. bottom, right, left
 
+        # method 1
+        points = [
+            # (sand, silt, clay), # clockwise=False
+            (silt, clay, sand), # clockwise=True
+        ]
 
+        # or method 2
+        # figure, tax = ternary.figure(scale=100, permutation='012')
+        # figure, tax = ternary.figure(scale=100, permutation='012')  # clockwise=False
+        figure, tax = ternary.figure(scale=100,permutation='120') # clockwise=True
 
-
-
+        tax.boundary(linewidth=1.5)
+        tax.gridlines(color="black", multiple=10)
+        tax.ticks(linewidth=1, multiple=10, offset=0.03, clockwise=True)
+        # tax.ticks(linewidth=1, multiple=10, offset=0.03)
+        fontsize = 12
+        tax.left_axis_label("Clay", fontsize=fontsize, offset=0.2)
+        tax.right_axis_label("Silt", fontsize=fontsize, offset=0.2)
+        tax.bottom_axis_label("Sand", fontsize=fontsize, offset=0.2)
+        plt.axis('equal')
+        tax.scatter(points, marker='D')
+        tax.boundary()
+        plt.show()
 
 
 def kernel_smooth_SPEI(params):
@@ -1378,7 +1466,8 @@ def main():
     # smooth_SPEI()
     # Water_balance().run()
     # Water_balance_3d().run()
-    Ternary_plot().run()
+    Ternary_plot().plot_scatter()
+    # Ternary_plot().plot_classify_soil()
     pass
 
 if __name__ == '__main__':
