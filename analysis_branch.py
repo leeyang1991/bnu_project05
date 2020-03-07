@@ -1364,14 +1364,48 @@ class Ternary_plot:
         pass
 
 
-    def classify_soil_texture(self):
+    def soil_texture_condition(self,sand,silt,clay,zone):
         '''
         classified by the proportion of silt, sand and clay
         :return:
         '''
+        c_heavy_clay = (sand<40 and silt<40 and clay>60)
+        c_clay = (sand<=45 and silt<=40 and 40<=clay<=60)
+        c_silty_clay = (sand<=20 and 40<=silt<=60 and 40<=clay<=60)
+        c_sandy_clay = (45<=sand<=65 and silt<20 and 37<=clay<=55)
+        c_sandy_clay_loam = (45<=sand<=80 and silt<=27 and 20<=clay<=37)
+        c_clay_loam = (20<=sand<=45 and 16<=silt<=52 and 28<=clay<=40)
+        c_silty_clay_loam = (sand<=20 and 40<=silt<=72 and 28<=clay<=40)
+        c_loam = (22<=sand<=52 and 28<=silt<=50 and 8<=clay<=28)
+        c_silt_loam = (sand<=50 and 50<=silt<=80 and 0<=clay<=28) or (sand<=8 and 80<=silt<=88 and 12<=clay<=20)
+        c_silt = (sand<=20 and silt>=80 and clay<=12)
+        # ÓÐÎÊÌâ TODO: need to be modified
+        c_sandy_loam = (42<=sand<=85 and silt<=50 and clay<=20)#######
+        c_sand = (sand>=85 and silt<=15 and clay<=10) #######
+        c_loamy_sand = ()
 
-        heavy_clay = '0-40 sand, 0-40 silt'
-        heavy_clay = [range(40),range(40)]
+        if zone == 'c_heavy_clay':
+            return c_heavy_clay
+        elif zone == 'c_clay':
+            return c_clay
+        elif zone == 'c_silty_clay':
+            return c_silty_clay
+        elif zone == 'c_sandy_clay':
+            return c_sandy_clay
+        elif zone == 'c_sandy_clay_loam':
+            return c_sandy_clay_loam
+        elif zone == 'c_clay_loam':
+            return c_clay_loam
+        elif zone == 'c_silty_clay_loam':
+            return c_silty_clay_loam
+        elif zone == 'c_loam':
+            return c_loam
+        elif zone == 'c_silt_loam':
+            return c_silt_loam
+        elif zone == 'c_silt':
+            return c_silt
+        else:
+            raise IOError('input error')
 
 
         pass
@@ -1387,15 +1421,56 @@ class Ternary_plot:
         arr_silt = to_raster.raster2array(tif_SILT)[0]
 
         arr_sand[arr_sand<0]=np.nan
-        arr_sand[arr_sand>40]=np.nan
-        arr_sand[arr_silt<0]=np.nan
-        arr_sand[arr_silt>40]=np.nan
+        arr_silt[arr_silt<0]=np.nan
+        arr_clay[arr_clay<0]=np.nan
 
-        plt.imshow(arr_sand,cmap='jet')
-        plt.colorbar()
-        plt.show()
+        zones = [
+            'c_heavy_clay',
+            'c_clay',
+            'c_silty_clay',
+            'c_sandy_clay',
+            'c_sandy_clay_loam',
+            'c_clay_loam',
+            'c_silty_clay_loam',
+            'c_loam',
+            'c_silt_loam',
+            'c_silt',
+        ]
 
 
+
+        fig, tax = ternary.figure(scale=100, permutation='120')
+
+        flag = 0
+        for zone in tqdm(zones):
+            flag+=1
+            data = {}
+            for i in range(len(arr_sand)):
+                for j in range(len(arr_sand[0])):
+                    sand = arr_sand[i][j]
+                    if np.isnan(sand):
+                        continue
+                    silt = arr_silt[i][j]
+                    clay = arr_clay[i][j]
+                    if sand + silt + clay == 100:
+                        # print zone
+                        if self.soil_texture_condition(sand,silt,clay,zone):
+                            data[(sand,silt,clay)] = flag
+                        # exit()
+            if len(data) == 0:
+                continue
+            tax.heatmap(data, style="triangular")
+        tax.boundary(linewidth=1.5)
+        tax.gridlines(color="black", multiple=10)
+
+        tax.ticks(linewidth=1, multiple=10, offset=0.03, clockwise=True)
+        fontsize = 12
+        tax.left_axis_label("Clay", fontsize=fontsize, offset=0.1)
+        tax.right_axis_label("Silt", fontsize=fontsize, offset=0.1)
+        tax.bottom_axis_label("Sand", fontsize=fontsize, offset=0.1)
+        plt.axis('equal')
+
+        tax.show()
         pass
 
 
@@ -1466,7 +1541,7 @@ def main():
     # smooth_SPEI()
     # Water_balance().run()
     # Water_balance_3d().run()
-    Ternary_plot().plot_scatter()
+    Ternary_plot().plot_classify_soil()
     # Ternary_plot().plot_classify_soil()
     pass
 
