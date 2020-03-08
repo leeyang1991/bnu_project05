@@ -1357,6 +1357,7 @@ class Ternary_plot:
         cmap = 'RdBu_r'
         # cmap = 'BrBG_r'
         tax.scatter(points,c=c_vals,cmap=cmap,colormap=cmap,s=16,vmin=0,marker='h',vmax=9,colorbar=True,alpha=1,linewidth=0)
+        # tax.scatter(points,c=c_vals,cmap=cmap,colormap=cmap,s=16,marker='h',colorbar=True,alpha=1,linewidth=0)
         tax.boundary()
         # plt.colorbar(ax)
         plt.show()
@@ -1412,6 +1413,10 @@ class Ternary_plot:
 
 
     def plot_classify_soil(self):
+        # 1 load soil and recovery time data
+        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\mix.tif'
+        recovery_tif = this_root_branch + 'tif\\Recovery_time1\\recovery_time\\late.tif'
+        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\early.tif'
         tif_CLAY = this_root_branch + '\\tif\\HWSD\\T_CLAY_resample.tif'
         tif_SAND = this_root_branch + '\\tif\\HWSD\\T_SAND_resample.tif'
         tif_SILT = this_root_branch + '\\tif\\HWSD\\T_SILT_resample.tif'
@@ -1419,10 +1424,44 @@ class Ternary_plot:
         arr_clay = to_raster.raster2array(tif_CLAY)[0]
         arr_sand = to_raster.raster2array(tif_SAND)[0]
         arr_silt = to_raster.raster2array(tif_SILT)[0]
+        arr_recovery = to_raster.raster2array(recovery_tif)[0]
 
-        arr_sand[arr_sand<0]=np.nan
-        arr_silt[arr_silt<0]=np.nan
-        arr_clay[arr_clay<0]=np.nan
+        arr_clay[arr_clay < -999] = np.nan
+        arr_sand[arr_sand < -999] = np.nan
+        arr_silt[arr_silt < -999] = np.nan
+        arr_recovery[arr_recovery < -999] = np.nan
+
+        # 2 make empty points list dic
+        points_list_dic = {}
+        for i in range(len(arr_clay)):
+            for j in range(len(arr_clay[0])):
+                if np.isnan(arr_silt[i][j]):
+                    continue
+                silt = int(arr_silt[i][j])
+                sand = int(arr_sand[i][j])
+                clay = int(arr_clay[i][j])
+                points_list_dic[(sand, silt, clay)] = []
+
+        for i in range(len(arr_clay)):
+            for j in range(len(arr_clay[0])):
+                if np.isnan(arr_silt[i][j]):
+                    continue
+                silt = int(arr_silt[i][j])
+                sand = int(arr_sand[i][j])
+                clay = int(arr_clay[i][j])
+                recovery = arr_recovery[i][j]
+                if np.isnan(recovery):
+                    continue
+                if recovery > 18:
+                    continue
+                points_list_dic[(sand, silt, clay)].append(recovery)
+
+        points_dic = {}
+        for key in points_list_dic:
+            vals = points_list_dic[key]
+            mean, xerr = Tools().arr_mean_nan(vals)
+            if not mean == None:
+                points_dic[key] = mean
 
         zones = [
             'c_heavy_clay',
@@ -1436,30 +1475,31 @@ class Ternary_plot:
             'c_silt_loam',
             'c_silt',
         ]
-
-
+        zone_dic = {}
+        for z in zones:
+            pix_list = []
+            for key in points_dic:
+                sand,silt,clay = key
+                val = points_dic[key]
+                if self.soil_texture_condition(sand,silt,clay,z):
+                    pix_list.append(val)
+            pix_list_mean = np.mean(pix_list)
+            # print z,pix_list_mean
+            zone_dic[z] = pix_list_mean
 
         fig, tax = ternary.figure(scale=100, permutation='120')
-
-        flag = 0
-        for zone in tqdm(zones):
-            flag+=1
-            data = {}
-            for i in range(len(arr_sand)):
-                for j in range(len(arr_sand[0])):
-                    sand = arr_sand[i][j]
-                    if np.isnan(sand):
-                        continue
-                    silt = arr_silt[i][j]
-                    clay = arr_clay[i][j]
-                    if sand + silt + clay == 100:
-                        # print zone
-                        if self.soil_texture_condition(sand,silt,clay,zone):
-                            data[(sand,silt,clay)] = flag
-                        # exit()
-            if len(data) == 0:
+        data = {}
+        for zone in tqdm(zone_dic):
+            if np.isnan(zone_dic[zone]):
                 continue
-            tax.heatmap(data, style="triangular")
+            for i in range(101):
+                for j in range(101):
+                    for k in range(101):
+                        if not i+j+k==100:
+                            continue
+                        if self.soil_texture_condition(i,j,k,zone):
+                            data[(i,j,k)] = zone_dic[zone]
+        tax.heatmap(data,cmap='RdBu_r', style="dual-triangular")
         tax.boundary(linewidth=1.5)
         tax.gridlines(color="black", multiple=10)
 
@@ -1471,7 +1511,8 @@ class Ternary_plot:
         plt.axis('equal')
 
         tax.show()
-        pass
+
+
 
 
     def clockwise_and_counter_clockwise_example(self):
@@ -1541,8 +1582,8 @@ def main():
     # smooth_SPEI()
     # Water_balance().run()
     # Water_balance_3d().run()
+    # Ternary_plot().plot_scatter()
     Ternary_plot().plot_classify_soil()
-    # Ternary_plot().plot_classify_soil()
     pass
 
 if __name__ == '__main__':
