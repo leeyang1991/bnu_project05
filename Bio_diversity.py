@@ -1,5 +1,7 @@
 # coding=gbk
-
+'''
+Bio-diversity pre-processing
+'''
 from analysis import *
 from scipy.interpolate import Rbf
 
@@ -14,11 +16,18 @@ class Bio_diversity:
         Tools().mk_dir(self.this_class_tif, force=True)
         pass
 
-
     def run(self):
 
         # self.plot_scatter()
-        self.interpolate_scatter()
+
+        ##### transform scatter to tif #####
+        # 1 Rough interpolation with RBF (1 degree resolution)
+        # self.interpolate_scatter1()
+        # 2 interpolate Rough array to 0.5 degree
+        # self.interpolate_scatter2()
+        # 3 mask interpolated array
+        # self.mask_extended_arr()
+        ##### transform scatter to tif #####
         pass
 
 
@@ -50,9 +59,24 @@ class Bio_diversity:
         plt.show()
         pass
 
+    def extened_grid(self, zi, x1, y1, zoom):
 
-    def interpolate_scatter(self):
+        # print(x1)
+        nx = np.size(x1)
+        ny = np.size(y1)
+        x2 = np.linspace(x1.min(), x1.max(), nx * zoom)
+        y2 = np.linspace(y1.min(), y1.max(), ny * zoom)
+        xi, yi = np.meshgrid(x2, y2)
+
+        from mpl_toolkits.basemap import interp
+        z2 = interp(zi, x1, y1, xi, yi, checkbounds=True, masked=False, order=1)
+
+        return z2, xi, yi, x2, y2, nx * zoom, ny * zoom
+
+
+    def interpolate_scatter1(self):
         '''
+        step 1
         transform [lon1,lon2,...,lonN], [lat1,lat2,...,latN] to spatial array
         :return:
         '''
@@ -64,9 +88,9 @@ class Bio_diversity:
         val = data['N']
 
         # xx = np.linspace(-180,179.5,720)
-        xx = np.arange(-180,179.5,0.5)
+        xx = np.arange(-180,179.5,1)
         # yy = np.linspace(-90,89.5,360)
-        yy = np.arange(-90,89.5,0.5)[::-1]
+        yy = np.arange(-90,89.5,1)[::-1]
 
         xi, yi = np.meshgrid(xx, yy)
         #
@@ -87,13 +111,54 @@ class Bio_diversity:
         print 'interpolating2'
         zi = interp(xi, yi)
         print 'saving'
-        np.save(self.this_class_arr+'bio_diversity_arr_non_clip',zi)
+        np.save(self.this_class_arr+'bio_diversity_arr_1_degree_non_clip',zi)
         plt.imshow(zi,'jet')
         plt.colorbar()
         plt.show()
 
 
+    def interpolate_scatter2(self):
+        f = self.this_class_arr+'bio_diversity_arr_1_degree_non_clip.npy'
+        extend_f = self.this_class_arr+'bio_diversity_arr_0.5_degree_non_clip'
+        arr_1 = np.load(f)
+        xx = np.arange(-180, 179.5, 1)
+        # yy = np.linspace(-90,89.5,360)
+        yy = np.arange(-90, 89.5, 1)
+        arr_extend, xii, yii, a, b, c, d = self.extened_grid(arr_1, xx, yy, 2)
+        print np.shape(arr_extend)
+        np.save(extend_f,arr_extend)
+        plt.imshow(arr_1)
+        plt.figure()
+        plt.imshow(arr_extend)
+        plt.show()
+
+    def mask_extended_arr(self):
+
+        template_tif = this_root+'conf\\tif_template.tif'
+        template = to_raster.raster2array(template_tif)[0]
+        mask_arr = []
+        for i in tqdm(range(len(template))):
+            temp = []
+            for j in range(len(template[0])):
+                val = template[i][j]
+                if val < -9999:
+                    temp.append(True)
+                else:
+                    temp.append(False)
+            mask_arr.append(temp)
+        mask_arr = np.array(mask_arr)
+
+        extended_arr = np.load(self.this_class_arr+'bio_diversity_arr_0.5_degree_non_clip.npy')
+        extended_arr[mask_arr] = np.nan
+        DIC_and_TIF().arr_to_tif(extended_arr,self.this_class_tif+'bio_diversity.tif')
+        # plt.imshow(extended_arr,'jet')
+        # plt.colorbar()
+        # plt.show()
+
+
+
         pass
+
 
 
 def main():
