@@ -33,6 +33,7 @@ import copy
 import scipy
 import sklearn
 import ternary
+import random
 
 this_root = 'D:\\project05\\'
 # this_root = 'D:\\ly\\project05\\'
@@ -1428,16 +1429,20 @@ class KDE_plot:
             colors.append(cmap(i))
         return colors
 
-    def plot_scatter(self, val1, val2, cmap='magma', reverse=0, s=0.3, title=''):
+    def plot_scatter(self, val1, val2, cmap='magma', reverse=0, s=0.3, title='',ax=None):
 
         kde_val = np.array([val1, val2])
         print('doing kernel density estimation... ')
         densObj = kde(kde_val)
         dens_vals = densObj.evaluate(kde_val)
         colors = self.makeColours(dens_vals, cmap, reverse=reverse)
-        plt.figure()
-        plt.title(title)
-        plt.scatter(val1, val2, c=colors, s=s)
+        if ax == None:
+            plt.figure()
+            plt.title(title)
+            plt.scatter(val1, val2, c=colors, s=s)
+        else:
+            plt.title(title)
+            plt.scatter(val1, val2, c=colors, s=s)
 
 
 class Pre_Process:

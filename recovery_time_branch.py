@@ -4,8 +4,6 @@ from analysis import *
 this_root_branch = this_root+'branch2020\\'
 
 
-
-
 class Recovery_time1:
     # method 1
     def __init__(self):
