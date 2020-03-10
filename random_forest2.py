@@ -6,24 +6,49 @@ from sklearn.model_selection import train_test_split
 from analysis import *
 import matplotlib.patches as patches
 
-
+this_root_branch = this_root+'branch2020\\'
 class Prepare:
     def __init__(self):
-        # self.check_Y()
-        # self.prepare_X()
+        self.this_class_arr = this_root_branch + 'Random_Forest\\arr\\Prepare\\'
+        self.this_class_tif = this_root_branch + 'Random_Forest\\tif\\Prepare\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
         pass
 
 
     def run(self):
+        # 1.准备因变量 Y
         # self.prepare_Y()
+        # self.check_Y()
+        # 2.准备自变量 X的 delta
         # x = ['TMP', 'PRE', 'CCI', 'SWE']
         # MUTIPROCESS(self.prepare_X,x).run()
+        # 3.准备自变量 X 的标准差
+        # self.prepare_X('CCI')
+        # x = ['PRE_std', 'TMP_std', 'CCI_std', 'SWE_std']
+        # for i in x:
+        #     self.prepare_X_std(i)
+        # 4.准备自变量 X 的平均值
+        # x = ['PRE_mean','TMP_mean','CCI_mean','SWE_mean']
+        # for i in x:
+        #     self.prepare_X_mean(i)
+        # 5.准备自变量 NDVI 的平均值和delta
         # self.prepare_NDVI()
-        # self.abs_X()
-        self.minus_X()
+        # 6.准备自变量 soil 的值，soil是常量
+        # self.prepare_soil()
+        # 7.准备自变量 bio diversity 的值，常量
+        # self.prepare_bio_diversity()
+        # 8.['PRE', 'CCI', 'SWE','NDVI'] 为亏损量，应为负值，需要加负号
+        ########## 需再要手动覆盖 ###########
+        # self.minus_X()
         pass
 
-
+    def __split_keys(self,key):
+        pix, mark, eln, date_range = key.split('~')
+        drought_start, recovery_start = date_range.split('.')
+        drought_start = int(drought_start)
+        recovery_start = int(recovery_start)
+        return pix, mark, eln, date_range, drought_start, recovery_start
 
     def abs_X(self):
 
@@ -76,8 +101,8 @@ class Prepare:
 
     def minus_X(self):
 
-        fdir = this_root + 'new_2020\\random_forest\\'
-        abs_fdir = this_root+'new_2020\\random_forest_minus\\'
+        fdir = self.this_class_arr
+        abs_fdir = fdir+'\\random_forest_minus\\'
         Tools().mk_dir(abs_fdir)
 
         pre_dic = dict(np.load(fdir + 'PRE.npy').item())
@@ -122,14 +147,13 @@ class Prepare:
 
 
 
-
     def prepare_Y(self):
         # config
-        out_dir = this_root+'new_2020\\random_forest\\'
+        out_dir = self.this_class_arr+'\\'
         Tools().mk_dir(out_dir)
         # 1 drought periods
         print '1. loading recovery time'
-        f_recovery_time = this_root+'new_2020\\arr\\recovery_time_composite\\composite.npy'
+        f_recovery_time = this_root_branch+'arr\\Recovery_time1\\recovery_time_composite\\composite.npy'
         recovery_time = dict(np.load(f_recovery_time).item())
         print 'done'
         Y = {}
@@ -155,24 +179,46 @@ class Prepare:
 
     def check_Y(self):
         print 'loading Y'
-        f = this_root+'new_2020\\random_forest\\Y.npy'
+        f = this_root_branch+'Random_Forest\\arr\\Prepare\\Y.npy'
+        # f = r'D:\project05\new_2020\random_forest\Y.npy'
         dic = dict(np.load(f).item())
+        # print len(dic)
+        pix_dic = DIC_and_TIF().void_spatial_dic()
         for key in dic:
-            print key,dic[key]
+            # print key,dic[key]
+            pix, mark, eln, date_range, drought_start, recovery_start = self.__split_keys(key)
+            # print pix, mark, eln, date_range, drought_start, recovery_start
+            pix_dic[pix].append(1)
+
+        spatial_dic = {}
+        for pix in pix_dic:
+            val = pix_dic[pix]
+            if len(val)>0:
+                new_val = np.sum(val)
+            else:
+                new_val = np.nan
+            spatial_dic[pix] = new_val
+
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
+        plt.imshow(arr,cmap='jet',vmin=0,vmax=30)
+        plt.colorbar()
+        plt.show()
+
+
 
     def prepare_X(self, x):
         # x = ['TMP','PRE','CCI','SWE']
-        out_dir = this_root+'new_2020\\random_forest\\'
-        Y_dic = dict(np.load(this_root + 'new_2020\\random_forest\\Y.npy').item())
+        out_dir = self.this_class_arr+''
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
         if x in ['TMP', 'PRE']:
-            per_pix_dir = this_root + '{}\\per_pix\\'.format(x)
-            mean_dir = this_root + '{}\\mon_mean_tif\\'.format(x)
+            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(x)
+            mean_dir = this_root + 'data\\{}\\mon_mean_tif\\'.format(x)
         elif x == 'CCI':
-            per_pix_dir = this_root + 'CCI\\0.5\\per_pix\\'
-            mean_dir = this_root + 'CCI\\0.5\\monthly_mean\\'
+            per_pix_dir = this_root + 'data\\CCI\\per_pix\\'
+            mean_dir = this_root + 'data\\CCI\\\monthly_mean\\'
         elif x == 'SWE':
-            per_pix_dir = this_root + 'GLOBSWE\\per_pix\\SWE_max_408\\'
-            mean_dir = this_root + 'GLOBSWE\\monthly_SWE_max\\'
+            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+            mean_dir = this_root + 'data\\GLOBSWE\\monthly_SWE_max\\'
         else:
             raise IOError('x error')
         # 1 加载所有原始数据
@@ -234,13 +280,124 @@ class Prepare:
 
         np.save(out_dir + '{}'.format(x), X)
 
+    def prepare_X_std(self,x):
+        '''
+        cv: 变异系数
+        std: 标准差
+        :return:
+        '''
+        # x = ['PRE_std','TMP_std','CCI_std','SWE_std']
+        product = x.split('_')[0]
+        if product == 'SWE':
+            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+        else:
+            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+
+        out_dir = self.this_class_arr
+        Tools().mk_dir(out_dir)
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        all_dic = {}
+        for f in tqdm(os.listdir(per_pix_dir), desc='1/2 loading per_pix_dir ...'):
+            dic = dict(np.load(per_pix_dir + f).item())
+            for pix in dic:
+                all_dic[pix] = dic[pix]
+
+        # 3 找干旱事件对应的X的std
+        X = {}
+        for key in tqdm(Y_dic, desc='2/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            if product == 'SWE':
+                if mark != 'out':
+                    continue
+            split_date_range = date_range.split('.')
+            start = split_date_range[0]
+            end = split_date_range[1]
+            start = int(start)
+            end = int(end)
+            drought_range = range(start, end)
+            # print pix,mark,drought_range
+            # exit()
+            vals = all_dic[pix]
+            selected_val = []
+            for dr in drought_range:
+                val = vals[dr]
+                if val < -9999:
+                    continue
+                selected_val.append(val)
+            if len(selected_val) > 0:
+                std = np.std(selected_val)
+            else:
+                std = np.nan
+            X[key] = std
+
+        np.save(out_dir + '{}'.format(x), X)
+        pass
+
+
+
+    def prepare_X_mean(self,x):
+        '''
+        cv: 变异系数
+        std: 标准差
+        :return:
+        '''
+        # x = ['PRE_std','TMP_std','CCI_std','SWE_std']
+        product = x.split('_')[0]
+        if product == 'SWE':
+            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+        else:
+            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+
+        out_dir = self.this_class_arr
+        Tools().mk_dir(out_dir)
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        all_dic = {}
+        for f in tqdm(os.listdir(per_pix_dir), desc='1/2 loading per_pix_dir ...'):
+            dic = dict(np.load(per_pix_dir + f).item())
+            for pix in dic:
+                all_dic[pix] = dic[pix]
+
+        # 3 找干旱事件对应的X的std
+        X = {}
+        for key in tqdm(Y_dic, desc='2/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            if product == 'SWE':
+                if mark != 'out':
+                    continue
+            split_date_range = date_range.split('.')
+            start = split_date_range[0]
+            end = split_date_range[1]
+            start = int(start)
+            end = int(end)
+            drought_range = range(start, end)
+            # print pix,mark,drought_range
+            # exit()
+            vals = all_dic[pix]
+            selected_val = []
+            for dr in drought_range:
+                val = vals[dr]
+                if val < -9999:
+                    continue
+                selected_val.append(val)
+            if len(selected_val) > 0:
+                mean = np.mean(selected_val)
+            else:
+                mean = np.nan
+            X[key] = mean
+
+        np.save(out_dir + '{}'.format(x), X)
+
+
+
 
     def prepare_NDVI(self):
-        out_dir = this_root + 'new_2020\\random_forest\\'
+        out_dir = self.this_class_arr + '\\'
         # y
-        Y_dic = dict(np.load(this_root + 'new_2020\\random_forest\\Y.npy').item())
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
         # x
-        per_pix_dir = this_root + 'NDVI\\per_pix_anomaly_smooth\\'
+        per_pix_dir = this_root + 'data\\NDVI\\per_pix_anomaly_smooth\\'
         # 1 加载x数据
         all_dic = {}
         # print 'loading Y ...'
@@ -274,6 +431,73 @@ class Prepare:
         pass
 
 
+    def prepare_soil(self):
+        out_dir = self.this_class_arr + '\\'
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        sand_tif = this_root_branch+'tif\\HWSD\\T_SAND_resample.tif'
+        silt_tif = this_root_branch+'tif\\HWSD\\T_SILT_resample.tif'
+        clay_tif = this_root_branch+'tif\\HWSD\\T_CLAY_resample.tif'
+
+        sand_arr = to_raster.raster2array(sand_tif)[0]
+        silt_arr = to_raster.raster2array(silt_tif)[0]
+        clay_arr = to_raster.raster2array(clay_tif)[0]
+
+        sand_arr[sand_arr<-9999] = np.nan
+        silt_arr[silt_arr<-9999] = np.nan
+        clay_arr[clay_arr<-9999] = np.nan
+
+        sand_dic = DIC_and_TIF().spatial_arr_to_dic(sand_arr)
+        silt_dic = DIC_and_TIF().spatial_arr_to_dic(silt_arr)
+        clay_dic = DIC_and_TIF().spatial_arr_to_dic(clay_arr)
+
+        sand_x = {}
+        silt_x = {}
+        clay_x = {}
+
+        for key in tqdm(Y_dic, desc='1/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            sand = sand_dic[pix]
+            silt = silt_dic[pix]
+            clay = clay_dic[pix]
+
+            if np.isnan(sand):
+                continue
+            if np.isnan(silt):
+                continue
+            if np.isnan(clay):
+                continue
+            sand_x[key] = sand
+            silt_x[key] = silt
+            clay_x[key] = clay
+
+        np.save(out_dir+'sand',sand_x)
+        np.save(out_dir+'silt',silt_x)
+        np.save(out_dir+'clay',clay_x)
+
+        pass
+
+
+    def prepare_bio_diversity(self):
+        out_dir = self.this_class_arr + '\\'
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        bio_tif = this_root_branch + 'tif\\Bio_diversity\\bio_diversity_normalized.tif'
+        bio_arr = to_raster.raster2array(bio_tif)[0]
+        bio_arr[bio_arr < -9999] = np.nan
+        bio_dic = DIC_and_TIF().spatial_arr_to_dic(bio_arr)
+        bio_x = {}
+        for key in tqdm(Y_dic, desc='1/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            bio = bio_dic[pix]
+            if np.isnan(bio):
+                continue
+            bio_x[key] = bio
+
+        np.save(out_dir+'bio',bio_x)
+
+
+        pass
 
 
 class RF_train_events:
@@ -936,9 +1160,9 @@ class Plot_RF_train_events_result:
 
 def main():
 
-    # Prepare().run()
+    Prepare().run()
     # RF_train_events().run()
-    Plot_RF_train_events_result().run()
+    # Plot_RF_train_events_result().run()
     # Plot_RF_train_events_result().get_scatter_y()
     # Corelation_analysis().run()
     pass
