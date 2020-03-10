@@ -586,7 +586,7 @@ class Water_balance:
 
         # self.cross_landuse_WB_recovery_time(recovery_time_tif1)
         # plt.twinx()
-        self.cross_landuse_WB_recovery_time(recovery_time_tif2,color_='r')
+        self.cross_landuse_WB_recovery_time(recovery_time_tif2,color_='b')
         plt.show()
         pass
 
@@ -778,6 +778,7 @@ class Water_balance:
         # plt.show()
         # 2、生成 HI 分级别 dic
         HI_tif = this_root+'tif\\HI\\HI.tif'
+        # HI_tif = r'D:\project05\branch2020\tif\Bio_diversity\bio_diversity_normalized.tif'
         HI_arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(HI_tif)
         HI_arr[HI_arr>2.] = np.nan
         # HI_class_dic, range_class = self.gen_WB_zonal_index(HI_arr, 12)
@@ -948,7 +949,7 @@ class Water_balance_3d:
         recovery_time_tif2 = recovery_time_branch.Recovery_time1().this_class_tif + 'recovery_time\\late.tif'
         # self.cross_landuse_WB_recovery_time(recovery_time_tif1)
         # self.plot_error_bar()
-        self.cross_landuse_WB_recovery_time(recovery_time_tif2)
+        self.cross_landuse_WB_recovery_time(recovery_time_tif1)
         pass
 
     def plot_error_bar(self):
@@ -1088,12 +1089,13 @@ class Water_balance_3d:
         latitude_dic = Koppen().do_reclass()
 
         # 5、soil arr
-        soil_tif = this_root_branch+'tif\\HWSD\\S_CLAY_resample.tif'
+        # soil_tif = this_root_branch+'tif\\HWSD\\S_CLAY_resample.tif'
+        soil_tif = r'D:\project05\branch2020\tif\Bio_diversity\bio_diversity_normalized.tif'
         soil_arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(soil_tif)
         soil_arr[soil_arr<0] = np.nan
-        plt.imshow(soil_arr)
-        plt.colorbar()
-        plt.show()
+        # plt.imshow(soil_arr)
+        # plt.colorbar()
+        # plt.show()
         # soil_dic = DIC_and_TIF().spatial_arr_to_dic(soil_arr)
 
         # 6、交叉像素
@@ -1233,26 +1235,27 @@ class Water_balance_3d:
         print X
         print Y
         ax.set_xlim(0.1, 1.4)
-        ax.set_ylim(10, 35)
-        ax.set_zlim(0, 11)
+        ax.set_ylim(0.1, 0.5)
+        # ax.set_ylim(10, 35)
+        ax.set_zlim(0, 15)
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
 
         plt.title(title)
-        # plt.show()
+        plt.show()
 
 
         ################## plot animation ##################
-        from matplotlib import animation
-        def animate(i):
-            ax.view_init(elev=10., azim=i)
-            return fig,
-
-        anim = animation.FuncAnimation(fig, animate, init_func=None,
-                                       frames=360, interval=20, blit=True)
-        anim.save('basic_animation_late.html', fps=30, extra_args=['-vcodec', 'libx264'])
+        # from matplotlib import animation
+        # def animate(i):
+        #     ax.view_init(elev=10., azim=i)
+        #     return fig,
+        #
+        # anim = animation.FuncAnimation(fig, animate, init_func=None,
+        #                                frames=360, interval=20, blit=True)
+        # anim.save('basic_animation_late.html', fps=30, extra_args=['-vcodec', 'libx264'])
         ################## plot animation ##################
 
 
@@ -1550,6 +1553,64 @@ class Ternary_plot:
         plt.show()
 
 
+class Bio_diversity:
+
+    def __init__(self):
+        self.this_class_arr = this_root_branch + 'arr\\Bio_diversity\\'
+        self.this_class_tif = this_root_branch + 'tif\\Bio_diversity\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
+        pass
+
+    def run(self):
+        # recovery_tif = this_root_branch + 'tif\\Recovery_time1\\recovery_time\\early.tif'
+        # recovery_tif = r'D:\project05\branch2020\tif\Recovery_time1\recovery_time_in_out\early_in_arr.tif'
+        # title = 'EGS-RIN'
+        # recovery_tif = r'D:\project05\branch2020\tif\Recovery_time1\recovery_time_in_out\early_out_arr.tif'
+        # title = 'EGS-ROUT'
+        # recovery_tif = r'D:\project05\branch2020\tif\Recovery_time1\recovery_time_in_out\late_in_arr.tif'
+        # title = 'LGS-RIN'
+        recovery_tif = r'D:\project05\branch2020\tif\Recovery_time1\recovery_time_in_out\late_out_arr.tif'
+        title = 'LGS-ROUT'
+        # recovery_tif = this_root_branch + 'tif\\Recovery_time1\\recovery_time\\mix.tif'
+        bio_diversity_tif = self.this_class_tif+'bio_diversity_normalized.tif'
+        arr_recovery = to_raster.raster2array(recovery_tif)[0]
+        arr_bio_diversity = to_raster.raster2array(bio_diversity_tif)[0]
+        arr_recovery[arr_recovery < -999] = np.nan
+        arr_bio_diversity[arr_bio_diversity < -999] = np.nan
+        x = []
+        y = []
+
+        random_flag = 0
+        for i in range(len(arr_recovery)):
+            for j in range(len(arr_recovery[0])):
+                random_flag += 1
+                recovery = arr_recovery[i][j]
+                bio_diversity = arr_bio_diversity[i][j]
+                if np.isnan(recovery):
+                    continue
+                if recovery > 18:
+                    continue
+                if recovery%1 >0.9 or recovery%1<0.1:
+                    if random_flag % 2 == 0:
+                        recovery = recovery + random.random()
+                    else:
+                        recovery = recovery - random.random()
+                    recovery = recovery + 1
+                if np.isnan(bio_diversity):
+                    continue
+                x.append(bio_diversity)
+                y.append(recovery)
+        print len(x)
+        figure, ax = plt.subplots(figsize=(3, 3))
+        # ax = plt.figure(figsize=(2,2))
+        KDE_plot().plot_scatter(x,y,cmap='hot',ax=ax)
+        a,b,r = Tools().linefit(x,y)
+        Tools().plot_fit_line(a,b,r,x,y)
+        plt.title(title)
+        plt.show()
+
+
 def kernel_smooth_SPEI(params):
     fdir,f,outdir_i = params
     dic = dict(np.load(fdir + f).item())
@@ -1583,7 +1644,7 @@ def main():
     # Water_balance().run()
     # Water_balance_3d().run()
     # Ternary_plot().plot_scatter()
-    Ternary_plot().plot_classify_soil()
+    Bio_diversity().run()
     pass
 
 if __name__ == '__main__':
