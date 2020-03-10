@@ -19,7 +19,7 @@ class Prepare:
     def run(self):
         # 1.准备因变量 Y
         # self.prepare_Y()
-        # self.check_Y()
+        self.check_Y()
         # 2.准备自变量 X的 delta
         # x = ['TMP', 'PRE', 'CCI', 'SWE']
         # MUTIPROCESS(self.prepare_X,x).run()
@@ -179,7 +179,7 @@ class Prepare:
 
     def check_Y(self):
         print 'loading Y'
-        f = this_root_branch+'Random_Forest\\arr\\Prepare\\Y.npy'
+        f = this_root_branch+'Random_Forest\\arr\\Prepare\\CCI.npy'
         # f = r'D:\project05\new_2020\random_forest\Y.npy'
         dic = dict(np.load(f).item())
         # print len(dic)
@@ -187,8 +187,10 @@ class Prepare:
         for key in dic:
             # print key,dic[key]
             pix, mark, eln, date_range, drought_start, recovery_start = self.__split_keys(key)
-            # print pix, mark, eln, date_range, drought_start, recovery_start
+            print pix, mark, eln, date_range, drought_start, recovery_start
+            print dic[key]
             pix_dic[pix].append(1)
+            exit()
 
         spatial_dic = {}
         for pix in pix_dic:
@@ -505,19 +507,19 @@ class RF_train_events:
     Random Forest based on events
     '''
     def __init__(self):
-
+        self.this_class_arr = this_root_branch + 'Random_Forest\\arr\\RF_train_events\\'
+        self.this_class_tif = this_root_branch + 'Random_Forest\\tif\\RF_train_events\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
         pass
 
 
     def run(self):
-        # lc_pix = self.gen_landcover_pixes()
-        # for lc in lc_pix:
-        #     print lc
-        #     pixes = lc_pix[lc]
-        #     self.random_forest_train(pixes)
         # self.load_variable()
         # self.do_partition()
+        # 1 分区 IN OUT EARLY LATE TROPICAL
         # self.check_partition()
+        # 2 RF
         self.do_random_forest_train()
         pass
 
@@ -616,9 +618,9 @@ class RF_train_events:
 
 
     def do_partition(self):
-        fdir = this_root + 'new_2020\\random_forest\\'
-        outf = this_root+'arr\\RF_partition'
-        dic = dict(np.load(fdir + 'NDVI_change.npy').item())
+        Ydic = Prepare().this_class_arr+'Y.npy'
+        outf = self.this_class_arr+'RF_partition'
+        dic = dict(np.load(Ydic).item())
         keys = []
         for key in dic:
             keys.append(key)
@@ -640,7 +642,7 @@ class RF_train_events:
 
 
     def check_partition(self):
-        f = this_root+'arr\\RF_partition.npy'
+        f = self.this_class_arr+'RF_partition.npy'
         dic = dict(np.load(f).item())
         keys = dic['in~early']['Forest.TA']
         for key in keys:
@@ -658,10 +660,8 @@ class RF_train_events:
 
     def load_variable(self,partition_keys_dic,condition1,condition2):
 
-        # fdir = this_root+'new_2020\\random_forest\\'
-        # fdir = this_root+'new_2020\\random_forest_abs\\'
-        fdir = this_root+'new_2020\\random_forest_minus\\'
-        # print 'loading variables ...'
+        fdir = Prepare().this_class_arr
+        print 'loading variables ...'
         Y_dic = dict(np.load(fdir+'Y.npy').item())
         pre_dic = dict(np.load(fdir+'PRE.npy').item())
         tmp_dic = dict(np.load(fdir+'TMP.npy').item())
@@ -721,6 +721,99 @@ class RF_train_events:
         selected_pix_spatial = DIC_and_TIF().pix_dic_to_spatial_arr(pix_dic)
         return X, Y, selected_pix_spatial
 
+
+    def load_variables_dir(self,fdir_dic,partition_keys_dic,condition1,condition2):
+        '''
+        load all variable in a single directory
+        :return:
+        '''
+
+        selected_keys = partition_keys_dic[condition1][condition2]
+        pix_dic = {}
+        nan = False
+        Y = []
+        X = []
+        for key in selected_keys:
+            y = fdir_dic['Y'][key]
+            if y > 18:
+                continue
+
+            if 'in' in condition1 or 'tropical' in condition1:
+                try:
+                    variables_names = [
+                        'PRE', 'PRE_mean', 'PRE_std',
+                        'TMP', 'TMP_mean', 'TMP_std',
+                        'CCI', 'CCI_mean', 'CCI_std',
+                        # 'SWE', 'SWE_mean', 'SWE_std',
+                        'NDVI_change', 'two_month_early_vals_mean',
+                        'sand', 'silt', 'clay',
+                        'bio'
+                    ]
+                    variables_vals = []
+                    for x in variables_names:
+                        val = fdir_dic[x][key]
+                        variables_vals.append(val)
+                except Exception as e:
+                    print e
+                    continue
+                _list = variables_vals
+                _list_new = []
+                for _l in _list:
+                    if np.isnan(_l):
+                        _list_new.append(nan)
+                    else:
+                        _list_new.append(_l)
+                pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
+                pix_dic[pix] = 1
+                X.append(_list_new)
+                Y.append(y)
+
+            elif 'out' in condition1:
+                try:
+                    variables_names = [
+                        'PRE', 'PRE_mean', 'PRE_std',
+                        'TMP', 'TMP_mean', 'TMP_std',
+                        'CCI', 'CCI_mean', 'CCI_std',
+                        'SWE', 'SWE_mean', 'SWE_std',
+                        'NDVI_change', 'two_month_early_vals_mean',
+                        'sand', 'silt', 'clay',
+                        'bio'
+                    ]
+                    variables_vals = []
+                    for x in variables_names:
+                        val = fdir_dic[x][key]
+                        variables_vals.append(val)
+                except Exception as e:
+                    continue
+
+                _list = variables_vals
+                _list_new = []
+                for _l in _list:
+                    if np.isnan(_l):
+                        _list_new.append(nan)
+                    else:
+                        _list_new.append(_l)
+                pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
+                pix_dic[pix] = 1
+                X.append(_list_new)
+                Y.append(y)
+            else:
+                raise IOError('error')
+        selected_pix_spatial = DIC_and_TIF().pix_dic_to_spatial_arr(pix_dic)
+        # print X
+        # print Y
+        # print len(X)
+        # print len(Y)
+        # plt.imshow(selected_pix_spatial)
+        # plt.show()
+        #
+        # exit()
+
+        return X, Y, selected_pix_spatial
+
+
+        pass
+
     def random_forest_train(self, X, Y, selected_pix_spatial,isplot=False):
 
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1)
@@ -778,9 +871,12 @@ class RF_train_events:
 
 
     def kernel_do_random_forest_train(self,params):
-        c1,c2,partition_keys_dic = params
+        c1,c2,partition_keys_dic,fdir_dic = params
         key = c1 + '-' + c2
-        X, Y, selected_pix_spatial = self.load_variable(partition_keys_dic, c1, c2)
+        # X, Y, selected_pix_spatial = self.load_variable(partition_keys_dic, c1, c2)
+
+        X, Y, selected_pix_spatial = self.load_variables_dir(fdir_dic,partition_keys_dic, c1, c2)
+        # exit()
         # if len(X) < 100:
         #     result_dic[key] = None
         #     continue
@@ -788,22 +884,26 @@ class RF_train_events:
 
 
         ################## debug
-        # importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
+        importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=True)
+        # print importances, mse, r, Y_test, y_pred, rX
+        # exit()
 
-        try:
-            importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
-            result = key,{'importances':importances, 'mse':mse, 'r':r, 'Y_test':Y_test, 'y_pred':y_pred,'rX':rX}
-            return result
-        except Exception as e:
-            # print e,'error'
-            return key,[]
+        ################## run
+        # try:
+        #     importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
+        #     result = key,{'importances':importances, 'mse':mse, 'r':r, 'Y_test':Y_test, 'y_pred':y_pred,'rX':rX}
+        #     return result
+        # except Exception as e:
+        #     # print e,'error'
+        #     return key,[]
         pass
 
 
     def do_random_forest_train(self):
 
-        result_dic_arr = this_root+'arr\\RF_result_dic_arr_with_rX_minus'
-        partition_keys_dic = dict(np.load(this_root + 'arr\\RF_partition.npy').item())
+        # result_dic_arr = this_root+'arr\\RF_result_dic_arr_with_rX_minus'
+        partition_f = self.this_class_arr+'RF_partition.npy'
+        partition_keys_dic = dict(np.load(partition_f).item())
         condition1_list = [
                         'in~early',
                         'in~late',
@@ -818,20 +918,26 @@ class RF_train_events:
 
 
         # result_dic = {}
-
+        fdir = Prepare().this_class_arr
+        fdir_dic = {}
+        for f in tqdm(os.listdir(fdir), desc='loading each variable...'):
+            x = f.split('.')[0]
+            x_dic = dict(np.load(fdir + f).item())
+            fdir_dic[x] = x_dic
         params = []
         for c1 in condition1_list:
             for c2 in condition2_list:
-                params.append([c1,c2,partition_keys_dic])
+                params.append([c1,c2,partition_keys_dic,fdir_dic])
         # print params[1]
         # exit()
         ###1### debug
-        # result = self.kernel_do_random_forest_train(params[1])
+        for p in params:
+            result = self.kernel_do_random_forest_train(p)
         ###1###
 
         ##### 2 run
-        result = MUTIPROCESS(self.kernel_do_random_forest_train,params).run()
-        np.save(result_dic_arr,result)
+        # result = MUTIPROCESS(self.kernel_do_random_forest_train,params).run()
+        # np.save(result_dic_arr,result)
         ##### 2
         pass
 
@@ -1160,8 +1266,8 @@ class Plot_RF_train_events_result:
 
 def main():
 
-    Prepare().run()
-    # RF_train_events().run()
+    # Prepare().run()
+    RF_train_events().run()
     # Plot_RF_train_events_result().run()
     # Plot_RF_train_events_result().get_scatter_y()
     # Corelation_analysis().run()
