@@ -27,6 +27,8 @@ class Bio_diversity:
         # self.interpolate_scatter2()
         # 3 mask interpolated array
         # self.mask_extended_arr()
+        # 4 normalize mask interpolated array
+        self.normalize_arr()
         ##### transform scatter to tif #####
         pass
 
@@ -158,6 +160,42 @@ class Bio_diversity:
 
 
         pass
+
+    def normalize_arr(self):
+        tif = self.this_class_tif+'bio_diversity.tif'
+        arr = to_raster.raster2array(tif)[0]
+        arr[arr<-9999]=np.nan
+
+        all_vals = []
+        for i in range(len(arr)):
+            for j in range(len(arr[0])):
+                val = arr[i][j]
+                if np.isnan(val):
+                    continue
+                all_vals.append(val)
+
+        xmin = np.min(all_vals)
+        xmax = np.max(all_vals)
+
+        normalized_arr = []
+        for i in range(len(arr)):
+            temp = []
+            for j in range(len(arr[0])):
+                val = arr[i][j]
+                new_val = (val-xmin)/(xmax-xmin)
+                temp.append(new_val)
+            normalized_arr.append(temp)
+        normalized_arr = np.array(normalized_arr)
+        DIC_and_TIF().arr_to_tif(normalized_arr,self.this_class_tif+'bio_diversity_normalized.tif')
+
+        plt.imshow(normalized_arr)
+        plt.colorbar()
+        plt.show()
+
+
+
+        pass
+
 
 
 
