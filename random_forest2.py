@@ -814,7 +814,7 @@ class RF_train_events:
 
         pass
 
-    def random_forest_train(self, X, Y, selected_pix_spatial,isplot=False):
+    def random_forest_train(self, X, Y, selected_pix_spatial,isplot=False,title=''):
 
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1)
         Y_train = np.array(Y_train)
@@ -847,23 +847,29 @@ class RF_train_events:
         if isplot:
             print importances
             print('mse:%s\nr:%s' % (mse, r_model))
+            out_png_dir = this_root+'png\\RF_importances\\'
+            Tools().mk_dir(out_png_dir)
             # 1 plot spatial
-            plt.figure()
-            plt.imshow(selected_pix_spatial,cmap='gray')
+            # plt.figure()
+            # plt.imshow(selected_pix_spatial,cmap='gray')
 
             # 2 plot importance
-            plt.figure()
+            plt.subplot(211)
+            plt.title(title)
             y_min = min(importances)
             y_max = max(importances)
             offset = (y_max-y_min)
-
             y_min = y_min-offset*0.3
             y_max = y_max+offset*0.3
 
             plt.ylim(y_min,y_max)
             plt.bar(range(len(importances)),importances,width=0.3)
-            KDE_plot().plot_scatter(Y_test, y_pred,s=10)
-            plt.show()
+            ax = plt.subplot(212)
+            KDE_plot().plot_scatter(Y_test, y_pred,cmap='jet',s=10,ax=ax,linewidth=0)
+            plt.axis('equal')
+            plt.savefig(out_png_dir+title+'.png',ppi=300)
+            plt.close()
+            # plt.show()
         #### plot ####
 
 
@@ -884,24 +890,24 @@ class RF_train_events:
 
 
         ################## debug
-        importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=True)
+        # importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=True,title=key)
         # print importances, mse, r, Y_test, y_pred, rX
         # exit()
 
         ################## run
-        # try:
-        #     importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
-        #     result = key,{'importances':importances, 'mse':mse, 'r':r, 'Y_test':Y_test, 'y_pred':y_pred,'rX':rX}
-        #     return result
-        # except Exception as e:
-        #     # print e,'error'
-        #     return key,[]
+        try:
+            importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=False)
+            result = key,{'importances':importances, 'mse':mse, 'r':r, 'Y_test':Y_test, 'y_pred':y_pred,'rX':rX}
+            return result
+        except Exception as e:
+            # print e,'error'
+            return key,[]
         pass
 
 
     def do_random_forest_train(self):
 
-        # result_dic_arr = this_root+'arr\\RF_result_dic_arr_with_rX_minus'
+        out_result_dic = self.this_class_arr+'\\RF_result_dic_arr'
         partition_f = self.this_class_arr+'RF_partition.npy'
         partition_keys_dic = dict(np.load(partition_f).item())
         condition1_list = [
@@ -928,17 +934,17 @@ class RF_train_events:
         for c1 in condition1_list:
             for c2 in condition2_list:
                 params.append([c1,c2,partition_keys_dic,fdir_dic])
-        # print params[1]
-        # exit()
         ###1### debug
-        for p in params:
-            result = self.kernel_do_random_forest_train(p)
-        ###1###
+        results = []
+        for p in tqdm(params):
+            try:
+                result = self.kernel_do_random_forest_train(p)
+                results.append(result)
+            except Exception as e:
+                pass
+                # print e
+        np.save(out_result_dic,results)
 
-        ##### 2 run
-        # result = MUTIPROCESS(self.kernel_do_random_forest_train,params).run()
-        # np.save(result_dic_arr,result)
-        ##### 2
         pass
 
 
@@ -986,19 +992,54 @@ class Plot_RF_train_events_result:
 
 
     def run(self):
+        self.plot_bar()
+
+        pass
+
+
+
+    def plot_bar(self):
+        f = RF_train_events().this_class_arr + 'RF_result_dic_arr.npy'
+        arr = np.load(f)
+        for key,result_dic in arr:
+            print key
+            in_out = key.split('~')[0]
+
+
+
+    def plot_scatter(self):
         region_pix = dict(np.load(this_root+'arr\\cross_koppen_landuse_pix.npy').item())
         # f = this_root+'arr\\RF_result_dic_arr1.npy'
-        f = this_root+'arr\\RF_result_dic_arr_with_rX_minus.npy'
+        # f = this_root+'arr\\RF_result_dic_arr_with_rX_minus.npy'
+        f = RF_train_events().this_class_arr+'RF_result_dic_arr.npy'
         arr = np.load(f)
+        len_in_out_dic = {}
+        for i in arr:
+            region,content_dic = i
+            if 'in' in region:
+                len_in = len(content_dic['importances'])
+                len_in_out_dic['in'] = len_in
+                len_in_out_dic['tropical'] = len_in
+            if 'out' in region:
+                len_out = len(content_dic['importances'])
+                len_in_out_dic['out'] = len_out
+        print len_in_out_dic
         x0list = []
         ylist = []
         size_list = []
         colors_list = []
         rX_colors_list = []
 
-        self.__plot_grid()
+        self.__plot_grid(len_in_out_dic)
         for key,result_dic in arr:
-            print key
+            # print key
+            in_out = key.split('~')[0]
+            # print in_out
+            len_in_out = len_in_out_dic[in_out]
+            # print len_in_out
+            # pix, mark, eln, date_range, drought_start, recovery_start = self.__split_keys(key)
+            # print eln
+            # exit()
             try:
                 importances = result_dic['importances']
                 r = result_dic['r']
@@ -1007,10 +1048,10 @@ class Plot_RF_train_events_result:
                     continue
             except:
                 continue
-            scatter_size = self.__importances_to_scatter_size(importances)
+            scatter_size = self.__importances_to_scatter_size(importances,len_in_out)
             rX_color = self.__rX_to_colors(rX)
             color = self.__r_to_color(r)
-            x0,y = self.__get_scatter_position(key,region_pix)
+            x0,y = self.__get_scatter_position(key,region_pix,len_in_out_dic)
             x0list.append(x0)
             ylist.append(y)
             colors_list.append(color)
@@ -1036,8 +1077,6 @@ class Plot_RF_train_events_result:
         plt.show()
 
     def plot_regions_arr(self):
-
-
         outpng_dir = this_root+'png\\plot_regions_arr\\'
         Tools().mk_dir(outpng_dir)
         partition_keys_dic = dict(np.load(this_root + 'arr\\RF_partition.npy').item())
@@ -1074,22 +1113,23 @@ class Plot_RF_train_events_result:
         return pix, mark, eln, date_range, drought_start, recovery_start
 
 
-    def __plot_grid(self):
-        plt.figure(figsize=(6*5+2, 17))
+    def __plot_grid(self,len_in_out_dic):
         # plot vertical lines
-
-        X = range(6*5+2)
-
+        early_in = len_in_out_dic['in']
+        late_in = len_in_out_dic['in']
+        early_out = len_in_out_dic['out']
+        late_out = len_in_out_dic['out']
+        tropical = len_in_out_dic['in']
+        X = range(early_in+late_in+early_out+late_out+tropical+4+1)
         # plot horizental lines
-
         Y = range(17)
-
+        plt.figure(figsize=(25,5))
         for x in X:
-            plt.plot([x] * 2, [0, 17-1],c='black')
+            plt.plot([x] * 2, [0, 17-1],c='black',linewidth=0.4)
         for y in Y:
-            plt.plot([0, 6*5+2-1],[y]*2,c='black')
+            plt.plot([0, early_in+late_in+early_out+late_out+tropical + 4],[y]*2,c='black',linewidth=0.4)
 
-
+        plt.axis('off')
         plt.axis("equal")
         # self.__plot_scatter()
         # plt.show()
@@ -1110,11 +1150,11 @@ class Plot_RF_train_events_result:
 
 
 
-    def __importances_to_scatter_size(self,importances_list):
+    def __importances_to_scatter_size(self,importances_list,len_in_out):
 
         size_list = []
-        for i in range(1,7):
-            size = i * 80
+        for i in range(1,len_in_out+1):
+            size = i * 10
             size_list.append(size)
 
         scatter_size_list = []
@@ -1122,9 +1162,6 @@ class Plot_RF_train_events_result:
         for i in a:
             scatter_size_list.append(size_list[i])
         return scatter_size_list
-        pass
-
-
 
     def __rX_to_colors(self,rX_list):
 
@@ -1133,7 +1170,7 @@ class Plot_RF_train_events_result:
 
         for r in rX_list:
             if np.isnan(r):
-                colors_list.append('cmap[5]')
+                colors_list.append(cmap[5])
             else:
                 rr = int(round(round(r, 1) * 10. / 2. + 5., 0)) - 1
                 c = cmap[rr]
@@ -1152,7 +1189,7 @@ class Plot_RF_train_events_result:
 
 
 
-    def __get_scatter_position(self,key,region_pix):
+    def __get_scatter_position(self,key,region_pix,len_in_out_dic):
         # key = 'in~early-Shrublands_Savanna.AH'
 
         # get Y coordinate
@@ -1184,17 +1221,14 @@ class Plot_RF_train_events_result:
         conditions = key.split('-')[0]
         if conditions == 'in~early':
             x0 = 0
-        elif conditions == 'out~early':
-            x0 = 0 + 6
-
         elif conditions == 'in~late':
-            x0 = 0 + 6 + 7
+            x0 = 0 + len_in_out_dic['in'] + 1
+        elif conditions == 'out~early':
+            x0 = 0 + len_in_out_dic['in'] + len_in_out_dic['in'] + 2
         elif conditions == 'out~late':
-            x0 = 0 + 6 + 7 + 6
-
+            x0 = 0 + len_in_out_dic['in'] + len_in_out_dic['in'] + len_in_out_dic['out'] + 3
         elif conditions == 'tropical~tropical':
-            x0 = 0 + 6 + 7 + 6 + 7
-
+            x0 = 0 + len_in_out_dic['in'] + len_in_out_dic['in'] + len_in_out_dic['out'] + len_in_out_dic['out'] + 4
         else:
             raise IOError('key error...')
         x0 = x0 + 0.5  # plus 0.5 means move the point to the center of a grid
@@ -1267,9 +1301,8 @@ class Plot_RF_train_events_result:
 def main():
 
     # Prepare().run()
-    RF_train_events().run()
-    # Plot_RF_train_events_result().run()
-    # Plot_RF_train_events_result().get_scatter_y()
+    # RF_train_events().run()
+    Plot_RF_train_events_result().run()
     # Corelation_analysis().run()
     pass
 
