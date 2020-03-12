@@ -1611,6 +1611,79 @@ class Bio_diversity:
         plt.show()
 
 
+class NDVI_Threshold:
+
+    def __init__(self):
+        pass
+
+    def run(self):
+
+        max_month = 18
+        condition = 'early'
+        # condition = 'late'
+        lc = 'Forest'
+        index_landuse_dic = this_root + 'arr\\landcover_dic.npy'
+        dic = dict(np.load(index_landuse_dic).item())
+        landuse_class_dic = dic
+        landuse_types = [[1, 2, 3, 4, 5], [6, 7, 8, 9], 10]
+        labels = ['Forest', 'Shrublands_Savanna', 'Grasslands']
+        landuse_dic = {}
+        for landuse in range(len(landuse_types)):
+            #     # print 'landuse',landuse
+            lc_label = labels[landuse]
+            if type(landuse_types[landuse]) == int:
+                landuse_index = landuse_class_dic[landuse_types[landuse]]
+            elif type(landuse_types[landuse]) == list:
+                landuse_index = []
+                for lt in landuse_types[landuse]:
+                    for ll in landuse_class_dic[lt]:
+                        landuse_index.append(ll)
+            else:
+                landuse_index = None
+                raise IOError('landuse type error')
+            landuse_dic[lc_label] = set(landuse_index)
+
+        NDVI_f = this_root_branch+'Random_Forest\\arr\\Prepare\\PRE.npy'
+        recovery_f = this_root_branch+'Random_Forest\\arr\\Prepare\\Y.npy'
+
+        NDVI_dic = dict(np.load(NDVI_f).item())
+        recovery_dic = dict(np.load(recovery_f).item())
+
+        data = {}
+        for i in range(0,max_month+1):
+            data[i] = []
+        for key in tqdm(recovery_dic):
+            pix = key.split('~')[0]
+            if not pix in landuse_dic[lc]:
+                continue
+            if 'tropical' in key:
+                continue
+            if not condition in key:
+                continue
+            # print key
+            delta_ndvi = NDVI_dic[key]
+            recovery_time = recovery_dic[key]
+            if recovery_time > max_month:
+                continue
+            if np.isnan(delta_ndvi):
+                continue
+            data[recovery_time].append(delta_ndvi)
+        x = []
+        for i in range(0,max_month+1):
+            x.append(data[i])
+        # exit()
+        x = np.array(x)
+        x = x.T
+        # exit()
+        plt.boxplot(x)
+        plt.grid(1)
+        # plt.ylim(-3,3)
+        plt.show()
+        pass
+
+
+
+
 def kernel_smooth_SPEI(params):
     fdir,f,outdir_i = params
     dic = dict(np.load(fdir + f).item())
@@ -1644,7 +1717,8 @@ def main():
     # Water_balance().run()
     # Water_balance_3d().run()
     # Ternary_plot().plot_scatter()
-    Bio_diversity().run()
+    # Bio_diversity().run()
+    NDVI_Threshold().run()
     pass
 
 if __name__ == '__main__':
