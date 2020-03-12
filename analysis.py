@@ -1429,7 +1429,7 @@ class KDE_plot:
             colors.append(cmap(i))
         return colors
 
-    def plot_scatter(self, val1, val2, cmap='magma', reverse=0, s=0.3, title='',ax=None):
+    def plot_scatter(self, val1, val2, cmap='magma', reverse=0, s=0.3, title='',ax=None,**kwargs):
 
         kde_val = np.array([val1, val2])
         print('doing kernel density estimation... ')
@@ -1439,10 +1439,10 @@ class KDE_plot:
         if ax == None:
             plt.figure()
             plt.title(title)
-            plt.scatter(val1, val2, c=colors, s=s)
+            plt.scatter(val1, val2, c=colors, s=s,**kwargs)
         else:
             plt.title(title)
-            plt.scatter(val1, val2, c=colors, s=s)
+            plt.scatter(val1, val2, c=colors, s=s,**kwargs)
 
 
 class Pre_Process:
