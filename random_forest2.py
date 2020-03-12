@@ -987,7 +987,10 @@ class Corelation_analysis():
 
 class Plot_RF_train_events_result:
     def __init__(self):
-
+        self.this_class_arr = this_root_branch + 'Random_Forest\\arr\\Plot_RF_train_events_result\\'
+        self.this_class_tif = this_root_branch + 'Random_Forest\\tif\\Plot_RF_train_events_result\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
         pass
 
 
@@ -996,16 +999,111 @@ class Plot_RF_train_events_result:
 
         pass
 
-
-
     def plot_bar(self):
+        fdir = self.this_class_arr
+        out_png_dir = this_root+'png\\Plot_RF_train_events_result\\'
+        Tools().mk_dir(out_png_dir)
+        for f in os.listdir(fdir):
+            title = f.split('.')[0]
+            dic = dict(np.load(fdir+f).item())
+            max_x = dic['max_x']
+            label = dic['max_key']
+            plt.barh(label, max_x)
+            plt.title(title)
+            plt.savefig(out_png_dir+title+'.png',ppi=600)
+            plt.close()
+
+        pass
+
+    def gen_bar_data(self):
         f = RF_train_events().this_class_arr + 'RF_result_dic_arr.npy'
         arr = np.load(f)
+        # condition = 'in'
+        # condition = 'out'
+        condition = 'tropical'
+        # condition2 = 'early'
+        # condition2 = 'late'
+        condition2 = 'tropical'
+
+        variables_names_in = [
+            'PRE', 'PRE_mean', 'PRE_std',
+            'TMP', 'TMP_mean', 'TMP_std',
+            'CCI', 'CCI_mean', 'CCI_std',
+            # 'SWE', 'SWE_mean', 'SWE_std',
+            'NDVI_change', 'two_month_early_vals_mean',
+            'sand', 'silt', 'clay',
+            'bio']
+        # print len(variables_names_in)
+        # exit()
+        variables_names_out = [
+            'PRE', 'PRE_mean', 'PRE_std',
+            'TMP', 'TMP_mean', 'TMP_std',
+            'CCI', 'CCI_mean', 'CCI_std',
+            'SWE', 'SWE_mean', 'SWE_std',
+            'NDVI_change', 'two_month_early_vals_mean',
+            'sand', 'silt', 'clay',
+            'bio']
+
+        variables_names_out_dic = {}
+        for var in variables_names_out:
+            variables_names_out_dic[var] = []
+
+        variables_names_in_dic = {}
+        for var in variables_names_in:
+            variables_names_in_dic[var] = []
+
+        if condition == 'in':
+            variables_names_dic = variables_names_in_dic
+            variables_names_list = variables_names_in
+        elif condition == 'out':
+            variables_names_dic = variables_names_out_dic
+            variables_names_list = variables_names_out
+        elif condition == 'tropical':
+            variables_names_dic = variables_names_in_dic
+            variables_names_list = variables_names_in
+        else:
+            raise IOError
         for key,result_dic in arr:
-            print key
-            in_out = key.split('~')[0]
+            if not condition2 in key:
+                continue
+            if not condition in key:
+                continue
+            # print eln
+            if len(result_dic) == 0:
+                continue
+            # print key
+            for i in range(len(result_dic['importances'])):
+                var_name = variables_names_list[i]
+                val = result_dic['importances'][i]
+                variables_names_dic[var_name].append(val)
+                # print var_name,val
 
-
+        x_list = []
+        xerr_list = []
+        key_list = []
+        for i in variables_names_dic:
+            val = variables_names_dic[i]
+            mean,xerr = Tools().arr_mean_nan(val)
+            key_list.append(i)
+            x_list.append(mean)
+            xerr_list.append(xerr/4.)
+        x_list_sort = np.argsort(x_list)
+        maxvs = []
+        maxv_ind = []
+        max_x = []
+        max_xerr = []
+        max_key = []
+        for i in x_list_sort:
+            maxvs.append(x_list_sort[i])
+            maxv_ind.append(i)
+            max_x.append(x_list[i])
+            max_xerr.append(xerr_list[i])
+            max_key.append(key_list[i])
+        # plt.barh(key_list,x_list,xerr=xerr_list)
+        # plt.figure()
+        # plt.barh(max_key,max_x,xerr=max_xerr)
+        # plt.show()
+        np.save(self.this_class_arr+'{}_{}'.format(condition,condition2),{'max_key':max_key,'max_x':max_x,'max_xerr':max_xerr})
 
     def plot_scatter(self):
         region_pix = dict(np.load(this_root+'arr\\cross_koppen_landuse_pix.npy').item())
