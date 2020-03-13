@@ -1612,7 +1612,9 @@ class Bio_diversity:
 
 
 class NDVI_Threshold:
-
+    '''
+    boxplot
+    '''
     def __init__(self):
         pass
 
@@ -1683,6 +1685,152 @@ class NDVI_Threshold:
 
 
 
+class Find_Threshold:
+    '''
+    plot recovery time scatter to find threshold
+    '''
+    def __init__(self):
+        from mpl_toolkits.mplot3d import Axes3D
+        pass
+
+    def run(self):
+        template_tif = this_root+'conf\\tif_template.tif'
+        template_arr = to_raster.raster2array(template_tif)[0]
+        template_arr[template_arr<-999]=np.nan
+
+        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\early.tif'
+        # title = 'early'
+        recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\late.tif'
+        title = 'late'
+        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time_in_out\\early_in_arr.tif'
+        # title = 'early_in'
+        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time_in_out\\early_out_arr.tif'
+        # title = 'early_out'
+        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time_in_out\\late_in_arr.tif'
+        # title = 'late_in'
+        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time_in_out\\late_out_arr.tif'
+        # title = 'late_out'
+        recovery_arr = to_raster.raster2array(recovery_tif)[0]
+        recovery_arr[recovery_arr<-999] = np.nan
+
+        bio_tif = this_root_branch + 'tif\\Bio_diversity\\bio_diversity_normalized.tif'
+        bio_arr = to_raster.raster2array(bio_tif)[0]
+        bio_arr[bio_arr<-999] = np.nan
+
+        rooting_tif = this_root+'data\\Global_effective_plant_rooting_depth\\Effective_Rooting_Depth.tif'
+        rooting_arr = to_raster.raster2array(rooting_tif)[0]
+        rooting_arr[rooting_arr<-999] = np.nan
+        rooting_arr[rooting_arr>2] = np.nan
+
+        landcover_tif = this_root+'data\\landcover\\tif\\0.5\\landcover_0.5.tif'
+        landcover_arr = to_raster.raster2array(landcover_tif)[0]
+
+        HI_tif = this_root + 'tif\\HI\\HI.tif'
+        HI_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(HI_tif)
+        HI_arr[HI_arr > 2.] = np.nan
+        HI_arr[HI_arr < -999] = np.nan
+        x = []
+        y = []
+        z = []
+        c = []
+        marker = []
+
+        for i in tqdm(range(len(template_arr))):
+            for j in range(len(template_arr[0])):
+                recovery = recovery_arr[i][j]
+                if np.isnan(recovery):
+                    continue
+                if recovery > 24:
+                    continue
+
+                landcover = landcover_arr[i][j]
+                if landcover in {1, 2, 3, 4, 5}:  # Forests
+                    marker.append('X')
+                elif landcover in {6, 7, 8, 9}:  # Shrubland and Savannas
+                    marker.append('D')
+                elif landcover == 10:  # Grassland
+                    marker.append('p')
+                else:
+                    continue
+                bio = bio_arr[i][j]
+                rooting = rooting_arr[i][j]
+                HI = HI_arr[i][j]
+                if np.nan in {bio,rooting,HI,recovery}:
+                    continue
+                x.append(bio)
+                y.append(rooting)
+                z.append(HI)
+                c.append(recovery)
+
+
+        ############### plot un-filled circles ###############
+        cmap = mpl.cm.get_cmap(name='RdBu_r', lut=None)
+        std_c = []
+        max_c = max(c)
+        min_c = min(c)
+        for i in c:
+            std = (i-min_c)/(max_c-min_c)
+            std_c.append(std)
+
+        edge_color_list = []
+        for i in std_c:
+            edge_color_list.append(cmap(i))
+        ############### plot un-filled circles ###############
+
+        fig = plt.figure()
+        ############### plot 3d ###############
+        # ax = fig.gca(projection='3d')
+        # ax.scatter(x,y,z,c=c,marker='o',s=1,cmap='jet',alpha=0.5,vmin=0,vmax=7)
+        ############### plot 3d ###############
+
+        ############### plot 2d ###############
+        # plt.scatter(x,y,marker='.',c=c,s=4,cmap='RdBu_r',alpha=0.7,vmin=0,vmax=3)  # filled circles
+        plt.scatter(x,y,marker='.',c=c,s=4,cmap='RdBu_r',alpha=0.7,vmin=0,vmax=12)  # filled circles
+        # plt.scatter(x,y,marker='o',s=18,cmap='RdBu_r',alpha=0.5,vmin=0,vmax=4,facecolors='none', edgecolors=edge_color_list)  # un-filled circles
+        ############### plot 2d ###############
+        # c = '', edgecolors = 'g'
+        plt.title(title)
+        plt.show()
+
+        ################## plot animation ##################
+        # from matplotlib import animation
+        # def animate(i):
+        #     print i,'/',360
+        #     ax.view_init(elev=10., azim=i)
+        #     return fig,
+        #
+        # anim = animation.FuncAnimation(fig, animate, init_func=None,
+        #                                frames=360, interval=20, blit=True)
+        # anim.save(this_root+'png\\animation\\Find_Threshold_late.html', fps=30, extra_args=['-vcodec', 'libx264'])
+        ################## plot animation ##################
+
+        pass
+
+    def landcover_dic(self):
+        '''
+        :return: dic['grassland']=('000.000','001.001',...,'nnn.nnn')
+        '''
+        index_landuse_dic = this_root + 'arr\\landcover_dic.npy'
+        dic = dict(np.load(index_landuse_dic).item())
+        landuse_class_dic = dic
+        landuse_types = [[1, 2, 3, 4, 5], [6, 7, 8, 9], 10]
+        labels = ['Forest', 'Shrublands_Savanna', 'Grasslands']
+        landuse_dic = {}
+        for landuse in range(len(landuse_types)):
+            #     # print 'landuse',landuse
+            lc_label = labels[landuse]
+            if type(landuse_types[landuse]) == int:
+                landuse_index = landuse_class_dic[landuse_types[landuse]]
+            elif type(landuse_types[landuse]) == list:
+                landuse_index = []
+                for lt in landuse_types[landuse]:
+                    for ll in landuse_class_dic[lt]:
+                        landuse_index.append(ll)
+            else:
+                landuse_index = None
+                raise IOError('landuse type error')
+            landuse_dic[lc_label] = set(landuse_index)
+        return landuse_dic
 
 def kernel_smooth_SPEI(params):
     fdir,f,outdir_i = params
@@ -1718,7 +1866,8 @@ def main():
     # Water_balance_3d().run()
     # Ternary_plot().plot_scatter()
     # Bio_diversity().run()
-    NDVI_Threshold().run()
+    # NDVI_Threshold().run()
+    Find_Threshold().run()
     pass
 
 if __name__ == '__main__':
