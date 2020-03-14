@@ -1395,13 +1395,73 @@ class Plot_RF_train_events_result:
             print i,scatter_dic[i]
 
 
+class Plot_RF_Train_events_result_spatial:
+    def __init__(self):
+
+        pass
+
+
+    def run(self):
+        self.gen_zone_pixels()
+
+        pass
+
+    def run1(self):
+        results_f = RF_train_events().this_class_arr+'RF_result_dic_arr.npy'
+        results_dic = np.load(results_f)
+        for i in results_dic:
+            print i
+            break
+
+
+            # exit()
+        pass
+
+    def gen_zone_pixels(self):
+        '''
+        16 个分区的像素
+        :return:
+        '''
+        partition_f = RF_train_events().this_class_arr+'RF_partition.npy'
+        partition_dic = dict(np.load(partition_f).item())
+        zones_dic = {}
+        for i in partition_dic['in~late']:
+            zones_dic[i] = []
+        for z in tqdm(zones_dic):
+            for condition in partition_dic:
+                for key in partition_dic[condition][z]:
+                    pix = key.split('~')[0]
+                    # print z,key,pix
+                    zones_dic[z].append(pix)
+
+        flag = 0
+        spatial_dic = {}
+        for i in zones_dic:
+            flag += 1
+            print i,len(zones_dic[i])
+            pixs = zones_dic[i]
+            for pix in pixs:
+                # print pix
+                spatial_dic[pix] = flag
+                # time.sleep(1)
+        DIC_and_TIF().plot_back_ground_arr()
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
+        plt.imshow(arr)
+        plt.show()
+
+
+
+        pass
+
+
 
 def main():
 
     # Prepare().run()
     # RF_train_events().run()
-    Plot_RF_train_events_result().run()
+    # Plot_RF_train_events_result().run()
     # Corelation_analysis().run()
+    Plot_RF_Train_events_result_spatial().run()
     pass
 
 
