@@ -36,7 +36,7 @@ class Winter1:
         outdir = this_root+'NDVI\\mon_mean_tif\\'
         Tools().mk_dir(outdir)
         fdir = this_root+'NDVI\\clip_tif\\'
-        for m in tqdm(range(1,13)):
+        for m in tqdm(list(range(1,13))):
             arrs_sum = 0.
             for y in range(1982,2016):
                 date = '{}{}'.format(y,'%02d'%m)
@@ -44,7 +44,7 @@ class Winter1:
                 arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
                 arr[arr<-9999] = np.nan
                 arrs_sum += arr
-            mean_arr = arrs_sum/len(range(1982,2016))
+            mean_arr = arrs_sum/len(list(range(1982,2016)))
             mean_arr = np.array(mean_arr,dtype=float)
             DIC_and_TIF().arr_to_tif(mean_arr,outdir+'%02d.tif'%m)
 
@@ -53,7 +53,7 @@ class Winter1:
         fdir = this_root + 'NDVI\\mon_mean_tif\\'
         # pix_lon_lat_dic = dict(np.load(this_root + 'arr\\pix_to_lon_lat_dic.npy').item())
         arrs = []
-        month = range(1,13)
+        month = list(range(1,13))
         for m in tqdm(month):
             tif = fdir+'%02d.tif'%m
             arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(tif)
@@ -64,7 +64,7 @@ class Winter1:
 
         winter_count = []
         winter_pix = []
-        for i in tqdm(range(row)):
+        for i in tqdm(list(range(row))):
             temp = []
             for j in range(col):
                 flag = 0
@@ -240,7 +240,7 @@ class Winter1:
         tropical_pix = np.load(this_root+'data\\NDVI\\tropical_pix.npy')
         fdir = this_root + 'data\\NDVI\\mon_mean_tif\\'
         arrs = []
-        month = range(1, 13)
+        month = list(range(1, 13))
         for m in month:
             tif = fdir + '%02d.tif' % m
             arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif)
@@ -250,14 +250,14 @@ class Winter1:
         col = len(arrs[0][0])
 
         winter_dic = {}
-        for i in tqdm(range(row)):
+        for i in tqdm(list(range(row))):
             for j in range(col):
                 # if i < 250:
                 #     continue
                 pix = '%03d.%03d' % (i, j)
                 # print pix
                 if pix in tropical_pix:
-                    winter_dic[pix] = np.array(range(1,13))
+                    winter_dic[pix] = np.array(list(range(1,13)))
                     continue
                 vals = []
                 for arr in arrs:
@@ -282,7 +282,7 @@ class Winter1:
             pix_dic[i] = growing_season_index[i]
         for pix in tropical_pix:
             # pix_dic[pix] = 2
-            pix_dic[pix] = range(1,13)
+            pix_dic[pix] = list(range(1,13))
         np.save(this_root+'NDVI\\composite_growing_season',pix_dic)
 
 
@@ -671,8 +671,8 @@ class Water_balance:
         # classes=2
         range_class = np.linspace(min_val,max_val,classes)
         index_WB_dic = {}
-        for c in tqdm(range(len(range_class)),desc='building WB zonal index'):
-            if c == range(len(range_class))[-1]:
+        for c in tqdm(list(range(len(range_class))),desc='building WB zonal index'):
+            if c == list(range(len(range_class)))[-1]:
                 break
             class_index = []
             for i in range(len(wb)):
@@ -923,7 +923,7 @@ class Water_balance:
         plt.title(title)
         sns.regplot(X,Y,scatter=False,color=color_)
         a,b,r = Tools().linefit(X,Y)
-        print 'r',r
+        print('r',r)
         # Tools().plot_fit_line(a,b,r,X,Y)
         # plot cmap
         # sns.palplot(cmap)
@@ -1017,8 +1017,8 @@ class Water_balance_3d:
         # classes=2
         range_class = np.linspace(min_val,max_val,classes)
         index_WB_dic = {}
-        for c in tqdm(range(len(range_class)),desc='building WB zonal index'):
-            if c == range(len(range_class))[-1]:
+        for c in tqdm(list(range(len(range_class))),desc='building WB zonal index'):
+            if c == list(range(len(range_class)))[-1]:
                 break
             class_index = []
             for i in range(len(wb)):
@@ -1232,8 +1232,8 @@ class Water_balance_3d:
         ax.plot_wireframe(Xi, Yi, Z, rstride=10, cstride=1, alpha=0.4)
         # ax.plot(X, Y, zs=0, zdir='z', label='curve in (x,y)')
         # sns.regplot(X, Y,scatter=False, ax=ax)
-        print X
-        print Y
+        print(X)
+        print(Y)
         ax.set_xlim(0.1, 1.4)
         ax.set_ylim(0.1, 0.5)
         # ax.set_ylim(10, 35)
@@ -1601,7 +1601,7 @@ class Bio_diversity:
                     continue
                 x.append(bio_diversity)
                 y.append(recovery)
-        print len(x)
+        print(len(x))
         figure, ax = plt.subplots(figsize=(3, 3))
         # ax = plt.figure(figsize=(2,2))
         KDE_plot().plot_scatter(x,y,cmap='hot',ax=ax)
@@ -1761,7 +1761,7 @@ class Find_Threshold:
         c = []
         marker = []
 
-        for i in tqdm(range(len(template_arr))):
+        for i in tqdm(list(range(len(template_arr)))):
             for j in range(len(template_arr[0])):
                 recovery = recovery_arr[i][j]
                 if np.isnan(recovery):

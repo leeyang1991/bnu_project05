@@ -108,11 +108,11 @@ class Bio_diversity:
         # 'quintic': r**5                                 #
         # 'thin_plate': r**2 * log(r)                     #
         # -------------------------------------------q-----#
-        print 'interpolating1'
+        print('interpolating1')
         interp = Rbf(x, y, val, function=function)
-        print 'interpolating2'
+        print('interpolating2')
         zi = interp(xi, yi)
-        print 'saving'
+        print('saving')
         np.save(self.this_class_arr+'bio_diversity_arr_1_degree_non_clip',zi)
         plt.imshow(zi,'jet')
         plt.colorbar()
@@ -127,7 +127,7 @@ class Bio_diversity:
         # yy = np.linspace(-90,89.5,360)
         yy = np.arange(-90, 89.5, 1)
         arr_extend, xii, yii, a, b, c, d = self.extened_grid(arr_1, xx, yy, 2)
-        print np.shape(arr_extend)
+        print(np.shape(arr_extend))
         np.save(extend_f,arr_extend)
         plt.imshow(arr_1)
         plt.figure()
@@ -139,7 +139,7 @@ class Bio_diversity:
         template_tif = this_root+'conf\\tif_template.tif'
         template = to_raster.raster2array(template_tif)[0]
         mask_arr = []
-        for i in tqdm(range(len(template))):
+        for i in tqdm(list(range(len(template)))):
             temp = []
             for j in range(len(template[0])):
                 val = template[i][j]

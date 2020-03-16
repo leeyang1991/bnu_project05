@@ -31,8 +31,8 @@ def check_zip(path):
         return True
     # ZipFile = zipfile.ZipFile
     f_gzip = gzip.GzipFile(path, "rb")
-    print path
-    print f_gzip.read()
+    print(path)
+    print(f_gzip.read())
     f_gzip.close()
 
 
@@ -100,8 +100,8 @@ class pre_poecess:
         # if check_zip(f):
         #     print f
         if not os.path.isfile(f):
-            print f
-            print url
+            print(f)
+            print(url)
             self.downloadFILE(url, f)
 
     def downloadFILE(self,url, name):
@@ -119,7 +119,7 @@ class pre_poecess:
         analysis.Tools().mk_dir(outdir)
         for f in os.listdir(fdir):
             if f.endswith('.gz'):
-                print f
+                print(f)
                 try:
                     f_gzip = gzip.GzipFile(fdir + f, "rb")
                     content = f_gzip.read()
@@ -136,7 +136,7 @@ class pre_poecess:
         out_dir = this_root + 'GLOBSWE\\nc_to_tif\\' + data + '\\'
         analysis.Tools().mk_dir(out_dir, force=True)
         for f in os.listdir(ncdir):
-            print f
+            print(f)
             nc = ncdir + f
             ncin = Dataset(nc, 'r')
             x = np.array(ncin['x'])
@@ -167,7 +167,7 @@ class pre_poecess:
         analysis.Tools().mk_dir(out_dir, force=True)
         for f in os.listdir(hdf_dir):
             if f.endswith('.hdf'):
-                print f
+                print(f)
                 fname = hdf_dir + f
                 hdf = SD(fname)
                 # print hdf.datasets()
@@ -210,7 +210,7 @@ class pre_poecess:
         x_list = []
         y_list = []
         val_list = []
-        for i in tqdm(range(len(swe_avg))):
+        for i in tqdm(list(range(len(swe_avg)))):
             for j in range(len(swe_avg[0])):
                 lon_ = lon[i][j] + 180
                 lat_ = lat[i][j] + 90
@@ -230,8 +230,8 @@ class pre_poecess:
                 # except:
                 #     pass
                 # pass
-        print len(x_list)
-        print len(set(x_list))
+        print(len(x_list))
+        print(len(set(x_list)))
         exit()
         grid = np.ma.masked_where(grid < 0, grid)
         grid = grid[::-1]
@@ -281,7 +281,7 @@ class pre_poecess:
 
         # print(len(void_dic))
         # exit()
-        for r in tqdm(range(row), 'transforming...'):
+        for r in tqdm(list(range(row)), 'transforming...'):
             for c in range(col):
                 for arr in all_array:
                     val = arr[r][c]

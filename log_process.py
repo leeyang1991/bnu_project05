@@ -73,7 +73,7 @@ def process_bar(i,length,time_init=None,start_time=None,end_time=None,custom_pri
 
 
 def process_bar_1(iterable):
-    iterable = range(50)
+    iterable = list(range(50))
 
 
     pass

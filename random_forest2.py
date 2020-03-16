@@ -152,10 +152,10 @@ class Prepare:
         out_dir = self.this_class_arr+'\\'
         Tools().mk_dir(out_dir)
         # 1 drought periods
-        print '1. loading recovery time'
+        print('1. loading recovery time')
         f_recovery_time = this_root_branch+'arr\\Recovery_time1\\recovery_time_composite\\composite.npy'
         recovery_time = dict(np.load(f_recovery_time).item())
-        print 'done'
+        print('done')
         Y = {}
         flag = 0
         for pix in tqdm(recovery_time):
@@ -178,7 +178,7 @@ class Prepare:
 
 
     def check_Y(self):
-        print 'loading Y'
+        print('loading Y')
         f = this_root_branch+'Random_Forest\\arr\\Prepare\\CCI.npy'
         # f = r'D:\project05\new_2020\random_forest\Y.npy'
         dic = dict(np.load(f).item())
@@ -187,8 +187,8 @@ class Prepare:
         for key in dic:
             # print key,dic[key]
             pix, mark, eln, date_range, drought_start, recovery_start = self.__split_keys(key)
-            print pix, mark, eln, date_range, drought_start, recovery_start
-            print dic[key]
+            print(pix, mark, eln, date_range, drought_start, recovery_start)
+            print(dic[key])
             pix_dic[pix].append(1)
             exit()
 
@@ -235,7 +235,7 @@ class Prepare:
         if x == 'SWE':
             month_range = [1, 2, 3, 4, 5, 10, 11, 12]
         else:
-            month_range = range(1, 13)
+            month_range = list(range(1, 13))
         mean_dic = {}
         for m in tqdm(month_range, desc='2/3 loading monthly mean ...'):
             m = '%02d' % m
@@ -254,7 +254,7 @@ class Prepare:
             end = split_date_range[1]
             start = int(start)
             end = int(end)
-            drought_range = range(start, end)
+            drought_range = list(range(start, end))
             # print pix,mark,drought_range
             vals = all_dic[pix]
             selected_val = []
@@ -317,7 +317,7 @@ class Prepare:
             end = split_date_range[1]
             start = int(start)
             end = int(end)
-            drought_range = range(start, end)
+            drought_range = list(range(start, end))
             # print pix,mark,drought_range
             # exit()
             vals = all_dic[pix]
@@ -373,7 +373,7 @@ class Prepare:
             end = split_date_range[1]
             start = int(start)
             end = int(end)
-            drought_range = range(start, end)
+            drought_range = list(range(start, end))
             # print pix,mark,drought_range
             # exit()
             vals = all_dic[pix]
@@ -646,14 +646,14 @@ class RF_train_events:
         dic = dict(np.load(f).item())
         keys = dic['in~early']['Forest.TA']
         for key in keys:
-            print key
+            print(key)
 
 
     def variable_partition(self):
         f = this_root + 'arr\\RF_partition.npy'
         dic = dict(np.load(f).item())
         for key in dic:
-            print key
+            print(key)
         pass
 
 
@@ -661,7 +661,7 @@ class RF_train_events:
     def load_variable(self,partition_keys_dic,condition1,condition2):
 
         fdir = Prepare().this_class_arr
-        print 'loading variables ...'
+        print('loading variables ...')
         Y_dic = dict(np.load(fdir+'Y.npy').item())
         pre_dic = dict(np.load(fdir+'PRE.npy').item())
         tmp_dic = dict(np.load(fdir+'TMP.npy').item())
@@ -754,7 +754,7 @@ class RF_train_events:
                         val = fdir_dic[x][key]
                         variables_vals.append(val)
                 except Exception as e:
-                    print e
+                    print(e)
                     continue
                 _list = variables_vals
                 _list_new = []
@@ -845,8 +845,8 @@ class RF_train_events:
             # plt.show()
         #### plot ####
         if isplot:
-            print importances
-            print('mse:%s\nr:%s' % (mse, r_model))
+            print(importances)
+            print(('mse:%s\nr:%s' % (mse, r_model)))
             out_png_dir = this_root+'png\\RF_importances\\'
             Tools().mk_dir(out_png_dir)
             # 1 plot spatial
@@ -863,7 +863,7 @@ class RF_train_events:
             y_max = y_max+offset*0.3
 
             plt.ylim(y_min,y_max)
-            plt.bar(range(len(importances)),importances,width=0.3)
+            plt.bar(list(range(len(importances))),importances,width=0.3)
             ax = plt.subplot(212)
             KDE_plot().plot_scatter(Y_test, y_pred,cmap='jet',s=10,ax=ax,linewidth=0)
             plt.axis('equal')
@@ -972,7 +972,7 @@ class Corelation_analysis():
         result_dic_arr = np.load(this_root + 'arr\\RF_result_dic_arr1.npy')
 
         for key in result_dic_arr:
-            print key
+            print(key)
             exit()
 
 
@@ -1121,7 +1121,7 @@ class Plot_RF_train_events_result:
             if 'out' in region:
                 len_out = len(content_dic['importances'])
                 len_in_out_dic['out'] = len_out
-        print len_in_out_dic
+        print(len_in_out_dic)
         x0list = []
         ylist = []
         size_list = []
@@ -1218,9 +1218,9 @@ class Plot_RF_train_events_result:
         early_out = len_in_out_dic['out']
         late_out = len_in_out_dic['out']
         tropical = len_in_out_dic['in']
-        X = range(early_in+late_in+early_out+late_out+tropical+4+1)
+        X = list(range(early_in+late_in+early_out+late_out+tropical+4+1))
         # plot horizental lines
-        Y = range(17)
+        Y = list(range(17))
         plt.figure(figsize=(25,5))
         for x in X:
             plt.plot([x] * 2, [0, 17-1],c='black',linewidth=0.4)
@@ -1392,7 +1392,7 @@ class Plot_RF_train_events_result:
                     HI_mean, xerr = Tools().arr_mean_nan(HI_picked_val)
                     scatter_dic[key] = HI_mean
         for i in scatter_dic:
-            print i,scatter_dic[i]
+            print(i,scatter_dic[i])
 
 
 class Plot_RF_Train_events_result_spatial:
@@ -1410,7 +1410,7 @@ class Plot_RF_Train_events_result_spatial:
         results_f = RF_train_events().this_class_arr+'RF_result_dic_arr.npy'
         results_dic = np.load(results_f)
         for i in results_dic:
-            print i
+            print(i)
             break
 
 
@@ -1438,7 +1438,7 @@ class Plot_RF_Train_events_result_spatial:
         spatial_dic = {}
         for i in zones_dic:
             flag += 1
-            print i,len(zones_dic[i])
+            print(i,len(zones_dic[i]))
             pixs = zones_dic[i]
             for pix in pixs:
                 # print pix

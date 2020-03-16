@@ -280,7 +280,7 @@ def unzip(zip,move_dst_folder):
             if i.endswith('.tif'):
                 shutil.move(directory_to_extract_to+'\\'+i,move_dst_folder+tif_name+'.tif')
     else:
-        print(move_dst_folder+tif_name+'.tif is existed')
+        print((move_dst_folder+tif_name+'.tif is existed'))
 
 
 def check_zip(path):
@@ -291,7 +291,7 @@ def check_zip(path):
             pass
 
     except BadZipfile:
-        print path + " Does not work"
+        print(path + " Does not work")
         os.remove(path)
     pass
 
@@ -326,12 +326,12 @@ def do_unzpi1():
         fzip = fdir+flist[f]
         # print(fzip)
         if os.path.isfile(dest_folder+fzip.split('\\')[-1].split('.')[0]):
-            print(fzip+'is existed')
+            print((fzip+'is existed'))
             continue
         try:
             unzip(fzip,dest_folder)
         except Exception as e:
-            print e
+            print(e)
         #check_zip(fzip)
         end = time.time()
         P(f,len(flist),time_init,start,end)
@@ -351,12 +351,12 @@ def do_unzip2():
         fzip = fdir + flist[f]
         # print(fzip)
         if os.path.isfile(dest_folder + fzip.split('\\')[-1].split('.')[0]):
-            print(fzip + 'is existed')
+            print((fzip + 'is existed'))
             continue
         try:
             unzip(fzip, dest_folder)
         except Exception as e:
-            print e
+            print(e)
         # check_zip(fzip)
         end = time.time()
         P(f, len(flist), time_init, start, end)
@@ -374,7 +374,7 @@ def rename():
             start = fsplit[2]
             year,mon,day = start.split('-')
             # print f
-            print year,mon,day
+            print(year,mon,day)
             fname = year+mon+'.tif'
             shutil.copy(fdir+f,outdir+fname)
     pass

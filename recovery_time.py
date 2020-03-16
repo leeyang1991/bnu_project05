@@ -8,7 +8,7 @@ class Recovery_time1:
         pass
 
     def run(self):
-        params = range(1,13)
+        params = list(range(1,13))
         MUTIPROCESS(self.gen_recovery_time,params).run(process=5)
         self.compose_recovery_time()
         pass
@@ -255,7 +255,7 @@ class Recovery_time1:
             if search_v >= 0:
                 recovery_time = i
                 end_mon = search_ % 12 + 1
-                recovery_date_range = range(min_ndvi_indx,min_ndvi_indx+i+1)
+                recovery_date_range = list(range(min_ndvi_indx,min_ndvi_indx+i+1))
                 if len(growing_date_range) <= 10:  # 存在冬季的地区
                     if end_mon in growing_date_range:  # 在当年内恢复
                         if recovery_time <= 5:
@@ -302,14 +302,14 @@ class Recovery_time1:
 
 
     def check(self):
-        print 'loading...'
+        print('loading...')
         f = this_root+'new_2020\\arr\\recovery_time_composite\\composite.npy'
         dic = dict(np.load(f).item())
         for pix in dic:
-            print pix,dic[pix]
+            print(pix,dic[pix])
 
     def recovery_early_late_tif(self):
-        print 'loading...'
+        print('loading...')
         out_dir = this_root+'new_2020\\tif\\recovery_time\\'
         Tools().mk_dir(out_dir,force=1)
         f = this_root + 'new_2020\\arr\\recovery_time_composite\\composite.npy'
@@ -468,7 +468,7 @@ class Recovery_time1:
         early_pdf = []
         late_pdf = []
         tropical_pix = self.tropical_pix
-        for i in tqdm(range(len(early_arr))):
+        for i in tqdm(list(range(len(early_arr)))):
             for j in range(len(early_arr[0])):
                 pix = '%03d.%03d'%(i,j)
                 # print pix
@@ -497,7 +497,7 @@ class Recovery_time1_GPP:
         pass
 
     def run(self):
-        params = range(1,13)
+        params = list(range(1,13))
         MUTIPROCESS(self.gen_recovery_time,params).run(process=5)
         self.compose_recovery_time()
         self.recovery_early_late_tif()
@@ -750,7 +750,7 @@ class Recovery_time1_GPP:
             if search_v >= 0:
                 recovery_time = i
                 end_mon = search_ % 12 + 1
-                recovery_date_range = range(min_ndvi_indx,min_ndvi_indx+i+1)
+                recovery_date_range = list(range(min_ndvi_indx,min_ndvi_indx+i+1))
                 if len(growing_date_range) <= 10:  # 存在冬季的地区
                     if end_mon in growing_date_range:  # 在当年内恢复
                         if recovery_time <= 5:
@@ -797,14 +797,14 @@ class Recovery_time1_GPP:
 
 
     def check(self):
-        print 'loading...'
+        print('loading...')
         f = this_root+'new_2020\\arr\\recovery_time_GPP_composite\\composite.npy'
         dic = dict(np.load(f).item())
         for pix in dic:
-            print pix,dic[pix]
+            print(pix,dic[pix])
 
     def recovery_early_late_tif(self):
-        print 'loading...'
+        print('loading...')
         out_dir = this_root+'new_2020\\tif\\recovery_time_GPP\\'
         Tools().mk_dir(out_dir,force=1)
         f = this_root + 'new_2020\\arr\\recovery_time_GPP_composite\\composite.npy'
@@ -856,7 +856,7 @@ class Recovery_time1_GPP:
 
 
     def recovery_mix_tif(self):
-        print 'loading...'
+        print('loading...')
         out_dir = this_root+'new_2020\\tif\\recovery_time_GPP\\'
         Tools().mk_dir(out_dir,force=1)
         f = this_root + 'new_2020\\arr\\recovery_time_GPP_composite\\composite.npy'
@@ -1002,7 +1002,7 @@ class Recovery_time1_GPP:
         early_pdf = []
         late_pdf = []
         tropical_pix = self.tropical_pix
-        for i in tqdm(range(len(early_arr))):
+        for i in tqdm(list(range(len(early_arr)))):
             for j in range(len(early_arr[0])):
                 pix = '%03d.%03d'%(i,j)
                 # print pix
@@ -1092,7 +1092,7 @@ class Recovery_time2:
             search_v = ndvi[search_]
             if search_v >= pre_drought_NDVI_base_line:
                 recovery_time = i
-                recovery_date_range = range(recovery_start,recovery_start+i+1)
+                recovery_date_range = list(range(recovery_start,recovery_start+i+1))
                 return recovery_time, recovery_date_range
 
 
@@ -1242,7 +1242,7 @@ class Recovery_time2:
         pass
 
     def recovery_mix_tif(self):
-        print 'loading...'
+        print('loading...')
         out_dir = this_root + 'new_2020\\tif\\recovery_time_2\\'
         Tools().mk_dir(out_dir, force=1)
         f = this_root + 'new_2020\\arr\\recovery_time_2_composite\\composite.npy'

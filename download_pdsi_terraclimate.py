@@ -1,5 +1,5 @@
 # coding=utf-8
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import requests
 import os
 import codecs

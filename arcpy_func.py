@@ -31,7 +31,7 @@ def define_swe_projection():
     fdir = r'D:\project05\GLOBSWE\tif\SWE_avg\\'
     fdir = r'D:\project05\GLOBSWE\tif\SWE_max\\'
     for f in os.listdir(fdir):
-        print f
+        print(f)
         sr = arcpy.SpatialReference("North Pole Lambert Azimuthal Equal Area")
         arcpy.DefineProjection_management(fdir+f, sr)
 
@@ -43,7 +43,7 @@ def re_projection_swe():
     outdir = r'D:\project05\GLOBSWE\re_proj\SWE_max\\'
     for f in os.listdir(fdir):
         if f.endswith('.tif'):
-            print f
+            print(f)
             in_f = fdir+f
             outf = outdir+f
             arcpy.ProjectRaster_management(in_f, outf,
@@ -88,7 +88,7 @@ def do_mapping_recovery_time():
                 outjpeg = r'D:\project05\png\recovery_time\composite\\{}.jpg'.format(title)
 
                 mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
-                print title
+                print(title)
                 mapping(current_dir,tif,outjpeg,title,mxd_file)
 
     pass
@@ -108,7 +108,7 @@ def do_mapping_recovery_time1():
         title = mode[m]
         outjpeg = r'D:\project05\png\recovery_time\recovery\{}.jpg'.format(title)
         mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
-        print title
+        print(title)
         mapping(current_dir,tif,outjpeg,title,mxd_file)
 
     current_dir = r'D:\project05\tif\recovery_time\\'
@@ -116,7 +116,7 @@ def do_mapping_recovery_time1():
     outjpeg = r'D:\project05\png\recovery_time\recovery\Mix_Recovery_time.jpg'
     title = 'Mix Recovery time'
     mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
-    print title
+    print(title)
     mapping(current_dir, tif, outjpeg, title, mxd_file)
     pass
 
@@ -140,7 +140,7 @@ def do_mapping_recovery_time2():
                 raise IOError()
             outjpeg = r'D:\project05\png\recovery_time\in_out\{}.jpg'.format(title)
             mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
-            print title
+            print(title)
             mapping(current_dir,tif,outjpeg,title,mxd_file)
 
 
@@ -164,7 +164,7 @@ def do_mapping_recovery_time3():
 
     outjpeg = r'D:\project05\new_2020\jpg\in_out\{}.jpg'.format(title)
     mxd_file = r'D:\project05\MXD\recovery_time2.mxd'
-    print title
+    print(title)
     mapping(current_dir,tif,outjpeg,title,mxd_file)
 
 

@@ -39,7 +39,7 @@ class HWSD:
         # exit()
         ndv = np.nan
         arr = ncin.variables[variables_]
-        for name,variable in ncin.variables.items():
+        for name,variable in list(ncin.variables.items()):
             for var in variable.ncattrs():
                 if var == 'missing_value':
                     ndv = variable.getncattr(var)

@@ -5,7 +5,7 @@ Date: 20190801
 Location: zzq BeiJing
 Desctiption
 '''
-from analysis import *
+# from analysis import *
 import random
 import matplotlib.patches as patches
 
@@ -24,10 +24,10 @@ def foo():
             bias.append(delta)
 
         mid_month = np.floor(np.mean(bias)) + 11
-        print np.mean(bias)
-        print bias
-        print selected_months
-        print mid_month
+        print(np.mean(bias))
+        print(bias)
+        print(selected_months)
+        print(mid_month)
 
         growing_season = [
             mid_month - 2,
@@ -44,7 +44,7 @@ def foo():
             else:
                 new_growing_season.append(int(i))
         # new_growing_season.sort()
-        print new_growing_season
+        print(new_growing_season)
 
         # plt.plot(vals)
         # plt.scatter(range(len(vals)), vals)
@@ -54,7 +54,7 @@ def foo():
     pass
 
 def func():
-    x = range(1,10000)
+    x = list(range(1,10000))
     y = []
     y2 =[]
     for x_i in tqdm(x):
@@ -79,15 +79,25 @@ class __abc:
 
     def get_a(self):
 
-        print self.a
+        print(self.a)
 
 
 def test123():
+    from ftplib import FTP
+    ftp = FTP()
+    # ftp.set_debuglevel(2)
+    usr = 'ly'
+    pwd = ''
+    ftp.connect('192.168.1.100',port=21)
+    ftp.login(usr,pwd)
+    # print ftp.welcome
 
-    print this_root
+    ftp.dir('project05\\arr')
+    ftp.quit()
+    pass
 
 def main():
-    foo()
+    test123()
 
 
 

@@ -50,7 +50,7 @@ def nc_to_npz(nc,npz_out):
     # exit()
     # time_bounds = ncin.variables['time_bounds']
     # print(time_bounds)
-    start = datetime.datetime(1900, 01, 01)
+    start = datetime.datetime(1900, 0o1, 0o1)
     # a = start + datetime.timedelta(days=5459)
     # print(a)
     # print(len(time_bounds))
@@ -65,7 +65,7 @@ def nc_to_npz(nc,npz_out):
     for i in range(1982,2016):
         valid_year.append(str(i))
 
-    for i in tqdm(range(len(time))):
+    for i in tqdm(list(range(len(time)))):
 
         flag += 1
         # print(time[i])
@@ -113,7 +113,7 @@ def nc_to_tif(nc,outdir):
     # exit()
     # time_bounds = ncin.variables['time_bounds']
     # print(time_bounds)
-    start = datetime.datetime(1900, 01, 01)
+    start = datetime.datetime(1900, 0o1, 0o1)
     # a = start + datetime.timedelta(days=5459)
     # print(a)
     # print(len(time_bounds))
@@ -167,7 +167,7 @@ def kernel_download_spei(params):
     i,outdir = params
     interval = '%02d' % i
     url = 'http://digital.csic.es/bitstream/10261/153475/{}/spei{}.nc'.format(i + 2, interval)
-    print url
+    print(url)
     downloadFILE(url, outdir + 'spei{}.nc'.format('%02d'%i))
 
 

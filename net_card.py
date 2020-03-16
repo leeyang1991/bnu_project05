@@ -20,7 +20,7 @@ def hello_message():
 
 def enable_disable():
     try:
-        input_ = input()
+        input_ = eval(input())
         if input_ == 1:
             stat = 'netsh interface set interface ÒÔÌ«Íø enable'
         elif input_ == 0:
@@ -42,7 +42,7 @@ def main():
         if sys.version_info[0] == 3:
             ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
         else:#in python2.x
-            ctypes.windll.shell32.ShellExecuteW(None, u"runas", unicode(sys.executable), unicode(__file__), None, 1)
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", str(sys.executable), str(__file__), None, 1)
 
 
 if __name__ == '__main__':

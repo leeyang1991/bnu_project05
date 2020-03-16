@@ -33,7 +33,7 @@ class Prepare:
         ]
         for m in mode:
             # 1 因变量 Y
-            print m
+            print(m)
             self.prepare_Y(m)
             # 2 自变量 X
             # 2.1 计算月平均 tif 1-12 月
@@ -43,7 +43,7 @@ class Prepare:
             # 2.2 根据字典Y 的key 生成 X 字典， key为对应标签
             # X in ['TMP','PRE','CCI','SWE']
             for x in ['TMP','PRE','CCI','SWE']:
-                print x
+                print(x)
                 self.prepare_X(x,m)
             # self.check_ndvi()
             # 3 检查 X
@@ -56,15 +56,15 @@ class Prepare:
         if mode != 'mix':
             out_dir = this_root+'random_forest\\{}\\'.format(mode)
             analysis.Tools().mk_dir(out_dir)
-            print 'loading f_recovery_time...'
+            print('loading f_recovery_time...')
             f_recovery_time = this_root+'arr\\recovery_time\\{}_composite_recovery_time\\composite.npy'.format(mode)
         else:
             out_dir = this_root + 'random_forest\\{}\\'.format(mode)
             analysis.Tools().mk_dir(out_dir)
-            print 'loading f_recovery_time...'
+            print('loading f_recovery_time...')
             f_recovery_time = this_root + 'arr\\recovery_time\\composite_3_modes\\composite_3_mode_recovery_time.npy'
         recovery_time = dict(np.load(f_recovery_time).item())
-        print 'done'
+        print('done')
         Y = {}
         flag = 0
         for pix in tqdm(recovery_time):
@@ -91,7 +91,7 @@ class Prepare:
 
         analysis.Tools().mk_dir(outdir)
 
-        for m in tqdm(range(1, 13)):
+        for m in tqdm(list(range(1, 13))):
             # if m in range(6,10):
             #     continue
             arrs_sum = 0.
@@ -102,7 +102,7 @@ class Prepare:
                     continue
                 arr, originX, originY, pixelWidth, pixelHeight = analysis.to_raster.raster2array(tif)
                 arrs_sum += arr
-            mean_arr = arrs_sum / len(range(1982, 2016))
+            mean_arr = arrs_sum / len(list(range(1982, 2016)))
             mean_arr = np.array(mean_arr, dtype=float)
             grid = mean_arr <= 0
             mean_arr[grid] = np.nan
@@ -135,7 +135,7 @@ class Prepare:
         if x == 'SWE':
             month_range = [1,2,3,4,5,10,11,12]
         else:
-            month_range = range(1,13)
+            month_range = list(range(1,13))
         mean_dic = {}
         for m in tqdm(month_range,desc='2/3 loading monthly mean ...'):
             m = '%02d'%m
@@ -153,7 +153,7 @@ class Prepare:
             end = split_date_range[1]
             start = int(start)
             end = int(end)
-            drought_range = range(start, end)
+            drought_range = list(range(start, end))
             # print pix,mark,drought_range
             vals = all_dic[pix]
             selected_val = []
@@ -259,7 +259,7 @@ class RF_train:
                 lon,lat = lon_lat_dic[pix]
                 if lat > start_lat and lat < end_lat:
                     selected_pix.append(pix)
-            print selected_pix
+            print(selected_pix)
 
 
 
@@ -274,15 +274,15 @@ class RF_train:
 
     def load_variable(self,mode,args):
 
-        print args
+        print(args)
         fdir = this_root+'random_forest\\{}\\'.format(mode)
-        print 'loading variables ...'
+        print('loading variables ...')
         Y_dic = dict(np.load(fdir+'Y.npy').item())
         pre_dic = dict(np.load(fdir+'PRE.npy').item())
         tmp_dic = dict(np.load(fdir+'TMP.npy').item())
         swe_dic = dict(np.load(fdir+'SWE.npy').item())
         cci_dic = dict(np.load(fdir+'CCI.npy').item())
-        print 'done'
+        print('done')
 
 
         keys = []
@@ -341,7 +341,7 @@ class RF_train:
         # arg = ['out']
         arg = ['in','tropical','out']
         title = '{} {}'.format(mode_dic[mode],' and '.join(arg))
-        print title
+        print(title)
         out_pdf = outdir+title+'.pdf'
 
         # exit()
@@ -359,7 +359,7 @@ class RF_train:
         clf.fit(X_train, Y_train)
 
         importances = clf.feature_importances_
-        print importances
+        print(importances)
         y_min = min(importances)
         y_max = max(importances)
         offset = (y_max-y_min)
@@ -368,8 +368,8 @@ class RF_train:
         y_max = y_max+offset*0.3
 
         plt.ylim(y_min,y_max)
-        plt.bar(range(len(importances)),importances,width=0.3)
-        plt.xticks(range(len(importances)),['P','T','CCI','SWE'])
+        plt.bar(list(range(len(importances))),importances,width=0.3)
+        plt.xticks(list(range(len(importances))),['P','T','CCI','SWE'])
         plt.title(title)
         # plt.show()
         plt.savefig(out_pdf)

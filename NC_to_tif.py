@@ -48,7 +48,7 @@ def nc_to_npz(nc,npz_out):
     # exit()
     # time_bounds = ncin.variables['time_bounds']
     # print(time_bounds)
-    start = datetime.datetime(1900, 01, 01)
+    start = datetime.datetime(1900, 0o1, 0o1)
     # a = start + datetime.timedelta(days=5459)
     # print(a)
     # print(len(time_bounds))
@@ -63,7 +63,7 @@ def nc_to_npz(nc,npz_out):
     for i in range(1982,2016):
         valid_year.append(str(i))
 
-    for i in tqdm(range(len(time))):
+    for i in tqdm(list(range(len(time)))):
 
         flag += 1
         # print(time[i])
@@ -112,7 +112,7 @@ def nc_to_tif(nc,outdir):
     # exit()
     # time_bounds = ncin.variables['time_bounds']
     # print(time_bounds)
-    start = datetime.datetime(1900, 01, 01)
+    start = datetime.datetime(1900, 0o1, 0o1)
     # a = start + datetime.timedelta(days=5459)
     # print(a)
     # print(len(time_bounds))
@@ -144,7 +144,7 @@ def nc_to_tif(nc,outdir):
         # exit()
         ndv = np.nan
         arr = ncin.variables['def'][i]
-        for name,variable in ncin.variables.items():
+        for name,variable in list(ncin.variables.items()):
             for var in variable.ncattrs():
                 if var == 'missing_value':
                     ndv = variable.getncattr(var)
@@ -172,7 +172,7 @@ def main():
     # n=12
     # n='%02d'%n
     this_root = r'D:\project05\CWD\\'
-    for year in tqdm(range(1982,2016)):
+    for year in tqdm(list(range(1982,2016))):
         nc = this_root + 'download\\TerraClimate_def_{}.nc'.format(year)
         out_dir = this_root+'tif\\'
         nc_to_tif(nc,out_dir)

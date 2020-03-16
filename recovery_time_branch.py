@@ -253,7 +253,7 @@ class Recovery_time1:
             if search_v >= 0:
                 recovery_time = i
                 end_mon = search_ % 12 + 1
-                recovery_date_range = range(min_ndvi_indx,min_ndvi_indx+i+1)
+                recovery_date_range = list(range(min_ndvi_indx,min_ndvi_indx+i+1))
                 if len(growing_date_range) <= 10:  # 存在冬季的地区
                     if end_mon in growing_date_range:  # 在当年内恢复
                         if recovery_time <= 5:
@@ -288,17 +288,17 @@ class Recovery_time1:
 
 
     def check(self):
-        print 'loading...'
+        print('loading...')
         f = self.this_class_arr+'recovery_time_composite\\composite.npy'
         dic = dict(np.load(f).item())
         for pix in dic:
-            print pix,dic[pix]
+            print(pix,dic[pix])
 
 
 
     def recovery_mix_tif(self):
 
-        print 'loading...'
+        print('loading...')
         out_dir = self.this_class_tif + 'recovery_time\\'
         out_f = out_dir + 'mix.tif'
         Tools().mk_dir(out_dir, force=1)
@@ -326,7 +326,7 @@ class Recovery_time1:
         DIC_and_TIF().arr_to_tif(arr,out_f)
 
     def recovery_early_late_tif(self):
-        print 'loading...'
+        print('loading...')
         out_dir = self.this_class_tif+'recovery_time\\'
         Tools().mk_dir(out_dir,force=1)
         f = self.this_class_arr + 'recovery_time_composite\\composite.npy'
@@ -485,7 +485,7 @@ class Recovery_time1:
         early_pdf = []
         late_pdf = []
         tropical_pix = self.tropical_pix
-        for i in tqdm(range(len(early_arr))):
+        for i in tqdm(list(range(len(early_arr)))):
             for j in range(len(early_arr[0])):
                 pix = '%03d.%03d'%(i,j)
                 # print pix

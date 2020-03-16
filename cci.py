@@ -40,7 +40,7 @@ def read_nc(nc):
     longitude_start = lon[0]
     latitude_start = lat[0]
 
-    start = datetime.datetime(1970, 01, 01)
+    start = datetime.datetime(1970, 0o1, 0o1)
     time = ncin.variables['time']
     date = start + datetime.timedelta(days=int(time[0]))
     array = ncin['sm'][0][::]
@@ -121,7 +121,7 @@ def rasterize_shp(shp, output ,x_min, y_min , x_size, y_size, x_res, y_res):
 def tif_to_array(fileName):
     dataset = gdal.Open(fileName)
     if dataset == None:
-        print(fileName + "文件无法打开")
+        print((fileName + "文件无法打开"))
         return
     im_width = dataset.RasterXSize  # 栅格矩阵的列数
     im_height = dataset.RasterYSize  # 栅格矩阵的行数
@@ -134,7 +134,7 @@ def tif_to_array(fileName):
     # print(np.shape(array))
     # plt.imshow(array)
     # plt.show()
-    print('im_width','im_height','im_geotrans','im_proj')
+    print(('im_width','im_height','im_geotrans','im_proj'))
     return array,im_width,im_height,im_geotrans,im_proj
 
 
@@ -177,7 +177,7 @@ def do_clip():
         if y != '1982':
             continue
         for f in os.listdir(fdir+y):
-            print(fdir+y+'\\'+f)
+            print((fdir+y+'\\'+f))
             arr = np.load(fdir+y+'\\'+f)
             clip_arr = np.load('midasia.npy')[::-1]
             out_arr = clipped_dir+y+'\\'+f
@@ -275,10 +275,10 @@ def transform_data_npz(lon_lat_dic,cliped_dir,save_path):
         # np.save(data_transform_split_folder+f,dic_key_index)
 
     # return flatten_dic
-    print 'saving npz...'
+    print('saving npz...')
     np.savez(save_path,**flatten_dic)
     end = time.time()
-    print(save_path, end - start, 's')
+    print((save_path, end - start, 's'))
 
 
 
@@ -295,7 +295,7 @@ def interp_1d(val):
     if len(x)>3:
         interp = interpolate.interp1d(x, val_new, kind='nearest', fill_value="extrapolate")
 
-        xi = range(len(val))
+        xi = list(range(len(val)))
         yi = interp(xi)
 
 
@@ -327,7 +327,7 @@ def interp_1d(val):
 
         interp_1 = interpolate.interp1d(xii, val_new_ii, kind='nearest', fill_value="extrapolate")
 
-        xiii = range(len(val))
+        xiii = list(range(len(val)))
         yiii = interp_1(xiii)
 
 
@@ -378,13 +378,13 @@ def time_interp(npz_dir,save_dir):
     flag = 0
     for f in npz_list:
         if os.path.isfile(save_dir + f):
-            print(save_dir + f + ' is already existed')
+            print((save_dir + f + ' is already existed'))
             continue
         flag += 1
         print(flag)
         # if flag == 3:
         #     break
-        print(save_dir + f)
+        print((save_dir + f))
         # pool = mp.Pool(processes=1)
         npz = np.load(npz_dir+f)
         per = []
@@ -397,7 +397,7 @@ def time_interp(npz_dir,save_dir):
         for i in npz:
             flag += 1
             if flag % 1000 == 0:
-                print float(flag)/len(npz)*100,'%'
+                print(float(flag)/len(npz)*100,'%')
             # if flag == 1000:
             #     break
             val = npz[i]
@@ -416,7 +416,7 @@ def time_interp(npz_dir,save_dir):
         # pool.close()
         # pool.join()
         end = time.time()
-        print(end - start, 's')
+        print((end - start, 's'))
         print('saving results')
         np.savez(this_root+'CCI\\time_interp',**interp_dic)
         # all_interp_dic[f] = interp_dic
@@ -432,7 +432,7 @@ def save_all_interp_dic(dic,f):
     save_path = save_dir+f
     np.savez(save_path,**dic)
     end = time.time()
-    print('save '+save_path+' success, time '+str(end-start)+' s')
+    print(('save '+save_path+' success, time '+str(end-start)+' s'))
     pass
 
 
@@ -497,7 +497,7 @@ def check_monthly():
     arr = np.load(f)
     grid = arr < -9999
     arr[grid] = np.nan
-    print np.shape(arr)
+    print(np.shape(arr))
     plt.imshow(arr)
     plt.colorbar()
     plt.show()
@@ -537,7 +537,7 @@ def cal_monthly_mean(fdir,outdir):
 
     analysis.Tools().mk_dir(outdir)
 
-    for m in tqdm(range(1, 13)):
+    for m in tqdm(list(range(1, 13))):
         arrs = []
         for y in range(1982, 2016):
             date = '{}{}'.format(y, '%02d' % m)
