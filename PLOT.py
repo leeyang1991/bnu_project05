@@ -4,8 +4,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from analysis import *
 
-this_root_PLOT = this_root+'branch2020\\PLOT\\'
-out_tif_dir = this_root_PLOT+'tif\\'
+this_root_PLOT = this_root+'branch2020/PLOT/'
+out_tif_dir = this_root_PLOT+'tif/'
 Tools().mk_dir(this_root_PLOT,force=True)
 Tools().mk_dir(out_tif_dir,force=True)
 
@@ -14,8 +14,8 @@ def sleep(t=1):
     time.sleep(t)
 
 def load_recovery_time_dic():
-    # f = this_root+'branch2020\\arr\\Recovery_time1\\recovery_time_composite\\composite.npy'
-    f = this_root+'branch2020\\Random_Forest\\arr\\Prepare\\Y.npy'
+    # f = this_root+'branch2020/arr/Recovery_time1/recovery_time_composite/composite.npy'
+    f = this_root+'branch2020/Random_Forest/arr/Prepare/Y.npy'
     recovery_dic = dict(np.load(f).item())
     return recovery_dic
 
@@ -109,7 +109,7 @@ class Water_balance:
         pass
 
     def gen_latitude_zone_arr(self):
-        tif_template = this_root + 'conf\\tif_template.tif'
+        tif_template = this_root + 'conf/tif_template.tif'
         arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(tif_template)
 
         latitude_range = np.linspace(0,360,7)
@@ -152,7 +152,7 @@ class Water_balance:
         # [8,10,11,16]
         # grassland shrubland RainfedCropland SparseVegetation
         # landuse = this_root+'/landuse/3.tif'
-        index_landuse_dic = this_root+'arr\\landcover_dic.npy'
+        index_landuse_dic = this_root+'arr/landcover_dic.npy'
 
         dic = dict(np.load(index_landuse_dic).item())
         return dic
@@ -208,45 +208,45 @@ class Water_balance:
 
         # 1、加载恢复期 (底图)
         ############################  Recovery Time  ############################
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\recovery_time_mix.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/recovery_time_mix.tif'
         # title = 'Mix'
 
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\pick_non_growing_season_events_plot_gen_recovery_time\\global.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/pick_non_growing_season_events_plot_gen_recovery_time/global.tif'
         # title = 'None Growing Season'
 
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\pick_post_growing_season_events_plot_gen_recovery_time\\global.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/pick_post_growing_season_events_plot_gen_recovery_time/global.tif'
         # title = 'Late Growing Season'
 
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\pick_pre_growing_season_events_plot_gen_recovery_time\\global.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/pick_pre_growing_season_events_plot_gen_recovery_time/global.tif'
         # title = 'Early Growing Season'
         ############################  Recovery Time  ############################
 
         ############################  in out  ############################
         # Early
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_pre_growing_season_events_in.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/in_or_out/pick_pre_growing_season_events_in.tif'
         # title = 'Drought in Early Growing Season and Recovered IN Current Growing Season'
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_pre_growing_season_events_out.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/in_or_out/pick_pre_growing_season_events_out.tif'
         # title = 'Drought in Early Growing Season and Recovered OUT Current Growing Season'
         # # Late
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_post_growing_season_events_in.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/in_or_out/pick_post_growing_season_events_in.tif'
         # title = 'Drought in Late Growing Season and Recovered IN Current Growing Season'
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_post_growing_season_events_out.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/in_or_out/pick_post_growing_season_events_out.tif'
         # title = 'Drought in Late Growing Season and Recovered OUT Current Growing Season'
         # # None
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_non_growing_season_events_in.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/in_or_out/pick_non_growing_season_events_in.tif'
         # title = 'Drought in None Growing Season and Recovered IN Current Growing Season'
-        # recovery_time_tif = this_root + 'tif\\recovery_time\\in_or_out\\pick_non_growing_season_events_out.tif'
+        # recovery_time_tif = this_root + 'tif/recovery_time/in_or_out/pick_non_growing_season_events_out.tif'
         # title = 'Drought in None Growing Season and Recovered OUT Current Growing Season'
         ############################  in out  ############################
 
         ############################  Ratio  ############################
-        # recovery_time_tif = recovery_time_branch.Recovery_time1().this_class_tif + 'ratio\\late_ratio.tif'
+        # recovery_time_tif = recovery_time_branch.Recovery_time1().this_class_tif + 'ratio/late_ratio.tif'
         # title = 'Early Growing Season Ratio'
 
-        # recovery_time_tif = this_root + 'tif\\Ratio\\pick_post_growing_season_events.tif'
+        # recovery_time_tif = this_root + 'tif/Ratio/pick_post_growing_season_events.tif'
         # title = 'Ratio of Overwinter in Late Growing Season'
 
-        # recovery_time_tif = this_root + 'tif\\Ratio\\pick_non_growing_season_events.tif'
+        # recovery_time_tif = this_root + 'tif/Ratio/pick_non_growing_season_events.tif'
         # title = 'Drought in None Growing Season and Recovered IN Current Growing Season'
 
         ############################  Ratio  ############################
@@ -254,35 +254,35 @@ class Water_balance:
 
         ############################  recovery new 2020  ############################
 
-        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\early.tif'
+        # recovery_time_tif = this_root + 'new_2020/tif/recovery_time/early.tif'
         # title = 'Early Growing Season'
 
-        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time\\late.tif'
+        # recovery_time_tif = this_root + 'new_2020/tif/recovery_time/late.tif'
         # title = 'Late Growing Season'
 
         ############################  recovery new 2020  ############################
 
 
         ############################  ratio new 2020  ############################
-        # recovery_time_tif = this_root + 'new_2020\\tif\\ratio\\early_ratio.tif'
+        # recovery_time_tif = this_root + 'new_2020/tif/ratio/early_ratio.tif'
         # title = 'Ratio of Overwinter in Early Growing Season'
-        # recovery_time_tif = this_root + 'new_2020\\tif\\ratio\\late_ratio.tif'
+        # recovery_time_tif = this_root + 'new_2020/tif/ratio/late_ratio.tif'
         # title = 'Ratio of Overwinter in Late Growing Season'
         ############################  ratio new 2020  ############################
 
         ############################  recovery new 2020 in out ############################
         # early in
-        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\early_in_arr.tif'
+        # recovery_time_tif = this_root + 'new_2020/tif/recovery_time_in_out/early_in_arr.tif'
         # title = 'Drought in Early Growing Season and Recovered IN Current Growing Season'
         # early out
-        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\early_out_arr.tif'
+        # recovery_time_tif = this_root + 'new_2020/tif/recovery_time_in_out/early_out_arr.tif'
         # title = 'Drought in Early Growing Season and Recovered OUT Current Growing Season'
 
         # late in
-        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\late_in_arr.tif'
+        # recovery_time_tif = this_root + 'new_2020/tif/recovery_time_in_out/late_in_arr.tif'
         # title = 'Drought in Late Growing Season and Recovered IN Current Growing Season'
         # late out
-        # recovery_time_tif = this_root + 'new_2020\\tif\\recovery_time_in_out\\late_out_arr.tif'
+        # recovery_time_tif = this_root + 'new_2020/tif/recovery_time_in_out/late_out_arr.tif'
         # title = 'Drought in Late Growing Season and Recovered OUT Current Growing Season'
         ############################  recovery new 2020 in out ############################
 
@@ -295,7 +295,7 @@ class Water_balance:
         # plt.imshow(recovery_time_arr)
         # plt.show()
         # 2、生成 HI 分级别 dic
-        HI_tif = this_root+'tif\\HI\\HI.tif'
+        HI_tif = this_root+'tif/HI/HI.tif'
         # HI_tif = r'D:\project05\branch2020\tif\Bio_diversity\bio_diversity_normalized.tif'
         HI_arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(HI_tif)
         HI_arr[HI_arr>2.] = np.nan
@@ -475,7 +475,7 @@ def plot_ratio_of_winter():
     pass
 
 def plot_time_series():
-    recovery_f = this_root+'branch2020\\arr\\Recovery_time1\\recovery_time_composite\\composite.npy'
+    recovery_f = this_root+'branch2020/arr/Recovery_time1/recovery_time_composite/composite.npy'
     recovery_dic = dict(np.load(recovery_f).item())
     year_dic = {}
     for y in range(1982,2016):
@@ -556,9 +556,9 @@ class Ternary_plot:
 
 
     def plot_scatter(self):
-        this_root_branch = this_root + 'branch2020\\'
+        this_root_branch = this_root + 'branch2020/'
         # 1 load soil and recovery time data
-        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\mix.tif'
+        # recovery_tif = this_root_branch+'tif/Recovery_time1/recovery_time/mix.tif'
 
         recovery_tif = out_tif_dir+'recovery_time_in.tif'
         vmin=0
@@ -571,10 +571,10 @@ class Ternary_plot:
         # recovery_tif = out_tif_dir+'recovery_time_out.tif'
         # vmin = 7
         # vmax = 13
-        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\early.tif'
-        tif_CLAY = this_root_branch+'\\tif\\HWSD\\T_CLAY_resample.tif'
-        tif_SAND = this_root_branch+'\\tif\\HWSD\\T_SAND_resample.tif'
-        tif_SILT = this_root_branch+'\\tif\\HWSD\\T_SILT_resample.tif'
+        # recovery_tif = this_root_branch+'tif/Recovery_time1/recovery_time/early.tif'
+        tif_CLAY = this_root_branch+'/tif/HWSD/T_CLAY_resample.tif'
+        tif_SAND = this_root_branch+'/tif/HWSD/T_SAND_resample.tif'
+        tif_SILT = this_root_branch+'/tif/HWSD/T_SILT_resample.tif'
 
         arr_clay = to_raster.raster2array(tif_CLAY)[0]
         arr_sand = to_raster.raster2array(tif_SAND)[0]
@@ -714,12 +714,12 @@ class Ternary_plot:
 
     def plot_classify_soil(self):
         # 1 load soil and recovery time data
-        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\mix.tif'
-        recovery_tif = this_root_branch + 'tif\\Recovery_time1\\recovery_time\\late.tif'
-        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\early.tif'
-        tif_CLAY = this_root_branch + '\\tif\\HWSD\\T_CLAY_resample.tif'
-        tif_SAND = this_root_branch + '\\tif\\HWSD\\T_SAND_resample.tif'
-        tif_SILT = this_root_branch + '\\tif\\HWSD\\T_SILT_resample.tif'
+        # recovery_tif = this_root_branch+'tif/Recovery_time1/recovery_time/mix.tif'
+        recovery_tif = this_root_branch + 'tif/Recovery_time1/recovery_time/late.tif'
+        # recovery_tif = this_root_branch+'tif/Recovery_time1/recovery_time/early.tif'
+        tif_CLAY = this_root_branch + '/tif/HWSD/T_CLAY_resample.tif'
+        tif_SAND = this_root_branch + '/tif/HWSD/T_SAND_resample.tif'
+        tif_SILT = this_root_branch + '/tif/HWSD/T_SILT_resample.tif'
 
         arr_clay = to_raster.raster2array(tif_CLAY)[0]
         arr_sand = to_raster.raster2array(tif_SAND)[0]
@@ -859,8 +859,8 @@ class Find_Threshold:
         pass
 
     def run(self):
-        this_root_branch = this_root + 'branch2020\\'
-        template_tif = this_root+'conf\\tif_template.tif'
+        this_root_branch = this_root + 'branch2020/'
+        template_tif = this_root+'conf/tif_template.tif'
         template_arr = to_raster.raster2array(template_tif)[0]
         template_arr[template_arr<-999]=np.nan
 
@@ -879,19 +879,19 @@ class Find_Threshold:
         recovery_arr = to_raster.raster2array(recovery_tif)[0]
         recovery_arr[recovery_arr<-999] = np.nan
 
-        bio_tif = this_root_branch + 'tif\\Bio_diversity\\bio_diversity_normalized.tif'
+        bio_tif = this_root_branch + 'tif/Bio_diversity/bio_diversity_normalized.tif'
         bio_arr = to_raster.raster2array(bio_tif)[0]
         bio_arr[bio_arr<-999] = np.nan
 
-        rooting_tif = this_root+'data\\Global_effective_plant_rooting_depth\\Effective_Rooting_Depth.tif'
+        rooting_tif = this_root+'data/Global_effective_plant_rooting_depth/Effective_Rooting_Depth.tif'
         rooting_arr = to_raster.raster2array(rooting_tif)[0]
         rooting_arr[rooting_arr<-999] = np.nan
         rooting_arr[rooting_arr>2] = np.nan
 
-        landcover_tif = this_root+'data\\landcover\\tif\\0.5\\landcover_0.5.tif'
+        landcover_tif = this_root+'data/landcover/tif/0.5/landcover_0.5.tif'
         landcover_arr = to_raster.raster2array(landcover_tif)[0]
 
-        HI_tif = this_root + 'tif\\HI\\HI.tif'
+        HI_tif = this_root + 'tif/HI/HI.tif'
         HI_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(HI_tif)
         HI_arr[HI_arr > 2.] = np.nan
         HI_arr[HI_arr < -999] = np.nan
@@ -967,7 +967,7 @@ class Find_Threshold:
         #
         # anim = animation.FuncAnimation(fig, animate, init_func=None,
         #                                frames=360, interval=20, blit=True)
-        # anim.save(this_root+'png\\animation\\Find_Threshold_late.html', fps=30, extra_args=['-vcodec', 'libx264'])
+        # anim.save(this_root+'png/animation/Find_Threshold_late.html', fps=30, extra_args=['-vcodec', 'libx264'])
         ################## plot animation ##################
 
         pass
@@ -976,7 +976,7 @@ class Find_Threshold:
         '''
         :return: dic['grassland']=('000.000','001.001',...,'nnn.nnn')
         '''
-        index_landuse_dic = this_root + 'arr\\landcover_dic.npy'
+        index_landuse_dic = this_root + 'arr/landcover_dic.npy'
         dic = dict(np.load(index_landuse_dic).item())
         landuse_class_dic = dic
         landuse_types = [[1, 2, 3, 4, 5], [6, 7, 8, 9], 10]
@@ -1051,8 +1051,8 @@ class RF:
         pass
 
     def cross_koppen_landuse(self):
-        HI_tif = this_root + 'tif\\HI\\HI.tif'
-        outf = this_root + 'arr\\cross_koppen_landuse_pix'
+        HI_tif = this_root + 'tif/HI/HI.tif'
+        outf = this_root + 'arr/cross_koppen_landuse_pix'
         HI_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(HI_tif)
         HI_arr[HI_arr > 2.] = np.nan
 
@@ -1133,7 +1133,7 @@ class RF:
             print(key)
 
     def variable_partition(self):
-        f = this_root + 'arr\\RF_partition.npy'
+        f = this_root + 'arr/RF_partition.npy'
         dic = dict(np.load(f).item())
         for key in dic:
             print(key)
@@ -1330,7 +1330,7 @@ class RF:
         if isplot:
             print(importances)
             print(('mse:%s\nr:%s' % (mse, r_model)))
-            out_png_dir = this_root + 'png\\RF_importances\\'
+            out_png_dir = this_root + 'png/RF_importances/'
             Tools().mk_dir(out_png_dir)
             # 1 plot spatial
             # plt.figure()
@@ -1387,7 +1387,7 @@ class RF:
 
     def do_random_forest_train(self):
 
-        out_result_dic = this_root_PLOT + 'arr\\RF_result_dic_arr'
+        out_result_dic = this_root_PLOT + 'arr/RF_result_dic_arr'
         partition_f = this_root+r'branch2020\Random_Forest\arr\RF_train_events\RF_partition.npy'
         partition_keys_dic = dict(np.load(partition_f).item())
         condition1_list = [
@@ -1398,7 +1398,7 @@ class RF:
             condition2_list.append(i)
 
         # result_dic = {}
-        fdir = this_root+'branch2020\\Random_Forest\\arr\\Prepare\\'
+        fdir = this_root+'branch2020/Random_Forest/arr/Prepare/'
         fdir_dic = {}
         for f in tqdm(os.listdir(fdir), desc='loading each variable...'):
             x = f.split('.')[0]
@@ -1436,7 +1436,7 @@ class Plot_RF_train_events_result:
 
     def plot_bar(self):
         fdir = self.this_class_arr
-        out_png_dir = this_root+'png\\Plot_RF_train_events_result\\'
+        out_png_dir = this_root+'png/Plot_RF_train_events_result/'
         Tools().mk_dir(out_png_dir)
         for f in os.listdir(fdir):
             title = f.split('.')[0]
@@ -1541,11 +1541,11 @@ class Plot_RF_train_events_result:
         np.save(self.this_class_arr+'{}_{}'.format(condition,condition2),{'max_key':max_key,'max_x':max_x,'max_xerr':max_xerr})
 
     def plot_scatter(self):
-        region_pix = dict(np.load(this_root+'arr\\cross_koppen_landuse_pix.npy').item())
-        # f = this_root+'arr\\RF_result_dic_arr1.npy'
-        # f = this_root+'arr\\RF_result_dic_arr_with_rX_minus.npy'
+        region_pix = dict(np.load(this_root+'arr/cross_koppen_landuse_pix.npy').item())
+        # f = this_root+'arr/RF_result_dic_arr1.npy'
+        # f = this_root+'arr/RF_result_dic_arr_with_rX_minus.npy'
         # f = RF_train_events().this_class_arr+'RF_result_dic_arr.npy'
-        f = this_root+'branch2020\\PLOT\\arr\\RF_result_dic_arr.npy'
+        f = this_root+'branch2020/PLOT/arr/RF_result_dic_arr.npy'
         arr = np.load(f)
         len_in_out_dic = {}
         for i in arr:
@@ -1615,9 +1615,9 @@ class Plot_RF_train_events_result:
         plt.show()
 
     def plot_regions_arr(self):
-        outpng_dir = this_root+'png\\plot_regions_arr\\'
+        outpng_dir = this_root+'png/plot_regions_arr/'
         Tools().mk_dir(outpng_dir)
-        partition_keys_dic = dict(np.load(this_root + 'arr\\RF_partition.npy').item())
+        partition_keys_dic = dict(np.load(this_root + 'arr/RF_partition.npy').item())
         condition1_list = [
             'in~early',
             'in~late',
@@ -1775,7 +1775,7 @@ class Plot_RF_train_events_result:
 
     def get_scatter_y(self):
 
-        HI_tif = this_root + 'tif\\HI\\HI.tif'
+        HI_tif = this_root + 'tif/HI/HI.tif'
         HI_arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(HI_tif)
         HI_arr[HI_arr > 2.] = np.nan
 
@@ -1832,11 +1832,11 @@ class Plot_RF_train_events_result:
 
 class Prepare1:
     def __init__(self):
-        self.this_class_arr = this_root_PLOT + 'Random_Forest\\arr\\Prepare\\'
-        self.this_class_tif = this_root_PLOT + 'Random_Forest\\tif\\Prepare\\'
+        self.this_class_arr = this_root_PLOT + 'Random_Forest/arr/Prepare/'
+        self.this_class_tif = this_root_PLOT + 'Random_Forest/tif/Prepare/'
         Tools().mk_dir(self.this_class_arr, force=True)
         Tools().mk_dir(self.this_class_tif, force=True)
-        self.this_root_branch = this_root+'branch2020\\'
+        self.this_root_branch = this_root+'branch2020/'
         pass
 
 
@@ -1875,8 +1875,8 @@ class Prepare1:
 
     def abs_X(self):
 
-        fdir = this_root + 'new_2020\\random_forest\\'
-        abs_fdir = this_root+'new_2020\\random_forest_abs\\'
+        fdir = this_root + 'new_2020/random_forest/'
+        abs_fdir = this_root+'new_2020/random_forest_abs/'
         Tools().mk_dir(abs_fdir)
 
         pre_dic = dict(np.load(fdir + 'PRE.npy').item())
@@ -1925,7 +1925,7 @@ class Prepare1:
     def minus_X(self):
 
         fdir = self.this_class_arr
-        abs_fdir = fdir+'\\random_forest_minus\\'
+        abs_fdir = fdir+'/random_forest_minus/'
         Tools().mk_dir(abs_fdir)
 
         pre_dic = dict(np.load(fdir + 'PRE.npy').item())
@@ -1972,11 +1972,11 @@ class Prepare1:
 
     def prepare_Y(self):
         # config
-        out_dir = self.this_class_arr+'\\'
+        out_dir = self.this_class_arr+'/'
         Tools().mk_dir(out_dir)
         # 1 drought periods
         print('1. loading recovery time')
-        f_recovery_time = this_root+'branch2020\\arr\\Recovery_time1\\recovery_time_composite\\composite.npy'
+        f_recovery_time = this_root+'branch2020/arr/Recovery_time1/recovery_time_composite/composite.npy'
         recovery_time = dict(np.load(f_recovery_time).item())
         print('done')
         Y = {}
@@ -2036,14 +2036,14 @@ class Prepare1:
         out_dir = self.this_class_arr+''
         Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
         if x in ['TMP', 'PRE']:
-            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(x)
-            mean_dir = this_root + 'data\\{}\\mon_mean_tif\\'.format(x)
+            per_pix_dir = this_root + 'data/{}/per_pix/'.format(x)
+            mean_dir = this_root + 'data/{}/mon_mean_tif/'.format(x)
         elif x == 'CCI':
-            per_pix_dir = this_root + 'data\\CCI\\per_pix\\'
-            mean_dir = this_root + 'data\\CCI\\\monthly_mean\\'
+            per_pix_dir = this_root + 'data/CCI/per_pix/'
+            mean_dir = this_root + 'data/CCI/\monthly_mean/'
         elif x == 'SWE':
-            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
-            mean_dir = this_root + 'data\\GLOBSWE\\monthly_SWE_max\\'
+            per_pix_dir = this_root + 'data/GLOBSWE/per_pix/SWE_max_408/'
+            mean_dir = this_root + 'data/GLOBSWE/monthly_SWE_max/'
         else:
             raise IOError('x error')
         # 1 加载所有原始数据
@@ -2114,9 +2114,9 @@ class Prepare1:
         # x = ['PRE_std','TMP_std','CCI_std','SWE_std']
         product = x.split('_')[0]
         if product == 'SWE':
-            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+            per_pix_dir = this_root + 'data/GLOBSWE/per_pix/SWE_max_408/'
         else:
-            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+            per_pix_dir = this_root + 'data/{}/per_pix/'.format(product)
 
         out_dir = self.this_class_arr
         Tools().mk_dir(out_dir)
@@ -2170,9 +2170,9 @@ class Prepare1:
         # x = ['PRE_std','TMP_std','CCI_std','SWE_std']
         product = x.split('_')[0]
         if product == 'SWE':
-            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+            per_pix_dir = this_root + 'data/GLOBSWE/per_pix/SWE_max_408/'
         else:
-            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+            per_pix_dir = this_root + 'data/{}/per_pix/'.format(product)
 
         out_dir = self.this_class_arr
         Tools().mk_dir(out_dir)
@@ -2218,11 +2218,11 @@ class Prepare1:
 
 
     def prepare_NDVI(self):
-        out_dir = self.this_class_arr + '\\'
+        out_dir = self.this_class_arr + '/'
         # y
         Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
         # x
-        per_pix_dir = this_root + 'data\\NDVI\\per_pix_anomaly_smooth\\'
+        per_pix_dir = this_root + 'data/NDVI/per_pix_anomaly_smooth/'
         # 1 加载x数据
         all_dic = {}
         # print 'loading Y ...'
@@ -2257,11 +2257,11 @@ class Prepare1:
 
 
     def prepare_soil(self):
-        out_dir = self.this_class_arr + '\\'
+        out_dir = self.this_class_arr + '/'
         Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
-        sand_tif = self.this_root_branch+'tif\\HWSD\\T_SAND_resample.tif'
-        silt_tif = self.this_root_branch+'tif\\HWSD\\T_SILT_resample.tif'
-        clay_tif = self.this_root_branch+'tif\\HWSD\\T_CLAY_resample.tif'
+        sand_tif = self.this_root_branch+'tif/HWSD/T_SAND_resample.tif'
+        silt_tif = self.this_root_branch+'tif/HWSD/T_SILT_resample.tif'
+        clay_tif = self.this_root_branch+'tif/HWSD/T_CLAY_resample.tif'
 
         sand_arr = to_raster.raster2array(sand_tif)[0]
         silt_arr = to_raster.raster2array(silt_tif)[0]
@@ -2304,9 +2304,9 @@ class Prepare1:
 
 
     def prepare_bio_diversity(self):
-        out_dir = self.this_class_arr + '\\'
+        out_dir = self.this_class_arr + '/'
         Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
-        bio_tif = self.this_root_branch + 'tif\\Bio_diversity\\bio_diversity_normalized.tif'
+        bio_tif = self.this_root_branch + 'tif/Bio_diversity/bio_diversity_normalized.tif'
         bio_arr = to_raster.raster2array(bio_tif)[0]
         bio_arr[bio_arr < -9999] = np.nan
         bio_dic = DIC_and_TIF().spatial_arr_to_dic(bio_arr)
@@ -2334,9 +2334,9 @@ class Prepare1:
         # x = ['PRE_std','TMP_std','CCI_std','SWE_std']
         product = x.split('_')[0]
         if product == 'SWE':
-            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+            per_pix_dir = this_root + 'data/GLOBSWE/per_pix/SWE_max_408/'
         else:
-            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+            per_pix_dir = this_root + 'data/{}/per_pix/'.format(product)
 
         out_dir = self.this_class_arr
         Tools().mk_dir(out_dir)

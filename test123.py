@@ -5,7 +5,7 @@ Date: 20190801
 Location: zzq BeiJing
 Desctiption
 '''
-# from analysis import *
+from analysis import *
 import random
 import matplotlib.patches as patches
 
@@ -83,19 +83,9 @@ class __abc:
 
 
 def test123():
-    from ftplib import FTP
-    ftp = FTP()
-    # ftp.set_debuglevel(2)
-    usr = 'ly'
-    pwd = ''
-    ftp.connect('192.168.1.100',port=21)
-    ftp.login(usr,pwd)
-    # print ftp.welcome
-
-    ftp.dir('project05\\arr')
-    ftp.quit()
+    for i in os.listdir(this_root):
+        print(i)
     pass
-
 def main():
     test123()
 
