@@ -1830,6 +1830,572 @@ class Plot_RF_train_events_result:
 
 
 
+class Prepare1:
+    def __init__(self):
+        self.this_class_arr = this_root_PLOT + 'Random_Forest\\arr\\Prepare\\'
+        self.this_class_tif = this_root_PLOT + 'Random_Forest\\tif\\Prepare\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
+        self.this_root_branch = this_root+'branch2020\\'
+        pass
+
+
+    def run(self):
+        # 1.准备因变量 Y
+        # self.prepare_Y()
+        # self.check_Y()
+        # 2.准备自变量 X的 delta
+        # x = ['TMP', 'PRE', 'CCI', 'SWE']
+        # MUTIPROCESS(self.prepare_X,x).run()
+        # 3.准备自变量 X 的标准差
+        # x = ['PRE_std', 'TMP_std', 'CCI_std', 'SWE_std']
+        # for i in x:
+        #     self.prepare_X_std(i)
+        # 4.准备自变量 X 的平均值
+        # x = ['PRE_mean','TMP_mean','CCI_mean','SWE_mean']
+        # for i in x:
+        #     self.prepare_X_mean(i)
+        # 5.准备自变量 NDVI 的平均值和delta
+        # self.prepare_NDVI()
+        # 6.准备自变量 soil 的值，soil是常量
+        # self.prepare_soil()
+        # 7.准备自变量 bio diversity 的值，常量
+        # self.prepare_bio_diversity()
+        # 8.['PRE', 'CCI', 'SWE','NDVI'] 为亏损量，应为负值，需要加负号
+        ########## 需再要手动覆盖 ###########
+        self.minus_X()
+        pass
+
+    def __split_keys(self,key):
+        pix, mark, eln, date_range = key.split('~')
+        drought_start, recovery_start = date_range.split('.')
+        drought_start = int(drought_start)
+        recovery_start = int(recovery_start)
+        return pix, mark, eln, date_range, drought_start, recovery_start
+
+    def abs_X(self):
+
+        fdir = this_root + 'new_2020\\random_forest\\'
+        abs_fdir = this_root+'new_2020\\random_forest_abs\\'
+        Tools().mk_dir(abs_fdir)
+
+        pre_dic = dict(np.load(fdir + 'PRE.npy').item())
+        tmp_dic = dict(np.load(fdir + 'TMP.npy').item())
+        swe_dic = dict(np.load(fdir + 'SWE.npy').item())
+        cci_dic = dict(np.load(fdir + 'CCI.npy').item())
+        NDVI_change_dic = dict(np.load(fdir + 'NDVI_change.npy').item())
+        two_month_early_vals_mean_dic = dict(np.load(fdir + 'two_month_early_vals_mean.npy').item())
+
+
+        new_pre_dic = {}
+        new_tmp_dic = {}
+        new_swe_dic = {}
+        new_cci_dic = {}
+        new_NDVI_change_dic = {}
+        new_two_month_early_vals_mean_dic = {}
+
+        for key in tqdm(two_month_early_vals_mean_dic):
+            try:
+                pre = pre_dic[key]
+                tmp = tmp_dic[key]
+                cci = cci_dic[key]
+                swe = swe_dic[key]
+                ndvi_change = NDVI_change_dic[key]
+                two_month_early_vals_mean = two_month_early_vals_mean_dic[key]
+            except:
+                continue
+            new_pre_dic[key] = abs(pre)
+            new_tmp_dic[key] = abs(tmp)
+            new_cci_dic[key] = abs(cci)
+            new_swe_dic[key] = abs(swe)
+            new_NDVI_change_dic[key] = abs(ndvi_change)
+            new_two_month_early_vals_mean_dic[key] = abs(two_month_early_vals_mean)
+
+        np.save(abs_fdir+'PRE.npy',new_pre_dic)
+        np.save(abs_fdir+'TMP.npy',new_tmp_dic)
+        np.save(abs_fdir+'CCI.npy',new_cci_dic)
+        np.save(abs_fdir+'SWE.npy',new_swe_dic)
+        np.save(abs_fdir+'NDVI_change.npy',new_NDVI_change_dic)
+        np.save(abs_fdir+'two_month_early_vals_mean.npy',new_two_month_early_vals_mean_dic)
+
+
+
+
+
+    def minus_X(self):
+
+        fdir = self.this_class_arr
+        abs_fdir = fdir+'\\random_forest_minus\\'
+        Tools().mk_dir(abs_fdir)
+
+        pre_dic = dict(np.load(fdir + 'PRE.npy').item())
+        tmp_dic = dict(np.load(fdir + 'TMP.npy').item())
+        swe_dic = dict(np.load(fdir + 'SWE.npy').item())
+        cci_dic = dict(np.load(fdir + 'CCI.npy').item())
+        NDVI_change_dic = dict(np.load(fdir + 'NDVI_change.npy').item())
+        two_month_early_vals_mean_dic = dict(np.load(fdir + 'two_month_early_vals_mean.npy').item())
+
+
+        new_pre_dic = {}
+        new_tmp_dic = {}
+        new_swe_dic = {}
+        new_cci_dic = {}
+        new_NDVI_change_dic = {}
+        new_two_month_early_vals_mean_dic = {}
+
+        for key in tqdm(two_month_early_vals_mean_dic):
+            try:
+                pre = pre_dic[key]
+                tmp = tmp_dic[key]
+                cci = cci_dic[key]
+                swe = swe_dic[key]
+                ndvi_change = NDVI_change_dic[key]
+                two_month_early_vals_mean = two_month_early_vals_mean_dic[key]
+            except:
+                continue
+            new_pre_dic[key] = -pre
+            new_tmp_dic[key] = tmp
+            new_cci_dic[key] = -cci
+            new_swe_dic[key] = -swe
+            new_NDVI_change_dic[key] = -ndvi_change
+            new_two_month_early_vals_mean_dic[key] = two_month_early_vals_mean
+
+        np.save(abs_fdir+'PRE.npy',new_pre_dic)
+        np.save(abs_fdir+'TMP.npy',new_tmp_dic)
+        np.save(abs_fdir+'CCI.npy',new_cci_dic)
+        np.save(abs_fdir+'SWE.npy',new_swe_dic)
+        np.save(abs_fdir+'NDVI_change.npy',new_NDVI_change_dic)
+        np.save(abs_fdir+'two_month_early_vals_mean.npy',new_two_month_early_vals_mean_dic)
+
+
+
+
+    def prepare_Y(self):
+        # config
+        out_dir = self.this_class_arr+'\\'
+        Tools().mk_dir(out_dir)
+        # 1 drought periods
+        print '1. loading recovery time'
+        f_recovery_time = this_root+'branch2020\\arr\\Recovery_time1\\recovery_time_composite\\composite.npy'
+        recovery_time = dict(np.load(f_recovery_time).item())
+        print 'done'
+        Y = {}
+        flag = 0
+        for pix in tqdm(recovery_time):
+            vals = recovery_time[pix]
+            # print vals
+            # continue
+            for r_time,mark,recovery_date_range,drought_range,eln in vals:
+                if r_time == None:  #r_time 为 TRUE
+                    continue
+                flag += 1
+                drought_start = drought_range[0]
+                recovery_start = recovery_date_range[0]
+                key = pix+'~'+mark+'~'+eln+'~'+'{}.{}'.format(drought_start,recovery_start)
+                # print key
+                Y[key] = r_time
+        # print flag
+        # flag=1192218
+        # flag=198075
+        np.save(out_dir+'Y',Y)
+
+
+    def check_Y(self):
+        print 'loading Y'
+        f = self.this_class_arr+'Y.npy'
+        # f = r'D:\project05\new_2020\random_forest\Y.npy'
+        dic = dict(np.load(f).item())
+        # print len(dic)
+        pix_dic = DIC_and_TIF().void_spatial_dic()
+        for key in dic:
+            # print key,dic[key]
+            pix, mark, eln, date_range, drought_start, recovery_start = self.__split_keys(key)
+            # print pix, mark, eln, date_range, drought_start, recovery_start
+            # print dic[key]
+            pix_dic[pix].append(1)
+            # exit()
+
+        spatial_dic = {}
+        for pix in pix_dic:
+            val = pix_dic[pix]
+            if len(val)>0:
+                new_val = np.sum(val)
+            else:
+                new_val = np.nan
+            spatial_dic[pix] = new_val
+
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
+        plt.imshow(arr,cmap='jet',vmin=0,vmax=30)
+        plt.colorbar()
+        plt.show()
+
+
+
+    def prepare_X(self, x):
+        # x = ['TMP','PRE','CCI','SWE']
+        out_dir = self.this_class_arr+''
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        if x in ['TMP', 'PRE']:
+            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(x)
+            mean_dir = this_root + 'data\\{}\\mon_mean_tif\\'.format(x)
+        elif x == 'CCI':
+            per_pix_dir = this_root + 'data\\CCI\\per_pix\\'
+            mean_dir = this_root + 'data\\CCI\\\monthly_mean\\'
+        elif x == 'SWE':
+            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+            mean_dir = this_root + 'data\\GLOBSWE\\monthly_SWE_max\\'
+        else:
+            raise IOError('x error')
+        # 1 加载所有原始数据
+        all_dic = {}
+        for f in tqdm(os.listdir(per_pix_dir), desc='1/3 loading per_pix_dir ...'):
+            dic = dict(np.load(per_pix_dir + f).item())
+            for pix in dic:
+                all_dic[pix] = dic[pix]
+
+        # 2 加载月平均数据
+
+        if x == 'SWE':
+            month_range = [1, 2, 3, 4, 5, 10, 11, 12]
+        else:
+            month_range = range(1, 13)
+        mean_dic = {}
+        for m in tqdm(month_range, desc='2/3 loading monthly mean ...'):
+            m = '%02d' % m
+            arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(mean_dir + m + '.tif')
+            arr_dic = DIC_and_TIF().spatial_arr_to_dic(arr)
+            mean_dic[m] = arr_dic
+
+
+        # 3 找干旱事件对应的X的距平的平均或求和
+        X = {}
+        for key in tqdm(Y_dic, desc='3/3 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            split_date_range = date_range.split('.')
+            start = split_date_range[0]
+            end = split_date_range[1]
+            start = int(start)
+            end = int(end)
+            drought_range = range(start, end)
+            # print pix,mark,drought_range
+            vals = all_dic[pix]
+            selected_val = []
+            for dr in drought_range:
+                mon = dr % 12 + 1
+                if not mon in month_range:
+                    continue
+                mon = '%02d' % mon
+                mon_mean = mean_dic[mon][pix]
+                if mon_mean < -9999:
+                    continue
+                val = vals[dr]
+                if val < -9999:
+                    continue
+                juping = val - mon_mean
+                selected_val.append(juping)
+            if len(selected_val) > 0:
+                if x == 'TMP' or x == 'CCI':
+                    juping_mean = np.mean(selected_val)
+                else:
+                    juping_mean = np.sum(selected_val)
+            else:
+                juping_mean = np.nan
+            X[key] = juping_mean
+
+        np.save(out_dir + '{}'.format(x), X)
+
+    def prepare_X_std(self,x):
+        '''
+        cv: 变异系数
+        std: 标准差
+        :return:
+        '''
+        # x = ['PRE_std','TMP_std','CCI_std','SWE_std']
+        product = x.split('_')[0]
+        if product == 'SWE':
+            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+        else:
+            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+
+        out_dir = self.this_class_arr
+        Tools().mk_dir(out_dir)
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        all_dic = {}
+        for f in tqdm(os.listdir(per_pix_dir), desc='1/2 loading per_pix_dir ...'):
+            dic = dict(np.load(per_pix_dir + f).item())
+            for pix in dic:
+                all_dic[pix] = dic[pix]
+
+        # 3 找干旱事件对应的X的std
+        X = {}
+        for key in tqdm(Y_dic, desc='2/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            if product == 'SWE':
+                if mark != 'out':
+                    continue
+            split_date_range = date_range.split('.')
+            start = split_date_range[0]
+            end = split_date_range[1]
+            start = int(start)
+            end = int(end)
+            drought_range = range(start, end)
+            # print pix,mark,drought_range
+            # exit()
+            vals = all_dic[pix]
+            selected_val = []
+            for dr in drought_range:
+                val = vals[dr]
+                if val < -9999:
+                    continue
+                selected_val.append(val)
+            if len(selected_val) > 0:
+                std = np.std(selected_val)
+            else:
+                std = np.nan
+            X[key] = std
+
+        np.save(out_dir + '{}'.format(x), X)
+        pass
+
+
+
+    def prepare_X_mean(self,x):
+        '''
+        cv: 变异系数
+        std: 标准差
+        :return:
+        '''
+        # x = ['PRE_std','TMP_std','CCI_std','SWE_std']
+        product = x.split('_')[0]
+        if product == 'SWE':
+            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+        else:
+            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+
+        out_dir = self.this_class_arr
+        Tools().mk_dir(out_dir)
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        all_dic = {}
+        for f in tqdm(os.listdir(per_pix_dir), desc='1/2 loading per_pix_dir ...'):
+            dic = dict(np.load(per_pix_dir + f).item())
+            for pix in dic:
+                all_dic[pix] = dic[pix]
+
+        # 3 找干旱事件对应的X的std
+        X = {}
+        for key in tqdm(Y_dic, desc='2/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            if product == 'SWE':
+                if mark != 'out':
+                    continue
+            split_date_range = date_range.split('.')
+            start = split_date_range[0]
+            end = split_date_range[1]
+            start = int(start)
+            end = int(end)
+            drought_range = range(start, end)
+            # print pix,mark,drought_range
+            # exit()
+            vals = all_dic[pix]
+            selected_val = []
+            for dr in drought_range:
+                val = vals[dr]
+                if val < -9999:
+                    continue
+                selected_val.append(val)
+            if len(selected_val) > 0:
+                mean = np.mean(selected_val)
+            else:
+                mean = np.nan
+            X[key] = mean
+
+        np.save(out_dir + '{}'.format(x), X)
+
+
+
+
+    def prepare_NDVI(self):
+        out_dir = self.this_class_arr + '\\'
+        # y
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        # x
+        per_pix_dir = this_root + 'data\\NDVI\\per_pix_anomaly_smooth\\'
+        # 1 加载x数据
+        all_dic = {}
+        # print 'loading Y ...'
+        for f in tqdm(os.listdir(per_pix_dir), desc='1/2 loading per_pix_dir ...'):
+            dic = dict(np.load(per_pix_dir + f).item())
+            for pix in dic:
+                vals = dic[pix]
+                all_dic[pix] = vals
+        # 3 找干旱事件对应的X的距平的平均或求和
+        X_two_month_early_vals_mean = {}
+        X_NDVI_change = {}
+        for key in tqdm(Y_dic, desc='2/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            split_date_range = date_range.split('.')
+            drought_start = int(split_date_range[0])
+            recovery_start = int(split_date_range[1])
+            # drought_range = range(drought_start, recovery_start)
+            vals = all_dic[pix]
+            if drought_start <= recovery_start:
+                if recovery_start - 2 >= 0:
+                    two_month_early_vals_mean = (vals[recovery_start - 2] + vals[recovery_start - 1])/2.
+                    NDVI_change = vals[recovery_start] - two_month_early_vals_mean
+                    X_two_month_early_vals_mean[key] = two_month_early_vals_mean
+                    X_NDVI_change[key] = NDVI_change
+        # print flag
+        # print flag1
+        np.save(out_dir + 'two_month_early_vals_mean', X_two_month_early_vals_mean)
+        np.save(out_dir + 'NDVI_change', X_NDVI_change)
+
+        pass
+
+
+    def prepare_soil(self):
+        out_dir = self.this_class_arr + '\\'
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        sand_tif = self.this_root_branch+'tif\\HWSD\\T_SAND_resample.tif'
+        silt_tif = self.this_root_branch+'tif\\HWSD\\T_SILT_resample.tif'
+        clay_tif = self.this_root_branch+'tif\\HWSD\\T_CLAY_resample.tif'
+
+        sand_arr = to_raster.raster2array(sand_tif)[0]
+        silt_arr = to_raster.raster2array(silt_tif)[0]
+        clay_arr = to_raster.raster2array(clay_tif)[0]
+
+        sand_arr[sand_arr<-9999] = np.nan
+        silt_arr[silt_arr<-9999] = np.nan
+        clay_arr[clay_arr<-9999] = np.nan
+
+        sand_dic = DIC_and_TIF().spatial_arr_to_dic(sand_arr)
+        silt_dic = DIC_and_TIF().spatial_arr_to_dic(silt_arr)
+        clay_dic = DIC_and_TIF().spatial_arr_to_dic(clay_arr)
+
+        sand_x = {}
+        silt_x = {}
+        clay_x = {}
+
+        for key in tqdm(Y_dic, desc='1/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            sand = sand_dic[pix]
+            silt = silt_dic[pix]
+            clay = clay_dic[pix]
+
+            if np.isnan(sand):
+                continue
+            if np.isnan(silt):
+                continue
+            if np.isnan(clay):
+                continue
+            sand_x[key] = sand
+            silt_x[key] = silt
+            clay_x[key] = clay
+
+        np.save(out_dir+'sand',sand_x)
+        np.save(out_dir+'silt',silt_x)
+        np.save(out_dir+'clay',clay_x)
+
+        pass
+
+
+    def prepare_bio_diversity(self):
+        out_dir = self.this_class_arr + '\\'
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        bio_tif = self.this_root_branch + 'tif\\Bio_diversity\\bio_diversity_normalized.tif'
+        bio_arr = to_raster.raster2array(bio_tif)[0]
+        bio_arr[bio_arr < -9999] = np.nan
+        bio_dic = DIC_and_TIF().spatial_arr_to_dic(bio_arr)
+        bio_x = {}
+        for key in tqdm(Y_dic, desc='1/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            bio = bio_dic[pix]
+            if np.isnan(bio):
+                continue
+            bio_x[key] = bio
+
+        np.save(out_dir+'bio',bio_x)
+
+
+        pass
+
+
+    def prepare_winter_variables(self,x):
+        '''
+        cv: 变异系数
+        std: 标准差
+        :return:
+        '''
+        # x = ['PRE_std','TMP_std','CCI_std','SWE_std']
+        product = x.split('_')[0]
+        if product == 'SWE':
+            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+        else:
+            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+
+        out_dir = self.this_class_arr
+        Tools().mk_dir(out_dir)
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        all_dic = {}
+        for f in tqdm(os.listdir(per_pix_dir), desc='1/2 loading per_pix_dir ...'):
+            dic = dict(np.load(per_pix_dir + f).item())
+            for pix in dic:
+                all_dic[pix] = dic[pix]
+
+        # 3 找干旱事件对应的X的std
+        X = {}
+        for key in tqdm(Y_dic, desc='2/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            if product == 'SWE':
+                if mark != 'out':
+                    continue
+            split_date_range = date_range.split('.')
+            start = split_date_range[0]
+            end = split_date_range[1]
+            start = int(start)
+            end = int(end)
+            drought_range = range(start, end)
+            # print pix,mark,drought_range
+            # exit()
+            vals = all_dic[pix]
+            selected_val = []
+            for dr in drought_range:
+                val = vals[dr]
+                if val < -9999:
+                    continue
+                selected_val.append(val)
+            if len(selected_val) > 0:
+                std = np.std(selected_val)
+            else:
+                std = np.nan
+            X[key] = std
+
+        np.save(out_dir + '{}'.format(x), X)
+        pass
+
+
+
+class Prepare_new:
+    '''
+    冬季变量单拎出来
+    '''
+    def __init__(self):
+
+        pass
+
+    def run(self):
+
+        pass
+
+
+
+
 
 
 def main():
@@ -1853,7 +2419,9 @@ def main():
     # 7.1 Random Forest
     # RF().run()
     # 7.2 Plot Random Forest Results
-    Plot_RF_train_events_result().run()
+    # Plot_RF_train_events_result().run()
+    # RF_new().run()
+    Prepare1().run()
     pass
 
 
