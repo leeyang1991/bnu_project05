@@ -1861,13 +1861,26 @@ class Prepare1:
         # self.prepare_soil()
         # 7.准备自变量 bio diversity 的值，常量
         # self.prepare_bio_diversity()
-        # 8.['PRE', 'CCI', 'SWE','NDVI'] 为亏损量，应为负值，需要加负号
+        # 8.准备自变量冬季，out['PRE_winter', 'CCI_winter', 'SWE_winter','NDVI_winter']
+        # x = ['PRE_winter', 'CCI_winter', 'SWE_winter', 'TMP_winter']
+        # for i in x:
+        #     self.prepare_winter_variables(i)
+        # 9.准备pre-drought 变量，in ['PRE_pre','CCI_pre','TMP_pre']
+        # x = ['PRE_pre','CCI_pre','TMP_pre']
+        # for i in x:
+        #     self.prepare_pre_drought(i)
+
+        # 10.['PRE', 'CCI', 'SWE','NDVI'] 为亏损量，应为负值，需要加负号
         ########## 需再要手动覆盖 ###########
-        # self.minus_X()
-        # 9.准备自变量冬季，out['PRE_winter', 'CCI_winter', 'SWE_winter','NDVI_winter']
-        x = ['PRE_winter', 'CCI_winter', 'SWE_winter', 'TMP_winter']
-        for i in x:
-            self.prepare_winter_variables(i)
+        x = [
+            'PRE','PRE_pre','PRE_winter',
+            'SWE','SWE_winter',
+            'CCI','CCI_pre','CCI_winter',
+            'NDVI_change'
+             ]
+        for i in tqdm(x):
+            self.minus_X_i(i)
+
         pass
 
     def __split_keys(self,key):
@@ -1971,6 +1984,23 @@ class Prepare1:
         np.save(abs_fdir+'NDVI_change.npy',new_NDVI_change_dic)
         np.save(abs_fdir+'two_month_early_vals_mean.npy',new_two_month_early_vals_mean_dic)
 
+    def minus_X_i(self,X):
+
+        fdir = self.this_class_arr
+        minus_fdir = fdir+'\\random_forest_minus\\'
+        Tools().mk_dir(minus_fdir)
+        Y_dic = dict(np.load(fdir + 'Y.npy').item())
+        X_dic = dict(np.load(fdir+'{}.npy'.format(X)).item())
+        new_X_dic = {}
+
+        for key in Y_dic:
+            try:
+                x = X_dic[key]
+            except:
+                continue
+            new_X_dic[key] = -x
+
+        np.save(minus_fdir+'{}'.format(X),new_X_dic)
 
 
 
@@ -2437,7 +2467,7 @@ class Prepare1:
                 juping = val - mon_mean
                 selected_val.append(juping)
             if len(selected_val) > 0:
-                if x == 'TMP' or x == 'CCI':
+                if product == 'TMP' or product == 'CCI':
                     juping_mean = np.mean(selected_val)
                 else:
                     juping_mean = np.sum(selected_val)
@@ -2447,6 +2477,91 @@ class Prepare1:
         np.save(out_dir + '{}'.format(x), X)
         pass
 
+    def prepare_pre_drought(self,x):
+        '''
+        干旱前期变量状态
+        :param x:
+        :return:
+        '''
+        product = x.split('_')[0]
+        if product == 'SWE':
+            per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
+        else:
+            per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+
+        if product in ['TMP', 'PRE','NDVI']:
+            mean_dir = this_root + 'data\\{}\\mon_mean_tif\\'.format(product)
+        elif product == 'CCI':
+            mean_dir = this_root + 'data\\CCI\\\monthly_mean\\'
+        elif product == 'SWE':
+            mean_dir = this_root + 'data\\GLOBSWE\\monthly_SWE_max\\'
+        else:
+            raise IOError('x error')
+
+        out_dir = self.this_class_arr
+        Tools().mk_dir(out_dir)
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        all_dic = {}
+        for f in tqdm(os.listdir(per_pix_dir), desc='1/2 loading per_pix_dir ...'):
+            dic = dict(np.load(per_pix_dir + f).item())
+            for pix in dic:
+                all_dic[pix] = dic[pix]
+
+        # 2 加载月平均数据
+
+        if product == 'SWE':
+            month_range = [1, 2, 3, 4, 5, 10, 11, 12]
+        else:
+            month_range = range(1, 13)
+        mean_dic = {}
+        for m in tqdm(month_range, desc='2/3 loading monthly mean ...'):
+            m = '%02d' % m
+            arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(mean_dir + m + '.tif')
+            arr_dic = DIC_and_TIF().spatial_arr_to_dic(arr)
+            mean_dic[m] = arr_dic
+
+        # 3 找干旱事件对应的X的std
+        X = {}
+        for key in tqdm(Y_dic, desc='2/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            # print key
+            # sleep()
+            if mark != 'out':
+                continue
+            split_date_range = date_range.split('.')
+            start = split_date_range[0]
+            end = split_date_range[1]
+            start = int(start)
+            drought_range = range(start-4, start-1)
+            vals = all_dic[pix]
+            selected_val = []
+            for dr in drought_range:
+                mon = dr % 12 + 1
+                if not mon in month_range:
+                    continue
+                mon = '%02d' % mon
+                mon_mean = mean_dic[mon][pix]
+                if mon_mean < -9999:
+                    continue
+                val = vals[dr]
+                if val < -9999:
+                    continue
+                juping = val - mon_mean
+                selected_val.append(juping)
+            if len(selected_val) > 0:
+                if product == 'TMP' or product == 'CCI':
+                    juping_mean = np.mean(selected_val)
+                else:
+                    juping_mean = np.sum(selected_val)
+            else:
+                juping_mean = np.nan
+            X[key] = juping_mean
+        np.save(out_dir + '{}'.format(x), X)
+        pass
+
+
+        pass
 
 
 
