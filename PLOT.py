@@ -1863,7 +1863,11 @@ class Prepare1:
         # self.prepare_bio_diversity()
         # 8.['PRE', 'CCI', 'SWE','NDVI'] 为亏损量，应为负值，需要加负号
         ########## 需再要手动覆盖 ###########
-        self.minus_X()
+        # self.minus_X()
+        # 9.准备自变量冬季，out['PRE_winter', 'CCI_winter', 'SWE_winter','NDVI_winter']
+        x = ['PRE_winter', 'CCI_winter', 'SWE_winter', 'TMP_winter']
+        for i in x:
+            self.prepare_winter_variables(i)
         pass
 
     def __split_keys(self,key):
@@ -1977,21 +1981,20 @@ class Prepare1:
         # 1 drought periods
         print '1. loading recovery time'
         f_recovery_time = this_root+'branch2020\\arr\\Recovery_time1\\recovery_time_composite\\composite.npy'
-        recovery_time = dict(np.load(f_recovery_time).item())
+        recovery_time_dic = dict(np.load(f_recovery_time).item())
         print 'done'
         Y = {}
         flag = 0
-        for pix in tqdm(recovery_time):
-            vals = recovery_time[pix]
-            # print vals
+        for pix in tqdm(recovery_time_dic):
+            vals = recovery_time_dic[pix]
             # continue
             for r_time,mark,recovery_date_range,drought_range,eln in vals:
                 if r_time == None:  #r_time 为 TRUE
                     continue
                 flag += 1
-                drought_start = drought_range[0]
                 recovery_start = recovery_date_range[0]
-                key = pix+'~'+mark+'~'+eln+'~'+'{}.{}'.format(drought_start,recovery_start)
+                recovery_end = recovery_date_range[-1]
+                key = pix+'~'+mark+'~'+eln+'~'+'{}.{}'.format(recovery_start,recovery_end)
                 # print key
                 Y[key] = r_time
         # print flag
@@ -2007,7 +2010,9 @@ class Prepare1:
         dic = dict(np.load(f).item())
         # print len(dic)
         pix_dic = DIC_and_TIF().void_spatial_dic()
+        flag = 0
         for key in dic:
+            flag += 1
             # print key,dic[key]
             pix, mark, eln, date_range, drought_start, recovery_start = self.__split_keys(key)
             # print pix, mark, eln, date_range, drought_start, recovery_start
@@ -2023,7 +2028,7 @@ class Prepare1:
             else:
                 new_val = np.nan
             spatial_dic[pix] = new_val
-
+        print flag
         arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
         plt.imshow(arr,cmap='jet',vmin=0,vmax=30)
         plt.colorbar()
@@ -2325,18 +2330,40 @@ class Prepare1:
         pass
 
 
+    def __index_to_year(self,indx):
+        year = indx // 12 + 1982
+        return year
+
+    def __index_to_mon(self,indx):
+        mon = indx % 12 + 1
+        return mon
+
+
     def prepare_winter_variables(self,x):
         '''
         cv: 变异系数
         std: 标准差
         :return:
         '''
+
+        growing_date_range_f = this_root+'branch2020\\arr\\Winter1\\growing_season_index.npy'
+        growing_date_range_dic = dict(np.load(growing_date_range_f).item())
         # x = ['PRE_std','TMP_std','CCI_std','SWE_std']
         product = x.split('_')[0]
         if product == 'SWE':
             per_pix_dir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'
         else:
             per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
+
+        if product in ['TMP', 'PRE','NDVI']:
+            mean_dir = this_root + 'data\\{}\\mon_mean_tif\\'.format(product)
+        elif product == 'CCI':
+            mean_dir = this_root + 'data\\CCI\\\monthly_mean\\'
+        elif product == 'SWE':
+            mean_dir = this_root + 'data\\GLOBSWE\\monthly_SWE_max\\'
+        else:
+            raise IOError('x error')
+
 
         out_dir = self.this_class_arr
         Tools().mk_dir(out_dir)
@@ -2347,53 +2374,78 @@ class Prepare1:
             for pix in dic:
                 all_dic[pix] = dic[pix]
 
+        # 2 加载月平均数据
+
+        if product == 'SWE':
+            month_range = [1, 2, 3, 4, 5, 10, 11, 12]
+        else:
+            month_range = range(1, 13)
+        mean_dic = {}
+        for m in tqdm(month_range, desc='2/3 loading monthly mean ...'):
+            m = '%02d' % m
+            arr, originX, originY, pixelWidth, pixelHeight = to_raster.raster2array(mean_dir + m + '.tif')
+            arr_dic = DIC_and_TIF().spatial_arr_to_dic(arr)
+            mean_dic[m] = arr_dic
+
         # 3 找干旱事件对应的X的std
         X = {}
         for key in tqdm(Y_dic, desc='2/2 generate X dic ...'):
             split_key = key.split('~')
             pix, mark, eln, date_range = split_key
-            if product == 'SWE':
-                if mark != 'out':
-                    continue
+            # print key
+            # sleep()
+            if mark != 'out':
+                continue
+            growing_date_range = growing_date_range_dic[pix]
             split_date_range = date_range.split('.')
             start = split_date_range[0]
             end = split_date_range[1]
             start = int(start)
             end = int(end)
+
             drought_range = range(start, end)
+            winter_drought_range = []
+            for indx in drought_range:
+                mon = self.__index_to_mon(indx)
+                if not mon in growing_date_range:
+                    winter_drought_range.append(indx)
+                    if len(winter_drought_range) > 6:
+                        break
+            # if len
+            # print '\n'
+            # print drought_range
+            # print winter_drought_range
+            # print growing_date_range
+            # continue
+            # sleep()
+
             # print pix,mark,drought_range
             # exit()
             vals = all_dic[pix]
             selected_val = []
             for dr in drought_range:
+                mon = dr % 12 + 1
+                if not mon in month_range:
+                    continue
+                mon = '%02d' % mon
+                mon_mean = mean_dic[mon][pix]
+                if mon_mean < -9999:
+                    continue
                 val = vals[dr]
                 if val < -9999:
                     continue
-                selected_val.append(val)
+                juping = val - mon_mean
+                selected_val.append(juping)
             if len(selected_val) > 0:
-                std = np.std(selected_val)
+                if x == 'TMP' or x == 'CCI':
+                    juping_mean = np.mean(selected_val)
+                else:
+                    juping_mean = np.sum(selected_val)
             else:
-                std = np.nan
-            X[key] = std
-
+                juping_mean = np.nan
+            X[key] = juping_mean
         np.save(out_dir + '{}'.format(x), X)
         pass
-
-
-
-class Prepare_new:
-    '''
-    冬季变量单拎出来
-    '''
-    def __init__(self):
-
-        pass
-
-    def run(self):
-
-        pass
-
-
 
 
 
@@ -2420,7 +2472,7 @@ def main():
     # RF().run()
     # 7.2 Plot Random Forest Results
     # Plot_RF_train_events_result().run()
-    # RF_new().run()
+    # RF().run()
     Prepare1().run()
     pass
 
