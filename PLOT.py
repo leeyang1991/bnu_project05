@@ -1003,15 +1003,23 @@ class Find_Threshold:
 class RF:
 
     def __init__(self):
+        self.this_class_arr = this_root_PLOT + 'Random_Forest\\arr\\RF\\'
+        self.this_class_tif = this_root_PLOT + 'Random_Forest\\tif\\RF\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
+        self.this_root_branch = this_root + 'branch2020\\'
         pass
 
     def run(self):
         # self.load_variable()
+        # 0 分区 do_partition
         # self.do_partition()
         # 1 分区 IN OUT EARLY LATE TROPICAL
         # self.check_partition()
         # 2 RF
         self.do_random_forest_train()
+        # -1 check results
+        # self.check_result()
         pass
 
     def __split_keys(self, key):
@@ -1095,7 +1103,7 @@ class RF:
         # ]
         selected_keys = []
         for key in keys:
-            pix, mark, eln, date_range, drought_start, recovery_start = self.__split_keys(key)
+            pix, mark, eln, date_range, recovery_start, recovery_end = self.__split_keys(key)
             if pix in pix_:
                 if mark == mark_:
                     if eln in eln_:
@@ -1103,12 +1111,13 @@ class RF:
         return selected_keys
 
     def do_partition(self):
-        Ydic = Prepare().this_class_arr + 'Y.npy'
+        Ydic = Prepare1().this_class_arr + 'Y.npy'
         outf = self.this_class_arr + 'RF_partition'
         dic = dict(np.load(Ydic).item())
         keys = []
         for key in dic:
             keys.append(key)
+            # print key
         keys = tuple(keys)
         cross_pix = self.cross_koppen_landuse()
         selected = {}
@@ -1211,8 +1220,6 @@ class RF:
         for key in partition_keys_dic:
             if condition1 in key:
                 selected_keys += partition_keys_dic[key][condition2]
-
-        # selected_keys = partition_keys_dic[condition1][condition2]
         pix_dic = {}
         nan = False
         Y = []
@@ -1222,16 +1229,16 @@ class RF:
             if y > 18:
                 continue
 
-            if 'in' in condition1 or 'tropical' in condition1:
+            if 'in' == condition1:
                 try:
                     variables_names = [
-                        'PRE', 'PRE_mean', 'PRE_std',
-                        'TMP', 'TMP_mean', 'TMP_std',
-                        'CCI', 'CCI_mean', 'CCI_std',
+                        'PRE', 'PRE_mean', 'PRE_std','PRE_pre',
+                        'TMP', 'TMP_mean', 'TMP_std','TMP_pre',
+                        'CCI', 'CCI_mean', 'CCI_std','CCI_pre',
                         # 'SWE', 'SWE_mean', 'SWE_std',
                         'NDVI_change', 'two_month_early_vals_mean',
                         'sand', 'silt', 'clay',
-                        'bio'
+                        'bio','HI'
                     ]
                     variables_vals = []
                     for x in variables_names:
@@ -1239,6 +1246,7 @@ class RF:
                         variables_vals.append(val)
                 except Exception as e:
                     print e
+                    # exit()
                     continue
                 _list = variables_vals
                 _list_new = []
@@ -1252,16 +1260,16 @@ class RF:
                 X.append(_list_new)
                 Y.append(y)
 
-            elif 'out' in condition1:
+            elif 'out' == condition1:
                 try:
                     variables_names = [
-                        'PRE', 'PRE_mean', 'PRE_std',
-                        'TMP', 'TMP_mean', 'TMP_std',
-                        'CCI', 'CCI_mean', 'CCI_std',
-                        'SWE', 'SWE_mean', 'SWE_std',
+                        'PRE', 'PRE_mean', 'PRE_std','PRE_winter',
+                        'TMP', 'TMP_mean', 'TMP_std','TMP_winter',
+                        'CCI', 'CCI_mean', 'CCI_std','CCI_winter',
+                        'SWE', 'SWE_mean', 'SWE_std','SWE_winter',
                         'NDVI_change', 'two_month_early_vals_mean',
                         'sand', 'silt', 'clay',
-                        'bio'
+                        'bio','HI'
                     ]
                     variables_vals = []
                     for x in variables_names:
@@ -1281,6 +1289,39 @@ class RF:
                 pix_dic[pix] = 1
                 X.append(_list_new)
                 Y.append(y)
+
+            elif 'tropical' == condition1:
+                try:
+                    variables_names = [
+                        'PRE', 'PRE_mean', 'PRE_std', 'PRE_pre',
+                        'TMP', 'TMP_mean', 'TMP_std', 'TMP_pre',
+                        'CCI', 'CCI_mean', 'CCI_std', 'CCI_pre',
+                        # 'SWE', 'SWE_mean', 'SWE_std',
+                        'NDVI_change', 'two_month_early_vals_mean',
+                        'sand', 'silt', 'clay',
+                        'bio','HI'
+                    ]
+                    variables_vals = []
+                    for x in variables_names:
+                        val = fdir_dic[x][key]
+                        variables_vals.append(val)
+                except Exception as e:
+                    print e
+                    # exit()
+                    continue
+                _list = variables_vals
+                _list_new = []
+                for _l in _list:
+                    if np.isnan(_l):
+                        _list_new.append(nan)
+                    else:
+                        _list_new.append(_l)
+                pix, mark, enl, date_range, drought_start, recovery_start = self.__split_keys(key)
+                pix_dic[pix] = 1
+                X.append(_list_new)
+                Y.append(y)
+
+
             else:
                 raise IOError('error')
         selected_pix_spatial = DIC_and_TIF().pix_dic_to_spatial_arr(pix_dic)
@@ -1361,18 +1402,11 @@ class RF:
         c1, c2, partition_keys_dic, fdir_dic = params
         key = c1 + '-' + c2
         # X, Y, selected_pix_spatial = self.load_variable(partition_keys_dic, c1, c2)
-
         X, Y, selected_pix_spatial = self.load_variables_dir(fdir_dic, partition_keys_dic, c1, c2)
-        # exit()
-        # if len(X) < 100:
-        #     result_dic[key] = None
-        #     continue
-
         ################## debug
         # importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial, isplot=True,title=key)
         # print importances, mse, r, Y_test, y_pred, rX
-        # exit()
-
+        #         # exit()
         ################## run
         try:
             importances, mse, r, Y_test, y_pred, rX = self.random_forest_train(X, Y, selected_pix_spatial,
@@ -1381,14 +1415,14 @@ class RF:
                            'rX': rX}
             return result
         except Exception as e:
-            # print e,'error'
+            print e,'error'
             return key, []
         pass
 
     def do_random_forest_train(self):
 
-        out_result_dic = this_root_PLOT + 'arr\\RF_result_dic_arr'
-        partition_f = this_root+r'branch2020\Random_Forest\arr\RF_train_events\RF_partition.npy'
+        out_result_dic = self.this_class_arr + '\\RF_result_dic_arr'
+        partition_f = self.this_class_arr+'RF_partition.npy'
         partition_keys_dic = dict(np.load(partition_f).item())
         condition1_list = [
             'in','out','tropical'
@@ -1397,10 +1431,11 @@ class RF:
         for i in partition_keys_dic['in~early']:
             condition2_list.append(i)
 
-        # result_dic = {}
-        fdir = this_root+'branch2020\\Random_Forest\\arr\\Prepare\\'
+        fdir = Prepare1().this_class_arr
         fdir_dic = {}
         for f in tqdm(os.listdir(fdir), desc='loading each variable...'):
+            if not f.endswith('.npy'):
+                continue
             x = f.split('.')[0]
             x_dic = dict(np.load(fdir + f).item())
             fdir_dic[x] = x_dic
@@ -1421,18 +1456,106 @@ class RF:
 
         pass
 
-
+    def check_result(self):
+        result_f = self.this_class_arr+'RF_result_dic_arr.npy'
+        dic = np.load(result_f)
+        for region,result in dic:
+            print region
+            print result
+            # sleep()
 
 class Plot_RF_train_events_result:
     def __init__(self):
+        self.this_class_arr = this_root_PLOT + 'Random_Forest\\arr\\Plot_RF_train_events_result\\'
+        self.this_class_tif = this_root_PLOT + 'Random_Forest\\tif\\Plot_RF_train_events_result\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
+        self.this_root_branch = this_root + 'branch2020\\'
         pass
 
 
     def run(self):
         # self.plot_bar()
-        self.plot_scatter()
-
+        # self.plot_scatter()
+        # self.check_scatter_size()
+        self.plot_box_plot()
         pass
+
+
+    def plot_box_plot(self):
+        f = RF().this_class_arr + 'RF_result_dic_arr.npy'
+        arr = np.load(f)
+        for condition in ['in','out','tropical']:
+        # for condition in ['in']:
+            box = {}
+            for i in arr:
+                region, content_dic = i
+                if not condition in region:
+                    continue
+                if condition == 'in' or condition == 'tropical':
+                    variables = [
+                        'PRE', 'PRE_mean', 'PRE_std', 'PRE_pre',
+                        'TMP', 'TMP_mean', 'TMP_std', 'TMP_pre',
+                        'CCI', 'CCI_mean', 'CCI_std', 'CCI_pre',
+                        'NDVI_change', 'two_month_early_vals_mean',
+                        'sand', 'silt', 'clay',
+                        'bio', 'HI'
+                    ]
+                    climate_variables_index = range(12)
+                    traits_variables_index = range(12,14)
+                    constant_variables_index = range(14,19)
+
+                elif condition == 'out':
+                    variables = [
+                        'PRE', 'PRE_mean', 'PRE_std','PRE_winter',
+                        'TMP', 'TMP_mean', 'TMP_std','TMP_winter',
+                        'CCI', 'CCI_mean', 'CCI_std','CCI_winter',
+                        'SWE', 'SWE_mean', 'SWE_std','SWE_winter',
+                        'NDVI_change', 'two_month_early_vals_mean',
+                        'sand', 'silt', 'clay',
+                        'bio','HI'
+                    ]
+                    climate_variables_index = range(12)
+                    traits_variables_index = range(12, 14)
+                    constant_variables_index = range(14, 19)
+                else:
+                    raise IOError
+                try:
+                    importance = content_dic['importances']
+                    climate_variables = []
+                    for indx in climate_variables_index:
+                        climate_variables.append(importance[indx])
+                    traits_variables = []
+                    for indx in traits_variables_index:
+                        traits_variables.append(importance[indx])
+                    constant_variables = []
+                    for indx in constant_variables_index:
+                        constant_variables.append(importance[indx])
+                    # exit()
+                    box[region] = [climate_variables,traits_variables,constant_variables]
+                except:
+                    pass
+
+
+            all_climate = []
+            all_traits = []
+            all_constant = []
+            for i in box:
+                climate = box[i][0]
+                traits = box[i][1]
+                constant = box[i][2]
+                for i in climate:
+                    all_climate.append(i)
+                for i in traits:
+                    all_traits.append(i)
+                for i in constant:
+                    all_constant.append(i)
+            data = [all_climate,all_traits,all_constant]
+            plt.boxplot(data,showfliers=False)
+            plt.title(condition)
+            plt.show()
+        pass
+
 
     def plot_bar(self):
         fdir = self.this_class_arr
@@ -1449,6 +1572,29 @@ class Plot_RF_train_events_result:
             plt.close()
 
         pass
+
+
+    def check_scatter_size(self):
+        f = RF().this_class_arr + 'RF_result_dic_arr.npy'
+        arr = np.load(f)
+        len_in_out_dic = {}
+        importances_hist = []
+        for i in arr:
+            region, result_dic = i
+
+            try:
+                importances = result_dic['importances']
+                for im in importances:
+                    importances_hist.append(im)
+                r = result_dic['r']
+                rX = result_dic['rX']
+                if np.isnan(r):
+                    continue
+            except:
+                continue
+        plt.hist(importances_hist,bins=20)
+        plt.show()
+
 
     def gen_bar_data(self):
         f = RF_train_events().this_class_arr + 'RF_result_dic_arr.npy'
@@ -1545,7 +1691,8 @@ class Plot_RF_train_events_result:
         # f = this_root+'arr\\RF_result_dic_arr1.npy'
         # f = this_root+'arr\\RF_result_dic_arr_with_rX_minus.npy'
         # f = RF_train_events().this_class_arr+'RF_result_dic_arr.npy'
-        f = this_root+'branch2020\\PLOT\\arr\\RF_result_dic_arr.npy'
+        # f = this_root+'branch2020\\PLOT\\arr\\RF_result_dic_arr.npy'
+        f = RF().this_class_arr+'RF_result_dic_arr.npy'
         arr = np.load(f)
         len_in_out_dic = {}
         for i in arr:
@@ -1586,7 +1733,17 @@ class Plot_RF_train_events_result:
                     continue
             except:
                 continue
-            scatter_size = self.__importances_to_scatter_size(importances,len_in_out)
+            ############## reference size
+            # scatter_size = self.__importances_to_scatter_size(importances,len_in_out)
+            ############## absolute size
+            # scatter_size = []
+            # for imp in importances:
+            #     scatter_size.append(self.__importances_to_scatter_size_abs(imp))
+            ############## log size
+            # scatter_size = []
+            # for imp in importances:
+            #     scatter_size.append(self.__importances_to_scatter_size_log(imp))
+            # print scatter_size
             rX_color = self.__rX_to_colors(rX)
             color = self.__r_to_color(r)
             x0,y = self.__get_scatter_position(key,region_pix,len_in_out_dic)
@@ -1685,6 +1842,32 @@ class Plot_RF_train_events_result:
                 plt.scatter(x0list[i]+j, ylist[i], s=slist[i][j], c=clist[i][j])
 
 
+    def __importances_to_scatter_size_abs(self,importance):
+
+
+        minv = 0
+        maxv = 0.4
+        num = int((maxv-minv)*10+1)
+        size_dic = {}
+        for i in range(1, num+1):
+            size_dic[i] = i * 30
+        importance_range_list = np.linspace(minv,maxv,num)
+        for i in range(len(importance_range_list)):
+            if importance_range_list[i] <= importance < importance_range_list[i+1]:
+                size = size_dic[i+1]
+                return size
+            elif importance > maxv:
+                size = size_dic[num]
+                return size
+
+        raise IOError
+
+
+
+    def __importances_to_scatter_size_log(self,importance):
+
+        return (math.log(importance + 1,1000) + 1) * 40
+
 
     def __importances_to_scatter_size(self,importances_list,len_in_out):
 
@@ -1698,6 +1881,12 @@ class Plot_RF_train_events_result:
         for i in a:
             scatter_size_list.append(size_list[i])
         return scatter_size_list
+
+
+    def __importances_to_colors(self,inlist):
+        # TODO: 热点图 用颜色表示importance 大小表示相关性
+        pass
+
 
     def __rX_to_colors(self,rX_list):
 
@@ -1713,6 +1902,22 @@ class Plot_RF_train_events_result:
                 colors_list.append(c)
 
         return colors_list
+
+    def __rX_to_size(self,rX_list):
+
+        colors_list = []
+        cmap = sns.diverging_palette(236, 0, s=99, l=50, n=10, center="light")
+
+        for r in rX_list:
+            if np.isnan(r):
+                colors_list.append(cmap[5])
+            else:
+                rr = int(round(round(r, 1) * 10. / 2. + 5., 0)) - 1
+                c = cmap[rr]
+                colors_list.append(c)
+
+        return colors_list
+
 
 
     def __r_to_color(self,r):
@@ -1842,35 +2047,33 @@ class Prepare1:
 
     def run(self):
         # 1.准备因变量 Y
+        start = time.time()
         # self.prepare_Y()
-        # self.check_Y()
-        # 2.准备自变量 X的 delta
+        # # self.check_Y()
+        # # 2.准备自变量 X的 delta
         # x = ['TMP', 'PRE', 'CCI', 'SWE']
         # MUTIPROCESS(self.prepare_X,x).run()
-        # 3.准备自变量 X 的标准差
+        # # 3.准备自变量 X 的标准差
         # x = ['PRE_std', 'TMP_std', 'CCI_std', 'SWE_std']
-        # for i in x:
-        #     self.prepare_X_std(i)
-        # 4.准备自变量 X 的平均值
+        # MUTIPROCESS(self.prepare_X_std, x).run()
+        # # 4.准备自变量 X 的平均值
         # x = ['PRE_mean','TMP_mean','CCI_mean','SWE_mean']
-        # for i in x:
-        #     self.prepare_X_mean(i)
-        # 5.准备自变量 NDVI 的平均值和delta
+        # MUTIPROCESS(self.prepare_X_mean, x).run()
+        # # 5.准备自变量 NDVI 的平均值和delta
         # self.prepare_NDVI()
-        # 6.准备自变量 soil 的值，soil是常量
+        # # 6.准备自变量 soil 的值，soil是常量
         # self.prepare_soil()
-        # 7.准备自变量 bio diversity 的值，常量
+        # # 7.准备自变量 bio diversity 的值，常量
         # self.prepare_bio_diversity()
-        # 8.准备自变量冬季，out['PRE_winter', 'CCI_winter', 'SWE_winter','NDVI_winter']
+        # # 8.准备自变量冬季，out['PRE_winter', 'CCI_winter', 'SWE_winter','NDVI_winter']
         # x = ['PRE_winter', 'CCI_winter', 'SWE_winter', 'TMP_winter']
-        # for i in x:
-        #     self.prepare_winter_variables(i)
-        # 9.准备pre-drought 变量，in ['PRE_pre','CCI_pre','TMP_pre']
+        # MUTIPROCESS(self.prepare_winter_variables, x).run()
+        # # 9.准备pre-drought 变量，in ['PRE_pre','CCI_pre','TMP_pre']
         # x = ['PRE_pre','CCI_pre','TMP_pre']
-        # for i in x:
-        #     self.prepare_pre_drought(i)
-
-        # 10.['PRE', 'CCI', 'SWE','NDVI'] 为亏损量，应为负值，需要加负号
+        # MUTIPROCESS(self.prepare_pre_drought, x).run()
+        # # 10. 准备常量 HI
+        # self.prepare_HI()
+        # 11.['PRE', 'CCI', 'SWE','NDVI'] 为亏损量，应为负值，需要加负号
         ########## 需再要手动覆盖 ###########
         x = [
             'PRE','PRE_pre','PRE_winter',
@@ -1880,7 +2083,10 @@ class Prepare1:
              ]
         for i in tqdm(x):
             self.minus_X_i(i)
-
+        # end = time.time()
+        # print 'duration: %0.2f seconds'%(end-start)
+        # -1. check_x
+        # self.check_X()
         pass
 
     def __split_keys(self,key):
@@ -2273,16 +2479,15 @@ class Prepare1:
             split_key = key.split('~')
             pix, mark, eln, date_range = split_key
             split_date_range = date_range.split('.')
-            drought_start = int(split_date_range[0])
-            recovery_start = int(split_date_range[1])
+            recovery_start = int(split_date_range[0])
+            recovery_end = int(split_date_range[1])
             # drought_range = range(drought_start, recovery_start)
             vals = all_dic[pix]
-            if drought_start <= recovery_start:
-                if recovery_start - 2 >= 0:
-                    two_month_early_vals_mean = (vals[recovery_start - 2] + vals[recovery_start - 1])/2.
-                    NDVI_change = vals[recovery_start] - two_month_early_vals_mean
-                    X_two_month_early_vals_mean[key] = two_month_early_vals_mean
-                    X_NDVI_change[key] = NDVI_change
+            if recovery_start - 2 >= 0:
+                two_month_early_vals_mean = (vals[recovery_start - 2] + vals[recovery_start - 1])/2.
+                NDVI_change = vals[recovery_start] - two_month_early_vals_mean
+                X_two_month_early_vals_mean[key] = two_month_early_vals_mean
+                X_NDVI_change[key] = NDVI_change
         # print flag
         # print flag1
         np.save(out_dir + 'two_month_early_vals_mean', X_two_month_early_vals_mean)
@@ -2423,7 +2628,6 @@ class Prepare1:
             split_key = key.split('~')
             pix, mark, eln, date_range = split_key
             # print key
-            # sleep()
             if mark != 'out':
                 continue
             growing_date_range = growing_date_range_dic[pix]
@@ -2447,7 +2651,6 @@ class Prepare1:
             # print winter_drought_range
             # print growing_date_range
             # continue
-            # sleep()
 
             # print pix,mark,drought_range
             # exit()
@@ -2489,7 +2692,7 @@ class Prepare1:
         else:
             per_pix_dir = this_root + 'data\\{}\\per_pix\\'.format(product)
 
-        if product in ['TMP', 'PRE','NDVI']:
+        if product in ['TMP', 'PRE']:
             mean_dir = this_root + 'data\\{}\\mon_mean_tif\\'.format(product)
         elif product == 'CCI':
             mean_dir = this_root + 'data\\CCI\\\monthly_mean\\'
@@ -2526,8 +2729,7 @@ class Prepare1:
             split_key = key.split('~')
             pix, mark, eln, date_range = split_key
             # print key
-            # sleep()
-            if mark != 'out':
+            if mark == 'out':
                 continue
             split_date_range = date_range.split('.')
             start = split_date_range[0]
@@ -2561,6 +2763,66 @@ class Prepare1:
         pass
 
 
+
+    def check_X(self):
+        x = 'NDVI_change'
+        # x = 'PRE'
+        print 'loading {}'.format(x)
+        f = self.this_class_arr + '{}.npy'.format(x)
+        # f = r'D:\project05\new_2020\random_forest\Y.npy'
+        dic = dict(np.load(f).item())
+        # print len(dic)
+        pix_dic = DIC_and_TIF().void_spatial_dic()
+        flag = 0
+        for key in dic:
+            # print key
+            val = dic[key]
+            # print val
+            # sleep()
+            flag += 1
+            # print key,dic[key]
+            pix, mark, eln, date_range, drought_start, recovery_start = self.__split_keys(key)
+            # print pix, mark, eln, date_range, drought_start, recovery_start
+            # print dic[key]
+            pix_dic[pix].append(val)
+            # exit()
+
+        spatial_dic = {}
+        for pix in pix_dic:
+            val = pix_dic[pix]
+            if len(val) > 0:
+                new_val = np.mean(val)
+            else:
+                new_val = np.nan
+            spatial_dic[pix] = new_val
+        print flag
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(spatial_dic)
+        plt.imshow(arr, cmap='jet', vmin=0.5, vmax=-0.5)
+        # plt.imshow(arr, cmap='jet')
+        plt.colorbar()
+        plt.show()
+        pass
+
+
+
+    def prepare_HI(self):
+
+        out_dir = self.this_class_arr + '\\'
+        Y_dic = dict(np.load(self.this_class_arr + 'Y.npy').item())
+        HI_tif = this_root + 'tif\\HI\\HI.tif'
+        HI_arr = to_raster.raster2array(HI_tif)[0]
+        HI_arr[HI_arr < -9999] = np.nan
+        HI_dic = DIC_and_TIF().spatial_arr_to_dic(HI_arr)
+        HI_x = {}
+        for key in tqdm(Y_dic, desc='1/2 generate X dic ...'):
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            bio = HI_dic[pix]
+            if np.isnan(bio):
+                continue
+            HI_x[key] = bio
+
+        np.save(out_dir + 'HI', HI_x)
         pass
 
 
@@ -2583,12 +2845,12 @@ def main():
     # Ternary_plot().plot_scatter()
     # 6 Threshold
     # Find_Threshold().run()
-    # 7.1 Random Forest
+    # 7 Prepare Random Forest
+    # Prepare1().run()
+    # 7.1 run Random Forest
     # RF().run()
     # 7.2 Plot Random Forest Results
-    # Plot_RF_train_events_result().run()
-    # RF().run()
-    Prepare1().run()
+    Plot_RF_train_events_result().run()
     pass
 
 
