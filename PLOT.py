@@ -8,7 +8,36 @@ this_root_PLOT = this_root+'branch2020\\PLOT\\'
 out_tif_dir = this_root_PLOT+'tif\\'
 Tools().mk_dir(this_root_PLOT,force=True)
 Tools().mk_dir(out_tif_dir,force=True)
+variables_out = [
+                        'PRE', 'PRE_mean', 'PRE_std','PRE_winter',
+                        'TMP', 'TMP_mean', 'TMP_std','TMP_winter',
+                        'CCI', 'CCI_mean', 'CCI_std','CCI_winter',
+                        'SWE', 'SWE_mean', 'SWE_std','SWE_winter',
+                        'NDVI_change', 'two_month_early_vals_mean',
+                        'sand', 'silt', 'clay',
+                        'bio','HI'
+                    ]
 
+
+variables_in = [
+                        'PRE', 'PRE_mean', 'PRE_std','PRE_pre',
+                        'TMP', 'TMP_mean', 'TMP_std','TMP_pre',
+                        'CCI', 'CCI_mean', 'CCI_std','CCI_pre',
+                        # 'SWE', 'SWE_mean', 'SWE_std',
+                        'NDVI_change', 'two_month_early_vals_mean',
+                        'sand', 'silt', 'clay',
+                        'bio','HI'
+                    ]
+
+variables_tropical = [
+                        'PRE', 'PRE_mean', 'PRE_std','PRE_pre',
+                        'TMP', 'TMP_mean', 'TMP_std','TMP_pre',
+                        'CCI', 'CCI_mean', 'CCI_std','CCI_pre',
+                        # 'SWE', 'SWE_mean', 'SWE_std',
+                        'NDVI_change', 'two_month_early_vals_mean',
+                        'sand', 'silt', 'clay',
+                        'bio','HI'
+                    ]
 
 def sleep(t=1):
     time.sleep(t)
@@ -96,15 +125,17 @@ class Water_balance:
         # self.gen_latitude_zone_arr()
         pass
     def run(self):
-        recovery_time_tif_in = out_tif_dir+'recovery_time_in.tif'
-        recovery_time_tif_out = out_tif_dir+'recovery_time_out.tif'
+        # recovery_time_tif_in = out_tif_dir+'recovery_time_in.tif'
+        # recovery_time_tif_out = out_tif_dir+'recovery_time_out.tif'
         recovery_time_tif_mix = out_tif_dir+'recovery_time_mix.tif'
+        # plt.figure(figsize=(8,7))
+        # self.cross_landuse_WB_recovery_time(recovery_time_tif_in,title='IN')
+        # plt.figure(figsize=(8,7))
+        # self.cross_landuse_WB_recovery_time(recovery_time_tif_out,title='OUT')
         plt.figure(figsize=(8,7))
-        self.cross_landuse_WB_recovery_time(recovery_time_tif_in,title='IN')
-        plt.figure(figsize=(8,7))
-        self.cross_landuse_WB_recovery_time(recovery_time_tif_out,title='OUT')
-        plt.figure(figsize=(8,7))
-        self.cross_landuse_WB_recovery_time(recovery_time_tif_mix,title='MIX')
+        self.cross_landuse_WB_recovery_time(recovery_time_tif_mix,title='recovery_time')
+        # recovery_time_tif_mix = this_root_PLOT+'tif\\ratio.tif'
+        # self.cross_landuse_WB_recovery_time(recovery_time_tif_mix,title='ratio')
         plt.show()
         pass
 
@@ -546,6 +577,23 @@ def plot_time_series():
     plt.bar(range(len(ratio1)),ratio4,bottom=ratio1+ratio2+ratio3)
 
     plt.show()
+
+
+def plot_early_late_pdf():
+    mix_f = this_root_PLOT+'\\tif\\recovery_time_mix.tif'
+
+    arr,originX,originY,pixelWidth,pixelHeight = to_raster.raster2array(mix_f)
+    pdf = []
+    for i in tqdm(range(len(arr))):
+        for j in range(len(arr[0])):
+            pix = '%03d.%03d'%(i,j)
+            val = arr[i][j]
+            if val > 0 and val < 24:
+                pdf.append(val)
+
+    plt.hist(pdf,bins=20,density=1)
+    plt.show()
+
 
 
 class Ternary_plot:
@@ -1231,15 +1279,7 @@ class RF:
 
             if 'in' == condition1:
                 try:
-                    variables_names = [
-                        'PRE', 'PRE_mean', 'PRE_std','PRE_pre',
-                        'TMP', 'TMP_mean', 'TMP_std','TMP_pre',
-                        'CCI', 'CCI_mean', 'CCI_std','CCI_pre',
-                        # 'SWE', 'SWE_mean', 'SWE_std',
-                        'NDVI_change', 'two_month_early_vals_mean',
-                        'sand', 'silt', 'clay',
-                        'bio','HI'
-                    ]
+                    variables_names = variables_in
                     variables_vals = []
                     for x in variables_names:
                         val = fdir_dic[x][key]
@@ -1262,15 +1302,7 @@ class RF:
 
             elif 'out' == condition1:
                 try:
-                    variables_names = [
-                        'PRE', 'PRE_mean', 'PRE_std','PRE_winter',
-                        'TMP', 'TMP_mean', 'TMP_std','TMP_winter',
-                        'CCI', 'CCI_mean', 'CCI_std','CCI_winter',
-                        'SWE', 'SWE_mean', 'SWE_std','SWE_winter',
-                        'NDVI_change', 'two_month_early_vals_mean',
-                        'sand', 'silt', 'clay',
-                        'bio','HI'
-                    ]
+                    variables_names = variables_out
                     variables_vals = []
                     for x in variables_names:
                         val = fdir_dic[x][key]
@@ -1292,15 +1324,7 @@ class RF:
 
             elif 'tropical' == condition1:
                 try:
-                    variables_names = [
-                        'PRE', 'PRE_mean', 'PRE_std', 'PRE_pre',
-                        'TMP', 'TMP_mean', 'TMP_std', 'TMP_pre',
-                        'CCI', 'CCI_mean', 'CCI_std', 'CCI_pre',
-                        # 'SWE', 'SWE_mean', 'SWE_std',
-                        'NDVI_change', 'two_month_early_vals_mean',
-                        'sand', 'silt', 'clay',
-                        'bio','HI'
-                    ]
+                    variables_names = variables_tropical
                     variables_vals = []
                     for x in variables_names:
                         val = fdir_dic[x][key]
@@ -1475,10 +1499,11 @@ class Plot_RF_train_events_result:
 
 
     def run(self):
-        # self.plot_bar()
         # self.plot_scatter()
         # self.check_scatter_size()
-        self.plot_box_plot()
+        # self.plot_box_plot()
+        # self.gen_rank_bar_data()
+        self.plot_rank_bar()
         pass
 
 
@@ -1493,28 +1518,13 @@ class Plot_RF_train_events_result:
                 if not condition in region:
                     continue
                 if condition == 'in' or condition == 'tropical':
-                    variables = [
-                        'PRE', 'PRE_mean', 'PRE_std', 'PRE_pre',
-                        'TMP', 'TMP_mean', 'TMP_std', 'TMP_pre',
-                        'CCI', 'CCI_mean', 'CCI_std', 'CCI_pre',
-                        'NDVI_change', 'two_month_early_vals_mean',
-                        'sand', 'silt', 'clay',
-                        'bio', 'HI'
-                    ]
+                    variables = variables_in
                     climate_variables_index = range(12)
                     traits_variables_index = range(12,14)
                     constant_variables_index = range(14,19)
 
                 elif condition == 'out':
-                    variables = [
-                        'PRE', 'PRE_mean', 'PRE_std','PRE_winter',
-                        'TMP', 'TMP_mean', 'TMP_std','TMP_winter',
-                        'CCI', 'CCI_mean', 'CCI_std','CCI_winter',
-                        'SWE', 'SWE_mean', 'SWE_std','SWE_winter',
-                        'NDVI_change', 'two_month_early_vals_mean',
-                        'sand', 'silt', 'clay',
-                        'bio','HI'
-                    ]
+                    variables = variables_out
                     climate_variables_index = range(12)
                     traits_variables_index = range(12, 14)
                     constant_variables_index = range(14, 19)
@@ -1557,18 +1567,20 @@ class Plot_RF_train_events_result:
         pass
 
 
-    def plot_bar(self):
+    def plot_rank_bar(self):
         fdir = self.this_class_arr
-        out_png_dir = this_root+'png\\Plot_RF_train_events_result\\'
-        Tools().mk_dir(out_png_dir)
+        out_png_dir = this_root_PLOT+'AI\\'
+        Tools().mk_dir(out_png_dir,force=True)
+
         for f in os.listdir(fdir):
             title = f.split('.')[0]
             dic = dict(np.load(fdir+f).item())
             max_x = dic['max_x']
             label = dic['max_key']
+            # plt.figure(figsize=(10,4))
             plt.barh(label, max_x)
             plt.title(title)
-            plt.savefig(out_png_dir+title+'.png',ppi=600)
+            plt.savefig(out_png_dir+'rank_'+title+'.pdf')
             plt.close()
 
         pass
@@ -1596,34 +1608,20 @@ class Plot_RF_train_events_result:
         plt.show()
 
 
-    def gen_bar_data(self):
-        f = RF_train_events().this_class_arr + 'RF_result_dic_arr.npy'
+    def gen_rank_bar_data(self):
+        f = RF().this_class_arr + 'RF_result_dic_arr.npy'
         arr = np.load(f)
         # condition = 'in'
         # condition = 'out'
         condition = 'tropical'
         # condition2 = 'early'
         # condition2 = 'late'
-        condition2 = 'tropical'
+        # condition2 = 'tropical'
 
-        variables_names_in = [
-            'PRE', 'PRE_mean', 'PRE_std',
-            'TMP', 'TMP_mean', 'TMP_std',
-            'CCI', 'CCI_mean', 'CCI_std',
-            # 'SWE', 'SWE_mean', 'SWE_std',
-            'NDVI_change', 'two_month_early_vals_mean',
-            'sand', 'silt', 'clay',
-            'bio']
+        variables_names_in = variables_in
         # print len(variables_names_in)
         # exit()
-        variables_names_out = [
-            'PRE', 'PRE_mean', 'PRE_std',
-            'TMP', 'TMP_mean', 'TMP_std',
-            'CCI', 'CCI_mean', 'CCI_std',
-            'SWE', 'SWE_mean', 'SWE_std',
-            'NDVI_change', 'two_month_early_vals_mean',
-            'sand', 'silt', 'clay',
-            'bio']
+        variables_names_out = variables_out
 
         variables_names_out_dic = {}
         for var in variables_names_out:
@@ -1645,8 +1643,8 @@ class Plot_RF_train_events_result:
         else:
             raise IOError
         for key,result_dic in arr:
-            if not condition2 in key:
-                continue
+            # if not condition2 in key:
+            #     continue
             if not condition in key:
                 continue
             # print eln
@@ -1684,7 +1682,7 @@ class Plot_RF_train_events_result:
         # plt.figure()
         # plt.barh(max_key,max_x,xerr=max_xerr)
         # plt.show()
-        np.save(self.this_class_arr+'{}_{}'.format(condition,condition2),{'max_key':max_key,'max_x':max_x,'max_xerr':max_xerr})
+        np.save(self.this_class_arr+'{}_{}'.format(condition,''),{'max_key':max_key,'max_x':max_x,'max_xerr':max_xerr})
 
     def plot_scatter(self):
         region_pix = dict(np.load(this_root+'arr\\cross_koppen_landuse_pix.npy').item())
@@ -2837,6 +2835,8 @@ def main():
     #     plot_recovery_time_in_and_out(condition)
     # 3 »¨µãÍ¼
     # Water_balance().run()
+    # 3.1 PDF
+    # plot_early_late_pdf()
     # 4.1 ratio of winter
     # plot_ratio_of_winter()
     # 4.2 time series
