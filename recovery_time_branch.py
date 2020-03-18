@@ -22,6 +22,7 @@ class Recovery_time1:
         # params = range(1,13)
         # MUTIPROCESS(self.gen_recovery_time,params).run(process=6)
         # self.compose_recovery_time()
+        self.ratio_non_early_late()
         pass
 
 
@@ -474,6 +475,42 @@ class Recovery_time1:
         DIC_and_TIF().pix_dic_to_tif(late_ratio_dic,outdir+'late_ratio.tif')
 
 
+    def ratio_non_early_late(self):
+        outdir = self.this_class_tif + '\\ratio\\'
+        Tools().mk_dir(outdir)
+        f = self.this_class_arr + '\\recovery_time_composite\\composite.npy'
+        dic = dict(np.load(f).item())
+
+        tropical_pix = self.tropical_pix
+        ndvi_valid_pix = self.ndvi_valid_pix
+
+        ratio_dic = {}
+        for pix in tqdm(dic):
+            if pix in tropical_pix:
+                continue
+            if pix not in ndvi_valid_pix:
+                continue
+            events = dic[pix]
+            flag = 0.
+            flag_all = 0.
+
+            for event in events:
+                recovery_time, mark, recovery_date_range, date_range, eln = event
+                if mark == 'tropical':
+                    continue
+                flag_all += 1.
+                if mark != 'out':
+                    continue
+                flag += 1.
+
+            if flag == 0:
+                continue
+            ratio = flag/flag_all
+            ratio_dic[pix] = ratio
+        # arr = DIC_and_TIF
+        DIC_and_TIF().pix_dic_to_tif(ratio_dic,outdir+'ratio_total.tif')
+
+
 
     def plot_early_late_pdf(self):
         fdir = this_root+'new_2020\\tif\\recovery_time\\'
@@ -508,7 +545,7 @@ class Recovery_time1:
 
 def main():
 
-    Recovery_time1().run1()
+    Recovery_time1().run()
 
     pass
 
