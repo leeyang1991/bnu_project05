@@ -1431,6 +1431,22 @@ class KDE_plot:
 
     def plot_scatter(self, val1, val2, cmap='magma', reverse=0, s=0.3, title='',ax=None,**kwargs):
 
+        print 'data length is {}'.format(len(val1))
+        if len(val1) > 30000:
+            val_range_index = range(len(val1))
+            val_range_index = random.sample(val_range_index, 30000)  # 从val中随机选择30000个点，目的是加快核密度算法
+            new_val1 = []
+            new_val2 = []
+            for i in val_range_index:
+                new_val1.append(val1[i])
+                new_val2.append(val2[i])
+            val1 = new_val1
+            val2 = new_val2
+        else:
+            val1 = val1
+            val2 = val2
+        print 'data length is modified to {}'.format(len(val1))
+
         kde_val = np.array([val1, val2])
         print('doing kernel density estimation... ')
         densObj = kde(kde_val)
