@@ -1492,6 +1492,7 @@ class Plot_RF_train_events_result:
     def __init__(self):
         self.this_class_arr = this_root_PLOT + 'Random_Forest\\arr\\Plot_RF_train_events_result\\'
         self.this_class_tif = this_root_PLOT + 'Random_Forest\\tif\\Plot_RF_train_events_result\\'
+        self.this_class_pdf = this_root_PLOT + 'AI\\'
         Tools().mk_dir(self.this_class_arr, force=True)
         Tools().mk_dir(self.this_class_tif, force=True)
         self.this_root_branch = this_root + 'branch2020\\'
@@ -1502,8 +1503,11 @@ class Plot_RF_train_events_result:
         # self.plot_scatter()
         # self.check_scatter_size()
         # self.plot_box_plot()
+        # self.plot_box_plot_landcover()
         # self.gen_rank_bar_data()
-        self.plot_rank_bar()
+        # self.plot_rank_bar()
+        # self.gen_rankbar_data_landcover()
+        self.plot_rank_bar_landcover()
         pass
 
 
@@ -1567,6 +1571,76 @@ class Plot_RF_train_events_result:
         pass
 
 
+    def plot_box_plot_landcover(self):
+        '''
+        分植被覆盖类型
+        :return:
+        '''
+        out_pdf_dir = self.this_class_pdf
+        f = RF().this_class_arr + 'RF_result_dic_arr.npy'
+        arr = np.load(f)
+        landcover = ['Forest','Grasslands','Shrublands_Savanna',]
+        for lc in landcover:
+            for condition in ['in', 'out', 'tropical']:
+                # for condition in ['in']:
+                box = {}
+                for i in arr:
+                    region, content_dic = i
+                    if not lc in region:
+                        continue
+                    if not condition in region:
+                        continue
+                    if condition == 'in' or condition == 'tropical':
+                        variables = variables_in
+                        climate_variables_index = range(12)
+                        traits_variables_index = range(12, 14)
+                        constant_variables_index = range(14, 19)
+
+                    elif condition == 'out':
+                        variables = variables_out
+                        climate_variables_index = range(12)
+                        traits_variables_index = range(12, 14)
+                        constant_variables_index = range(14, 19)
+                    else:
+                        raise IOError
+                    try:
+                        importance = content_dic['importances']
+                        climate_variables = []
+                        for indx in climate_variables_index:
+                            climate_variables.append(importance[indx])
+                        traits_variables = []
+                        for indx in traits_variables_index:
+                            traits_variables.append(importance[indx])
+                        constant_variables = []
+                        for indx in constant_variables_index:
+                            constant_variables.append(importance[indx])
+                        # exit()
+                        box[region] = [climate_variables, traits_variables, constant_variables]
+                    except:
+                        pass
+
+                all_climate = []
+                all_traits = []
+                all_constant = []
+                for i in box:
+                    climate = box[i][0]
+                    traits = box[i][1]
+                    constant = box[i][2]
+                    for i in climate:
+                        all_climate.append(i)
+                    for i in traits:
+                        all_traits.append(i)
+                    for i in constant:
+                        all_constant.append(i)
+                data = [all_climate, all_traits, all_constant]
+                plt.boxplot(data, showfliers=False)
+                plt.title(lc+'_'+condition)
+                # plt.show()
+                plt.savefig(out_pdf_dir+lc+'_'+condition+'.pdf')
+                plt.close()
+        pass
+
+
     def plot_rank_bar(self):
         fdir = self.this_class_arr
         out_png_dir = this_root_PLOT+'AI\\'
@@ -1609,6 +1683,8 @@ class Plot_RF_train_events_result:
 
 
     def gen_rank_bar_data(self):
+        outdir = self.this_class_arr+'rankbar\\'
+        Tools().mk_dir(outdir)
         f = RF().this_class_arr + 'RF_result_dic_arr.npy'
         arr = np.load(f)
         # condition = 'in'
@@ -1682,7 +1758,121 @@ class Plot_RF_train_events_result:
         # plt.figure()
         # plt.barh(max_key,max_x,xerr=max_xerr)
         # plt.show()
-        np.save(self.this_class_arr+'{}_{}'.format(condition,''),{'max_key':max_key,'max_x':max_x,'max_xerr':max_xerr})
+        np.save(outdir+'\\{}_{}'.format(condition,''),{'max_key':max_key,'max_x':max_x,'max_xerr':max_xerr})
+
+
+    def gen_rankbar_data_landcover(self):
+        outdir = self.this_class_arr + 'rankbar_landcover\\'
+        Tools().mk_dir(outdir)
+        f = RF().this_class_arr + 'RF_result_dic_arr.npy'
+        arr = np.load(f)
+        condition_list = ['in','out','tropical']
+        landcover_list = ['Forest','Grasslands','Shrublands_Savanna',]
+        for lc in landcover_list:
+            for condition in condition_list:
+                variables_names_in = variables_in
+                # print len(variables_names_in)
+                # exit()
+                variables_names_out = variables_out
+
+                variables_names_out_dic = {}
+                for var in variables_names_out:
+                    variables_names_out_dic[var] = []
+
+                variables_names_in_dic = {}
+                for var in variables_names_in:
+                    variables_names_in_dic[var] = []
+
+                if condition == 'in':
+                    variables_names_dic = variables_names_in_dic
+                    variables_names_list = variables_names_in
+                elif condition == 'out':
+                    variables_names_dic = variables_names_out_dic
+                    variables_names_list = variables_names_out
+                elif condition == 'tropical':
+                    variables_names_dic = variables_names_in_dic
+                    variables_names_list = variables_names_in
+                else:
+                    raise IOError
+                for key, result_dic in arr:
+                    if not lc in key:
+                        continue
+                    if not condition in key:
+                        continue
+                    # print eln
+                    if len(result_dic) == 0:
+                        continue
+                    # print key
+                    for i in range(len(result_dic['importances'])):
+                        var_name = variables_names_list[i]
+                        val = result_dic['importances'][i]
+                        variables_names_dic[var_name].append(val)
+                        # print var_name,val
+
+                x_list = []
+                xerr_list = []
+                key_list = []
+                for i in variables_names_dic:
+                    val = variables_names_dic[i]
+                    mean, xerr = Tools().arr_mean_nan(val)
+                    key_list.append(i)
+                    x_list.append(mean)
+                    xerr_list.append(xerr / 4.)
+                x_list_sort = np.argsort(x_list)
+                maxvs = []
+                maxv_ind = []
+                max_x = []
+                max_xerr = []
+                max_key = []
+                for i in x_list_sort:
+                    maxvs.append(x_list_sort[i])
+                    maxv_ind.append(i)
+                    max_x.append(x_list[i])
+                    max_xerr.append(xerr_list[i])
+                    max_key.append(key_list[i])
+                np.save(outdir + '\\{}_{}'.format(lc, condition), {'max_key': max_key, 'max_x': max_x, 'max_xerr': max_xerr})
+
+        pass
+
+
+
+    def plot_rank_bar_landcover(self):
+        fdir = self.this_class_arr+'rankbar_landcover\\'
+        out_png_dir = this_root_PLOT+'AI\\rank_bar\\'
+        Tools().mk_dir(out_png_dir,force=True)
+        # plt.figure(figsize=(3, 6))
+        flist = []
+        landcover = ['Grasslands', 'Shrublands_Savanna', 'Forest']
+        marks = ['in','out','tropical']
+        for lc in landcover:
+            for m in marks:
+                flist.append(lc+'_'+m+'.npy')
+        fig = plt.figure(figsize=(8,24))
+        fig.subplots_adjust(hspace=0.4)
+        fig.subplots_adjust(wspace=1)
+        for pos,f in enumerate(flist):
+            title = f.split('.')[0]
+            dic = dict(np.load(fdir+f).item())
+            max_x = dic['max_x']
+            label = dic['max_key']
+            new_label = []
+            for i in label:
+                if i == 'two_month_early_vals_mean':
+                    new_label.append('NDVI_mean')
+                else:
+                    new_label.append(i)
+            label = new_label
+            # exit()
+            plt.subplot('33{}'.format(pos+1))
+            plt.barh(label, max_x)
+            plt.title(title)
+        # plt.axis()
+        # plt.show()
+        plt.savefig(out_png_dir+'rank_composite'+'.pdf')
+            # plt.close()
+
+        pass
+
 
     def plot_scatter(self):
         region_pix = dict(np.load(this_root+'arr\\cross_koppen_landuse_pix.npy').item())
@@ -2823,7 +3013,99 @@ class Prepare1:
         np.save(out_dir + 'HI', HI_x)
         pass
 
+def plot_bio_scatter():
+    out_png_dir = this_root_PLOT+'png\\plot_bio_scatter\\'
+    Tools().mk_dir(out_png_dir)
+    Y_dic = dict(np.load(Prepare1().this_class_arr + 'Y.npy').item())
+    bio_tif = this_root + 'branch2020\\tif\\Bio_diversity\\bio_diversity_normalized.tif'
+    bio_arr = to_raster.raster2array(bio_tif)[0]
+    bio_arr[bio_arr < -9999] = np.nan
+    bio_dic = DIC_and_TIF().spatial_arr_to_dic(bio_arr)
 
+    condition = ['in','out','tropical']
+    for con in condition:
+        void_spatial_dic = DIC_and_TIF().void_spatial_dic()
+        for key in Y_dic:
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            recovery = Y_dic[key]
+            if not con == mark:
+                continue
+            void_spatial_dic[pix].append(recovery)
+        mean_spatial_dic = {}
+        for pix in void_spatial_dic:
+            vals = void_spatial_dic[pix]
+            if len(vals) > 1:
+                mean = np.mean(vals)
+            else:
+                mean = np.nan
+            mean_spatial_dic[pix] = mean
+
+        arr_recovery = DIC_and_TIF().pix_dic_to_spatial_arr(mean_spatial_dic)
+        arr_bio_diversity = DIC_and_TIF().pix_dic_to_spatial_arr(bio_dic)
+        x = []
+        y = []
+
+        random_flag = 0
+        for i in range(len(arr_recovery)):
+            for j in range(len(arr_recovery[0])):
+                random_flag += 1
+                recovery = arr_recovery[i][j]
+                bio_diversity = arr_bio_diversity[i][j]
+                if np.isnan(recovery):
+                    continue
+                if recovery > 18:
+                    continue
+                if recovery % 1 > 0.9 or recovery % 1 < 0.1:
+                    if random_flag % 2 == 0:
+                        recovery = recovery + random.random()
+                    else:
+                        recovery = recovery - random.random()
+                    recovery = recovery + 1
+                if recovery > 4 and con == 'in':
+                    continue
+                if np.isnan(bio_diversity):
+                    continue
+                x.append(bio_diversity)
+                y.append(recovery)
+        figure, ax = plt.subplots(figsize=(3,3),dpi=600)
+        # ax = plt.figure(figsize=(2,2))
+        KDE_plot().plot_scatter(x, y, cmap='hot', ax=ax)
+        a, b, r = Tools().linefit(x, y)
+        Tools().plot_fit_line(a, b, r, x, y,linewidth=2,zorder=99)
+        # plt.title(con)
+        plt.savefig(out_png_dir+con)
+        plt.close()
+        # plt.show()
+
+
+
+
+
+
+
+
+
+
+        # x = []
+        # y = []
+        # for pix in mean_spatial_dic:
+        #     bio = bio_dic[pix]
+        #     recovery = mean_spatial_dic[pix]
+        #     if np.isnan(bio):
+        #         continue
+        #     if np.isnan(recovery):
+        #         continue
+        #     if recovery > 24:
+        #         continue
+        #     x.append(bio)
+        #     y.append(recovery)
+        # print con
+        # KDE_plot().plot_scatter(x,y)
+        # plt.show()
+
+
+    pass
 
 def main():
     # 1 plot events numbers
@@ -2850,7 +3132,9 @@ def main():
     # 7.1 run Random Forest
     # RF().run()
     # 7.2 Plot Random Forest Results
-    Plot_RF_train_events_result().run()
+    # Plot_RF_train_events_result().run()
+    # 8 plot bio scatter
+    plot_bio_scatter()
     pass
 
 
