@@ -608,9 +608,9 @@ class Ternary_plot:
         # 1 load soil and recovery time data
         # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\mix.tif'
 
-        recovery_tif = out_tif_dir+'recovery_time_in.tif'
-        vmin=0
-        vmax=4
+        # recovery_tif = out_tif_dir+'recovery_time_in.tif'
+        # vmin=0
+        # vmax=4
 
         # recovery_tif = out_tif_dir+'recovery_time_mix.tif'
         # vmin = 0
@@ -619,7 +619,36 @@ class Ternary_plot:
         # recovery_tif = out_tif_dir+'recovery_time_out.tif'
         # vmin = 7
         # vmax = 13
-        # recovery_tif = this_root_branch+'tif\\Recovery_time1\\recovery_time\\early.tif'
+
+        # only tropical pix
+        recovery_tif = out_tif_dir+'recovery_time_tropical.tif'
+        vmin = 0
+        vmax = 7
+
+        # generate tropical pix recovery time
+        Y_dic = dict(np.load(Prepare1().this_class_arr + 'Y.npy').item())
+        void_spatial_dic = DIC_and_TIF().void_spatial_dic()
+        for key in Y_dic:
+            split_key = key.split('~')
+            pix, mark, eln, date_range = split_key
+            recovery = Y_dic[key]
+            if recovery > 24:
+                continue
+            if not 'tropical' == mark:
+                continue
+            void_spatial_dic[pix].append(recovery)
+        mean_spatial_dic = {}
+        for pix in void_spatial_dic:
+            vals = void_spatial_dic[pix]
+            if len(vals) > 0:
+                mean = np.mean(vals)
+            else:
+                mean = np.nan
+            mean_spatial_dic[pix] = mean
+
+        arr = DIC_and_TIF().pix_dic_to_spatial_arr(mean_spatial_dic)
+        DIC_and_TIF().arr_to_tif(arr,recovery_tif)
+
         tif_CLAY = this_root_branch+'\\tif\\HWSD\\T_CLAY_resample.tif'
         tif_SAND = this_root_branch+'\\tif\\HWSD\\T_SAND_resample.tif'
         tif_SILT = this_root_branch+'\\tif\\HWSD\\T_SILT_resample.tif'
@@ -3076,15 +3105,7 @@ def plot_bio_scatter():
         # plt.title(con)
         plt.savefig(out_png_dir+con)
         plt.close()
-        # plt.show()
-
-
-
-
-
-
-
-
+        plt.show()
 
 
         # x = []
@@ -3124,7 +3145,7 @@ def main():
     # 4.2 time series
     # plot_time_series()
     # 5 Tenery plot
-    # Ternary_plot().plot_scatter()
+    Ternary_plot().plot_scatter()
     # 6 Threshold
     # Find_Threshold().run()
     # 7 Prepare Random Forest
@@ -3134,7 +3155,7 @@ def main():
     # 7.2 Plot Random Forest Results
     # Plot_RF_train_events_result().run()
     # 8 plot bio scatter
-    plot_bio_scatter()
+    # plot_bio_scatter()
     pass
 
 
