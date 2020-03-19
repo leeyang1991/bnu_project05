@@ -310,7 +310,7 @@ class Tools:
         return a,b,r
 
 
-    def plot_fit_line(self,a,b,r,X,Y,title=''):
+    def plot_fit_line(self,a,b,r,X,Y,title='',**argvs):
         '''
         画拟合直线 y=ax+b
         画散点图 X,Y
@@ -328,7 +328,10 @@ class Tools:
         # plt.subplot(2,2,i)
         # plt.scatter(X,Y,marker='o',s=5,c = 'grey')
         # plt.plot(X,Y)
-        plt.plot(x,y,linestyle='dashed',c='black',linewidth=1,alpha=0.7)
+        if not 'linewidth' in argvs:
+            plt.plot(x, y, linestyle='dashed', c='black', linewidth=1, alpha=0.7, **argvs)
+        else:
+            plt.plot(x,y,linestyle='dashed',c='black',alpha=0.7,**argvs)
         plt.title(title)
 
     def arr_mean(self, arr, threshold):
@@ -1442,10 +1445,10 @@ class KDE_plot:
                 new_val2.append(val2[i])
             val1 = new_val1
             val2 = new_val2
+            print 'data length is modified to {}'.format(len(val1))
         else:
             val1 = val1
             val2 = val2
-        print 'data length is modified to {}'.format(len(val1))
 
         kde_val = np.array([val1, val2])
         print('doing kernel density estimation... ')
