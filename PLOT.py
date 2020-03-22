@@ -3,6 +3,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from analysis import *
+from mpl_toolkits.axes_grid1 import host_subplot
+import mpl_toolkits.axisartist as AA
 
 this_root_PLOT = this_root+'branch2020\\PLOT\\'
 out_tif_dir = this_root_PLOT+'tif\\'
@@ -3126,46 +3128,106 @@ def plot_bio_scatter():
         # plt.show()
 
 
+def plot_time_line_selectd_vals(x,condition='in'):
+    Y_dic = dict(np.load(Prepare1().this_class_arr + 'Y.npy').item())
+    growing_date_range_f = this_root + 'branch2020\\arr\\Winter1\\growing_season_index.npy'
+    growing_date_range_dic = dict(np.load(growing_date_range_f).item())
+    if x == 'SWE':
+        fdir = this_root+'data\\GLOBSWE\\per_pix\\SWE_max_408\\'.format(x)
+    else:
+        fdir = this_root+'data\\{}\\per_pix\\'.format(x)
+    out_dir = this_root_PLOT+'plot_time_line_selectd_vals\\'
+    Tools().mk_dir(out_dir)
+    data_dic = {}
+    for f in tqdm(os.listdir(fdir),desc='loading data'):
+        dic = dict(np.load(fdir+f).item())
+        for pix in dic:
+            vals = np.array(dic[pix],dtype=float)
+            if len(vals) == 0:
+                continue
+            data_dic[pix] = vals
+            try:
+                vals[vals<-9999]=np.nan
+            except:
+                print vals
+                sleep()
+            # plt.plot(vals)
+            # plt.show()
+    all_selected = []
+    for key in Y_dic:
+        split_key = key.split('~')
+        pix, mark, eln, date_range = split_key
+        if mark == condition:
+            recovery_start = int(date_range.split('.')[0])
+            growing_date_range = list(growing_date_range_dic[pix])
+            # 1 看当季植被是几月份开始恢复
+            recovery_start_growing_season_index = growing_date_range.index(recovery_start%12+1)
+            # 2 看月份在growing_date_range排第几，并计算当季生长季的最后一个月
+            growing_season_end = recovery_start + (5-recovery_start_growing_season_index)
+            # 3 找前一年冬季开始的index
+            winter_start = growing_season_end - 12
+            if winter_start < 0:
+                continue
+            # 4 从winter start 到 growing season end 是一个完整的 pre 和 post
+            selectd_range = range(winter_start,growing_season_end)
+            if not pix in data_dic:
+                continue
+            vals = data_dic[pix]
+            selectd_vals = []
+            for r in selectd_range:
+                val = vals[r]
+                selectd_vals.append(val)
+            all_selected.append(selectd_vals)
+    np.save(out_dir+condition+'_'+x,all_selected)
+
+    # host = host_subplot(111, axes_class=AA.Axes)
+    # plt.subplots_adjust(right=0.75)
+    #
+    # par1 = host.twinx()
+    # par2 = host.twinx()
+    #
+    # offset = 60
+    # new_fixed_axis = par2.get_grid_helper().new_fixed_axis
+    # par2.axis["right"] = new_fixed_axis(loc="right",
+    #                                     axes=par2,
+    #                                     offset=(offset, 0))
+    #
+    # par2.axis["right"].toggle(all=True)
+    #
+    # host.set_xlim(0, 2)
+    # host.set_ylim(0, 2)
+    #
+    # host.set_xlabel("Distance")
+    # host.set_ylabel("Density")
+    # par1.set_ylabel("Temperature")
+    # par2.set_ylabel("Velocity")
+    #
+    # p1, = host.plot([0, 1, 2], [0, 1, 2], label="Density")
+    # p2, = par1.plot([0, 1, 2], [0, 3, 2], label="Temperature")
+    # p3, = par2.plot([0, 1, 2], [50, 30, 15], label="Velocity")
+    #
+    # par1.set_ylim(0, 4)
+    # par2.set_ylim(1, 65)
+    #
+    # host.legend()
+    #
+    # host.axis["left"].label.set_color(p1.get_color())
+    # par1.axis["right"].label.set_color(p2.get_color())
+    # par2.axis["right"].label.set_color(p3.get_color())
+    #
+    # plt.draw()
+    # plt.show()
+
 def plot_time_line():
-    # Y_dic = dict(np.load(Prepare1().this_class_arr + 'Y.npy').item())
-    #     #
-    #     # for key in Y_dic:
-    #     #     split_key = key.split('~')
-    #     #     pix, mark, eln, date_range = split_key
-    #     #     recovery = Y_dic[key]
-    #     #     print recovery
-    #     #     print split_key
-    # Create some mock data
-    t = np.arange(0.01, 10.0, 0.01)
-    data1 = np.exp(t)
-    data2 = np.sin(2 * np.pi * t)
-
-    fig, ax1 = plt.subplots()
-
-    color = 'tab:red'
-    ax1.set_xlabel('time (s)')
-    ax1.set_ylabel('exp', color=color)
-    ax1.plot(t, data1, color=color)
-    ax1.tick_params(axis='y', labelcolor=color)
-
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    color = 'tab:blue'
-    ax2.set_ylabel('sin', color=color)  # we already handled the x-label with ax1
-    ax2.plot(t, data2, color=color)
-    ax2.tick_params(axis='y', labelcolor=color)
-
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    pre_arrs = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\PRE.npy')
+    SWE_arrs = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\SWE.npy')
+    flag = 0
+    for i in pre_arrs:
+        plt.plot(i)
+        flag += 1
+        if flag > 10:
+            break
     plt.show()
-
-
-
-
-
-    pass
-
-
-
 
 def main():
     # 1 plot events numbers
@@ -3196,7 +3258,10 @@ def main():
     # 8 plot bio scatter
     # plot_bio_scatter()
     # 9 plot time line
-    plot_time_line()
+    for x in ['PRE','SWE']:
+        for condition in ['in','out']:
+            plot_time_line_selectd_vals(x,condition)
+    # plot_time_line()
     pass
 
 
