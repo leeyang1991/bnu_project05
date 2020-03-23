@@ -978,6 +978,19 @@ class SMOOTH:
             temp = 0
         return np.array(new_x)
 
+
+    def smooth_interpolate(self,inx,iny,zoom):
+        '''
+        1d平滑差值
+        :param inlist:
+        :return:
+        '''
+
+        x_new = np.arange(min(inx),max(inx),((max(inx)-min(inx))/float(len(inx)))/float(zoom))
+        func = interpolate.interp1d(inx,iny,kind='cubic')
+        y_new = func(x_new)
+        return x_new,y_new
+
     def forward_window_smooth(self, x, window=3):
         # 前窗滤波
         # window = window-1
