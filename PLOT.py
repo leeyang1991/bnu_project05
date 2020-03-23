@@ -3219,14 +3219,40 @@ def plot_time_line_selectd_vals(x,condition='in'):
     # plt.show()
 
 def plot_time_line():
-    pre_arrs = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\PRE.npy')
-    SWE_arrs = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\SWE.npy')
+    pre_in = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\in_PRE.npy')
+    pre_out = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\out_PRE.npy')
+
+    # SWE_in = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\in_SWE.npy')
+    # SWE_out = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\out_SWE.npy')
+
     flag = 0
-    for i in pre_arrs:
-        plt.plot(i)
-        flag += 1
-        if flag > 10:
-            break
+    random.seed(2020)
+    random_choice_indx = random.sample(range(len(pre_in)), 5000)
+    condition='in'
+    # condition='out'
+    for i in tqdm(random_choice_indx):
+        if condition == 'in':
+            vals = pre_in[i]
+            interp_val = Tools().interp_nan(vals)
+            try:
+                xnew,ynew = SMOOTH().smooth_interpolate(range(len(interp_val)),interp_val,zoom=10)
+                ynew[ynew<0]=0.
+                flag += 1
+            except:
+                continue
+            plt.plot(xnew, ynew, c='blue', alpha=0.01)
+        elif condition == 'out':
+            vals = pre_out[i]
+            interp_val = Tools().interp_nan(vals)
+            try:
+                xnew, ynew = SMOOTH().smooth_interpolate(range(len(interp_val)), interp_val, zoom=10)
+                ynew[ynew < 0] = 0.
+                flag += 1
+            except:
+                continue
+            plt.plot(xnew, ynew, c='black', alpha=0.01)
+    print flag
+    plt.ylim(0,800)
     plt.show()
 
 def main():
@@ -3258,10 +3284,10 @@ def main():
     # 8 plot bio scatter
     # plot_bio_scatter()
     # 9 plot time line
-    for x in ['PRE','SWE']:
-        for condition in ['in','out']:
-            plot_time_line_selectd_vals(x,condition)
-    # plot_time_line()
+    # for x in ['PRE','SWE']:
+    #     for condition in ['in','out']:
+    #         plot_time_line_selectd_vals(x,condition)
+    plot_time_line()
     pass
 
 
