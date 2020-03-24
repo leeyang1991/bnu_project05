@@ -3132,128 +3132,118 @@ def plot_time_line_selectd_vals(x,condition='in'):
     Y_dic = dict(np.load(Prepare1().this_class_arr + 'Y.npy').item())
     growing_date_range_f = this_root + 'branch2020\\arr\\Winter1\\growing_season_index.npy'
     growing_date_range_dic = dict(np.load(growing_date_range_f).item())
+
+    landuse_types = [[1, 2, 3, 4, 5], [6, 7, 8, 9], 10]
+    labels = ['Forest', 'Shrublands_Savanna', 'Grasslands']
+
+    landuse_class_dic = Water_balance().gen_landuse_zonal_index()
+
+    landuse_dic = {}
+    for landuse in range(len(landuse_types)):
+        #     # print 'landuse',landuse
+        lc_label = labels[landuse]
+        if type(landuse_types[landuse]) == int:
+            landuse_index = landuse_class_dic[landuse_types[landuse]]
+        elif type(landuse_types[landuse]) == list:
+            landuse_index = []
+            for lt in landuse_types[landuse]:
+                for ll in landuse_class_dic[lt]:
+                    landuse_index.append(ll)
+        else:
+            landuse_index = None
+            raise IOError('landuse type error')
+        landuse_dic[lc_label] = landuse_index
+
+    # 4、生成纬度 dic
+    # latitude_dic = self.gen_latitude_zone_arr()
+    # 4.1 koppen zone
+    Koppen_dic = Koppen().do_reclass()
+
     if x == 'SWE':
-        fdir = this_root+'data\\GLOBSWE\\per_pix\\SWE_max_408\\'.format(x)
+        fdir = this_root + 'data\\GLOBSWE\\per_pix\\SWE_max_408\\'.format(x)
     else:
-        fdir = this_root+'data\\{}\\per_pix\\'.format(x)
-    out_dir = this_root_PLOT+'plot_time_line_selectd_vals\\'
+        fdir = this_root + 'data\\{}\\per_pix\\'.format(x)
+    out_dir = this_root_PLOT + 'plot_time_line_selectd_vals\\'
     Tools().mk_dir(out_dir)
     data_dic = {}
-    for f in tqdm(os.listdir(fdir),desc='loading data'):
-        dic = dict(np.load(fdir+f).item())
+    for f in tqdm(os.listdir(fdir), desc='loading data'):
+        dic = dict(np.load(fdir + f).item())
         for pix in dic:
-            vals = np.array(dic[pix],dtype=float)
+            vals = np.array(dic[pix], dtype=float)
             if len(vals) == 0:
                 continue
             data_dic[pix] = vals
             try:
-                vals[vals<-9999]=np.nan
+                vals[vals < -9999] = np.nan
             except:
                 print vals
                 sleep()
-            # plt.plot(vals)
-            # plt.show()
-    all_selected = []
-    for key in Y_dic:
-        split_key = key.split('~')
-        pix, mark, eln, date_range = split_key
-        if mark == condition:
-            recovery_start = int(date_range.split('.')[0])
-            growing_date_range = list(growing_date_range_dic[pix])
-            # 1 看当季植被是几月份开始恢复
-            recovery_start_growing_season_index = growing_date_range.index(recovery_start%12+1)
-            # 2 看月份在growing_date_range排第几，并计算当季生长季的最后一个月
-            growing_season_end = recovery_start + (5-recovery_start_growing_season_index)
-            # 3 找前一年冬季开始的index
-            winter_start = growing_season_end - 12
-            if winter_start < 0:
-                continue
-            # 4 从winter start 到 growing season end 是一个完整的 pre 和 post
-            selectd_range = range(winter_start,growing_season_end)
-            if not pix in data_dic:
-                continue
-            vals = data_dic[pix]
-            selectd_vals = []
-            for r in selectd_range:
-                val = vals[r]
-                selectd_vals.append(val)
-            all_selected.append(selectd_vals)
-    np.save(out_dir+condition+'_'+x,all_selected)
 
-    # host = host_subplot(111, axes_class=AA.Axes)
-    # plt.subplots_adjust(right=0.75)
-    #
-    # par1 = host.twinx()
-    # par2 = host.twinx()
-    #
-    # offset = 60
-    # new_fixed_axis = par2.get_grid_helper().new_fixed_axis
-    # par2.axis["right"] = new_fixed_axis(loc="right",
-    #                                     axes=par2,
-    #                                     offset=(offset, 0))
-    #
-    # par2.axis["right"].toggle(all=True)
-    #
-    # host.set_xlim(0, 2)
-    # host.set_ylim(0, 2)
-    #
-    # host.set_xlabel("Distance")
-    # host.set_ylabel("Density")
-    # par1.set_ylabel("Temperature")
-    # par2.set_ylabel("Velocity")
-    #
-    # p1, = host.plot([0, 1, 2], [0, 1, 2], label="Density")
-    # p2, = par1.plot([0, 1, 2], [0, 3, 2], label="Temperature")
-    # p3, = par2.plot([0, 1, 2], [50, 30, 15], label="Velocity")
-    #
-    # par1.set_ylim(0, 4)
-    # par2.set_ylim(1, 65)
-    #
-    # host.legend()
-    #
-    # host.axis["left"].label.set_color(p1.get_color())
-    # par1.axis["right"].label.set_color(p2.get_color())
-    # par2.axis["right"].label.set_color(p3.get_color())
-    #
-    # plt.draw()
-    # plt.show()
+    for lc_i in tqdm(landuse_dic,desc='selecting'):
+        for Koppen_i in Koppen_dic:
+            lc_pixs = landuse_dic[lc_i]
+            Koppen_pixs = Koppen_dic[Koppen_i]
+            intersect = Water_balance().intersection(lc_pixs, Koppen_pixs)
+            intersect = set(intersect)
+
+            all_selected = []
+            for key in Y_dic:
+                split_key = key.split('~')
+                pix, mark, eln, date_range = split_key
+                if not pix in intersect:
+                    continue
+                if mark == condition:
+                    recovery_start = int(date_range.split('.')[0])
+                    growing_date_range = list(growing_date_range_dic[pix])
+                    # 1 看当季植被是几月份开始恢复
+                    recovery_start_growing_season_index = growing_date_range.index(recovery_start%12+1)
+                    # 2 看月份在growing_date_range排第几，并计算当季生长季的最后一个月
+                    growing_season_end = recovery_start + (5-recovery_start_growing_season_index)
+                    # 3 找前一年冬季开始的index
+                    winter_start = growing_season_end - 12
+                    if winter_start < 0:
+                        continue
+                    # 4 从winter start 到 growing season end 是一个完整的 pre 和 post
+                    selectd_range = range(winter_start,growing_season_end)
+                    if not pix in data_dic:
+                        continue
+                    vals = data_dic[pix]
+                    selectd_vals = []
+                    for r in selectd_range:
+                        val = vals[r]
+                        selectd_vals.append(val)
+                    all_selected.append(selectd_vals)
+            np.save(out_dir+'{}_{}_{}_{}'.format(condition,x,lc_i,Koppen_i),all_selected)
 
 def plot_time_line():
-    pre_in = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\in_PRE.npy')
-    pre_out = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\out_PRE.npy')
 
-    # SWE_in = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\in_SWE.npy')
-    # SWE_out = np.load(this_root_PLOT+'plot_time_line_selectd_vals\\out_SWE.npy')
+    fdir = this_root_PLOT+'plot_time_line_selectd_vals\\'
+    for f in os.listdir(fdir):
+        print f
+        arrs = np.load(fdir+f)
 
-    flag = 0
-    random.seed(2020)
-    random_choice_indx = random.sample(range(len(pre_in)), 5000)
-    condition='in'
-    # condition='out'
-    for i in tqdm(random_choice_indx):
-        if condition == 'in':
-            vals = pre_in[i]
+        flag = 0
+        # random.seed(2020)
+        # random_choice_indx = random.sample(range(len(arrs)), 5000)
+        data = []
+        for i in tqdm(range(len(arrs))):
+            vals = arrs[i]
             interp_val = Tools().interp_nan(vals)
             try:
                 xnew,ynew = SMOOTH().smooth_interpolate(range(len(interp_val)),interp_val,zoom=10)
                 ynew[ynew<0]=0.
+                data.append(ynew)
+                # X.append(xnew)
+                # Y.append(ynew)
                 flag += 1
             except:
                 continue
-            plt.plot(xnew, ynew, c='blue', alpha=0.01)
-        elif condition == 'out':
-            vals = pre_out[i]
-            interp_val = Tools().interp_nan(vals)
-            try:
-                xnew, ynew = SMOOTH().smooth_interpolate(range(len(interp_val)), interp_val, zoom=10)
-                ynew[ynew < 0] = 0.
-                flag += 1
-            except:
-                continue
-            plt.plot(xnew, ynew, c='black', alpha=0.01)
-    print flag
-    plt.ylim(0,800)
-    plt.show()
+        # plt.plot(X, Y, c='black', alpha=0.01)
+        data = np.array(data).T
+        plt.plot(data, c='black', alpha=0.01)
+        print flag
+        # plt.ylim(0,800)
+        plt.show()
 
 def main():
     # 1 plot events numbers

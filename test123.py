@@ -9,48 +9,45 @@ from analysis import *
 import random
 import matplotlib.patches as patches
 
+
 def foo():
-    selected_months = [0,11,1,2,10,5]
-    selected_months.sort()
+    from matplotlib import rcParams, cycler
+    import matplotlib.pyplot as plt
+    import numpy as np
 
-    if 0 in selected_months and 11 in selected_months:
-        bias = []
-        for i in selected_months:
-            if i < 6:
-                delta = i + 1
-                pass
-            else:
-                delta = i - 11
-            bias.append(delta)
+    # Fixing random state for reproducibility
+    np.random.seed(19680801)
 
-        mid_month = np.floor(np.mean(bias)) + 11
-        print np.mean(bias)
-        print bias
-        print selected_months
-        print mid_month
+    N = 10
+    data = [np.logspace(0, 1, 100) + np.random.randn(100) + ii for ii in range(N)]
+    data = np.array(data).T
+    print np.shape(data)
+    for i in data:
+        print i
+    exit()
+    cmap = plt.cm.coolwarm
+    rcParams['axes.prop_cycle'] = cycler(color=cmap(np.linspace(0, 1, N)))
 
-        growing_season = [
-            mid_month - 2,
-            mid_month - 1,
-            mid_month + 0,
-            mid_month + 1,
-            mid_month + 2,
-            mid_month + 3,
-        ]
-        new_growing_season = []
-        for i in growing_season:
-            if i > 11:
-                new_growing_season.append(int(i - 12))
-            else:
-                new_growing_season.append(int(i))
-        # new_growing_season.sort()
-        print new_growing_season
+    fig, ax = plt.subplots()
+    lines = ax.plot(data)
+    ax.legend(lines)
+    plt.show()
+    pass
 
-        # plt.plot(vals)
-        # plt.scatter(range(len(vals)), vals)
-        # for i in range(len(max_6_vals)):
-        #     plt.text(max_6_vals[i][1], max_6_vals[i][0], str(max_6_vals[i][2]) + '\n' + '%0.2f' % max_6_vals[i][0])
-        # plt.show()
+def pencil():
+    plt.figure(figsize=(3, 3))
+    for _ in tqdm(range(1000)):
+        x = []
+        y = []
+        a = -(random.random())
+        b = random.random()
+        c = random.random()*5
+        for i in np.linspace(-3,3,100):
+            yy = a*((i)**2) +b*i + c
+            x.append(i)
+            y.append(yy)
+        plt.plot(x,y,c='black',alpha=0.007)
+    plt.show()
     pass
 
 def func():
